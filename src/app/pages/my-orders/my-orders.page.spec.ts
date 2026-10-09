@@ -145,13 +145,13 @@ describe('MyOrdersPage', () => {
     expect(element.textContent).toContain('Could not load your orders');
   });
 
-  it('should not query orders when the customer is signed out', () => {
+  it('should ask the customer to sign in when the session is gone', () => {
     const fixture = setup(null, []);
     const element = fixture.nativeElement as HTMLElement;
 
     expect(watchedCustomers).toEqual([]);
-    expect(fixture.componentInstance.status()).toBe('error');
+    expect(fixture.componentInstance.status()).toBe('signed-out');
     expect(fixture.componentInstance.orders()).toEqual([]);
-    expect(element.textContent).toContain('Could not load your orders');
+    expect(element.textContent).toContain('Please sign in to see your orders');
   });
 });

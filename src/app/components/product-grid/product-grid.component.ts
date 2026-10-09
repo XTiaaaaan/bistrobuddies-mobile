@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe } from 'ionicons/icons';
+import { formatPeso } from '../../core/format/price';
 import { Product } from '../../models/product.model';
 import { ProductsService } from '../../services/products.service';
 
@@ -51,14 +52,10 @@ export class ProductGridComponent implements OnInit {
     );
 
     if (prices.length === 0) {
-      return '—';
+      return formatPeso(null);
     }
 
-    const lowest = Math.min(...prices);
-    return `₱${lowest.toLocaleString('en-PH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    return formatPeso(Math.min(...prices));
   }
 
   private load() {

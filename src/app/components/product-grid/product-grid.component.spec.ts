@@ -108,8 +108,8 @@ describe('ProductGridComponent', () => {
     expect(fixture.componentInstance.products().length).toBe(2);
   });
 
-  it('should show image, description, availability and starting price', () => {
-    const fixture = setup(() => of([makeProduct({})]));
+  it('should show image, description, category, availability and starting price', () => {
+    const fixture = setup(() => of([makeProduct({ category: 'frappe' })]));
     fixture.detectChanges();
 
     const card = fixture.nativeElement as HTMLElement;
@@ -117,9 +117,19 @@ describe('ProductGridComponent', () => {
       'https://example.com/latte.png'
     );
     expect(card.textContent).toContain('House Latte');
+    expect(card.textContent).toContain('frappe');
+    expect(card.querySelector('.product-category')?.textContent?.trim()).toBe('frappe');
     expect(card.textContent).toContain('Smooth espresso with steamed milk.');
     expect(card.textContent).toContain('Available');
     expect(card.textContent).toContain('₱100.00');
+  });
+
+  it('should hide the category chip when a product has no category', () => {
+    const fixture = setup(() => of([makeProduct({ category: '' })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('.product-category')).toBeNull();
   });
 
   it('should mark unavailable products as sold out', () => {

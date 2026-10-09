@@ -19,8 +19,9 @@ import {
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { cafe, cart } from 'ionicons/icons';
+import { alertCircle, cafe, cart } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
+import { formatPeso } from '../../core/format/price';
 import { CartItem } from '../../models/cart.model';
 import { PaymentMethod } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
@@ -34,6 +35,23 @@ import {
 import { UsersService } from '../../services/users.service';
 
 type InputEventLike = { detail: { value?: unknown } };
+
+/** Shown when the backend rejects the Bearer token (expired / revoked). */
+export const SESSION_EXPIRED_MESSAGE =
+  'Your session has expired. Please sign in again to place your order.';
+
+/** Turns a backend order failure into a message the customer can act on. */
+export function orderErrorMessage(error: unknown): string {
+  if (error instanceof OrderApiError) {
+    if (error.status === 404 || error.status === 409) {
+      return `${error.message} Update your cart to continue.`;
+    }
+    if (error.message) {
+      return error.message;
+    }
+  }
+  return 'We could not place your order. Please try again.';
+}
 
 @Component({
   selector: 'app-checkout',
@@ -75,7 +93,7 @@ export class CheckoutPage implements OnInit {
     {
       value: PaymentMethod.ONLINE,
       label: 'Online Payment',
-      hint: 'Pay securely online after placing the order.',
+      hint: 'Online payment is not enabled in this build yet.',
     },
   ];
 
@@ -85,6 +103,8 @@ export class CheckoutPage implements OnInit {
   readonly comment = signal('');
   readonly paymentMethod = signal<PaymentMethod>(PaymentMethod.COD);
   readonly uid = signal<string | null>(null);
+  /** True once the auth state has been resolved at least once. */
+  readonly authChecked = signal(false);
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -94,6 +114,8 @@ export class CheckoutPage implements OnInit {
   readonly missingPhone = computed(() => this.phone().trim() === '');
   readonly missingAddress = computed(() => this.address().trim() === '');
   readonly total = computed(() => this.subtotal() + this.deliveryFee);
+  /** Session expired / signed out while the checkout page was open. */
+  readonly signedOut = computed(() => this.authChecked() && this.uid() === null);
 
   readonly canSubmit = computed(
     () =>
@@ -106,7 +128,7 @@ export class CheckoutPage implements OnInit {
   );
 
   constructor() {
-    addIcons({ cafe, cart });
+    addIcons({ alertCircle, cafe, cart });
   }
 
   ngOnInit(): void {
@@ -114,6 +136,7 @@ export class CheckoutPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((user) => {
         this.uid.set(user?.uid ?? null);
+        this.authChecked.set(true);
         if (user) {
           void this.prefill(user.uid, user.displayName ?? '');
         }
@@ -196,11 +219,14 @@ export class CheckoutPage implements OnInit {
       await this.router.navigate(['/dashboard']);
       return response.id;
     } catch (error) {
-      this.errorMessage.set(
-        error instanceof OrderApiError && error.message
-          ? error.message
-          : 'We could not place your order. Please try again.'
-      );
+      if (error instanceof OrderApiError && error.status === 401) {
+        this.errorMessage.set(SESSION_EXPIRED_MESSAGE);
+        await this.router.navigate(['/login'], {
+          queryParams: { redirect: '/checkout', reason: 'expired' },
+        });
+        return;
+      }
+      this.errorMessage.set(orderErrorMessage(error));
     } finally {
       this.submitting.set(false);
     }
@@ -231,10 +257,7 @@ export class CheckoutPage implements OnInit {
   }
 
   formatPrice(value: number): string {
-    return `₱${value.toLocaleString('en-PH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    return formatPeso(value);
   }
 }
 

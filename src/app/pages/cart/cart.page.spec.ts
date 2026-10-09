@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Timestamp } from 'firebase/firestore';
-import { of } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { CartItemInput } from '../../models/cart.model';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
@@ -43,13 +43,14 @@ function item(overrides: Partial<CartItemInput> = {}): CartItemInput {
 describe('CartPage', () => {
   function setup(
     items: CartItemInput[] = [],
-    products: Product[] = [makeProduct()]
+    products: Product[] = [makeProduct()],
+    products$?: Observable<Product[]>
   ): { fixture: ComponentFixture<CartPage>; component: CartPage; cart: CartService } {
     TestBed.configureTestingModule({
       imports: [CartPage],
       providers: [
         provideRouter([]),
-        { provide: ProductsService, useValue: { watchProducts: () => of(products) } },
+        { provide: ProductsService, useValue: { watchProducts: () => products$ ?? of(products) } },
       ],
     });
 
@@ -174,5 +175,65 @@ describe('CartPage', () => {
     expect(component.isSizeDisabled(component.items()[0], 'large')).toBe(false);
     expect(component.priceLabel('p1', 'medium')).toBe('');
     expect(component.priceLabel('p1', 'large')).toContain('₱160.00');
+  });
+
+  it('blocks checkout when a product left the menu', () => {
+    const { fixture, component } = setup([item()], []);
+
+    expect(component.itemStatus(component.items()[0])).toBe('missing');
+    expect(component.hasBlockedItems()).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'can no longer be ordered'
+    );
+  });
+
+  it('blocks checkout when a product is sold out', () => {
+    const { component } = setup([item()], [makeProduct({ available: false })]);
+
+    expect(component.itemStatus(component.items()[0])).toBe('unavailable');
+    expect(component.hasBlockedItems()).toBe(true);
+    expect(component.itemWarning(component.items()[0])).toContain('Sold out');
+  });
+
+  it('blocks checkout when the size has no price any more', () => {
+    const { component } = setup(
+      [item({ size: 'large', unitPrice: 160 })],
+      [makeProduct({ smallPrice: 100, mediumPrice: 130, largePrice: 0 })]
+    );
+
+    expect(component.itemStatus(component.items()[0])).toBe('unpriced');
+    expect(component.hasBlockedItems()).toBe(true);
+  });
+
+  it('does not block checkout while the catalog is still loading', () => {
+    const { component } = setup([item()], [], new Subject<Product[]>());
+
+    expect(component.productsStatus()).toBe('loading');
+    expect(component.itemStatus(component.items()[0])).toBe('checking');
+    expect(component.hasBlockedItems()).toBe(false);
+  });
+
+  it('keeps checkout usable when the catalog cannot be verified', () => {
+    const { fixture, component } = setup(
+      [item()],
+      [],
+      throwError(() => new Error('offline'))
+    );
+
+    expect(component.productsStatus()).toBe('error');
+    expect(component.hasBlockedItems()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Could not verify availability'
+    );
+  });
+
+  it('clears the warning once a blocked item is removed', () => {
+    const { component, cart } = setup([item()], []);
+
+    expect(component.hasBlockedItems()).toBe(true);
+
+    component.remove(component.items()[0]);
+    expect(cart.items()).toEqual([]);
+    expect(component.hasBlockedItems()).toBe(false);
   });
 });

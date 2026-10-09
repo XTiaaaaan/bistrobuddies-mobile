@@ -31,6 +31,17 @@
         <ion-icon name="cart"></ion-icon>
       </div>
 
+      @if (productsStatus() === 'error') {
+        <div class="notice notice-error" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Could not verify availability</strong>
+            <p>Check your connection before checking out.</p>
+          </div>
+          <ion-button fill="outline" size="small" (click)="retryCatalog()">Try Again</ion-button>
+        </div>
+      }
+
       @for (item of items(); track itemKey(item)) {
         <section class="item-card">
           <div class="item-head">
@@ -57,6 +68,10 @@
               <ion-icon slot="icon-only" name="trash"></ion-icon>
             </ion-button>
           </div>
+
+          @if (itemWarning(item); as warning) {
+            <p class="item-warning" role="alert">{{ warning }}</p>
+          }
 
           <div class="item-options">
             <ion-select
@@ -124,13 +139,23 @@
         </div>
       </section>
 
-      <ion-button
-        class="checkout-button"
-        expand="block"
-        routerLink="/checkout"
-      >
-        Proceed to Checkout
-      </ion-button>
+      @if (hasBlockedItems()) {
+        <div class="notice notice-error" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>{{ blockedItems().length }} item(s) can no longer be ordered</strong>
+            <p>Remove them to continue to checkout.</p>
+          </div>
+        </div>
+
+        <ion-button class="checkout-button" expand="block" [disabled]="true">
+          Proceed to Checkout
+        </ion-button>
+      } @else {
+        <ion-button class="checkout-button" expand="block" routerLink="/checkout">
+          Proceed to Checkout
+        </ion-button>
+      }
 
       <div class="actions">
         <ion-button class="clear-button" fill="outline" (click)="clear()">Clear Cart</ion-button>

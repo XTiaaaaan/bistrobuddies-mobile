@@ -1,6 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
 import { OrderStatus } from '../../models/order.model';
 import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
+import { formatPeso } from '../format/price';
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: 'Pending',
@@ -58,8 +59,5 @@ export function formatOrderDate(timestamp: Timestamp | null | undefined): string
 }
 
 export function formatOrderPrice(value: number): string {
-  return `₱${value.toLocaleString('en-PH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return formatPeso(value);
 }

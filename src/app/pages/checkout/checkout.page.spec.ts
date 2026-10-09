@@ -9,6 +9,7 @@ import { CartService } from '../../services/cart.service';
 import {
   CreateOrderRequest,
   CreateOrderResponse,
+  OrderApiError,
   OrdersApiService,
 } from '../../services/orders-api.service';
 import { UsersService } from '../../services/users.service';
@@ -197,6 +198,38 @@ describe('CheckoutPage', () => {
     expect(cart.items().length).toBe(1);
     expect(component.errorMessage()).toContain('could not place your order');
     expect(component.submitting()).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('should send the customer back to login when the session expired', async () => {
+    const expired = vi.fn(() =>
+      Promise.reject(new OrderApiError('Authentication is required.', 401))
+    );
+    const { component, cart, navigate } = setup([item()], null, expired);
+
+    fillContact(component);
+    await component.placeOrder();
+
+    expect(component.errorMessage()).toContain('session has expired');
+    expect(cart.items().length).toBe(1);
+    expect(navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { redirect: '/checkout', reason: 'expired' },
+    });
+  });
+
+  it('should explain when the backend rejects an unavailable product', async () => {
+    const unavailable = vi.fn(() =>
+      Promise.reject(
+        new OrderApiError('"House Latte" is currently unavailable.', 409)
+      )
+    );
+    const { component, navigate } = setup([item()], null, unavailable);
+
+    fillContact(component);
+    await component.placeOrder();
+
+    expect(component.errorMessage()).toContain('currently unavailable');
+    expect(component.errorMessage()).toContain('Update your cart to continue.');
     expect(navigate).not.toHaveBeenCalled();
   });
 

@@ -1,0 +1,14 @@
+/* Layout for the static information pages lives in global.scss (.info-page,
+   .info-hero, .info-card, .placeholder-tag). */
+:host {
+  display: block;
+}
+
+.info-card ion-button {
+  margin-top: 10px;
+  --border-radius: 14px;
+  --border-color: #e8d9c5;
+  --color: #3b2418;
+  font-weight: 600;
+  height: 44px;
+}

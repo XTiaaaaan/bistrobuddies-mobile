@@ -32,6 +32,12 @@
       } @else {
         <p class="welcome">Welcome to BistroBuddies!</p>
       }
+
+      @if (!signedIn()) {
+        <ion-button class="sign-in-button" fill="outline" routerLink="/login">
+          Sign In to Order
+        </ion-button>
+      }
     </section>
 
     <div class="section-head">

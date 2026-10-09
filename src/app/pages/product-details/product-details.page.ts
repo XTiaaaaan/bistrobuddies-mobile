@@ -15,6 +15,7 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe, cart } from 'ionicons/icons';
+import { formatPeso } from '../../core/format/price';
 import { Product, ProductSize } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
 import { ProductsService } from '../../services/products.service';
@@ -151,14 +152,7 @@ export class ProductDetailsPage implements OnInit {
   }
 
   formatPrice(value: number | null): string {
-    if (value === null) {
-      return '—';
-    }
-
-    return `₱${value.toLocaleString('en-PH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    return formatPeso(value);
   }
 
   async addToCart(): Promise<void> {
