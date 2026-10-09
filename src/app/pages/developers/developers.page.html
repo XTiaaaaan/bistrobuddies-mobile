@@ -1,0 +1,165 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Developers</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Developers</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="developers-grid">
+    <div class="dev-card" *ngFor="let dev of developers">
+      <!-- Profile Header -->
+      <div class="card-header">
+        <div class="avatar-ring">
+          <img [src]="dev.photo" [alt]="dev.name" class="avatar-img" />
+        </div>
+        <h3 class="dev-name">{{ dev.name }}</h3>
+        <p class="dev-title">{{ dev.title }}</p>
+        <span class="role-badge">{{ dev.role }}</span>
+      </div>
+
+      <!-- Contact -->
+      <div class="section contact-row">
+        <div class="contact-item">
+          <span class="contact-icon">✉</span>
+          <span>{{ dev.email }}</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">☎</span>
+          <span>{{ dev.phone }}</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">📍</span>
+          <span>{{ dev.location }}</span>
+        </div>
+        <div class="contact-item" *ngIf="dev.github">
+          <span class="contact-icon">💻</span>
+          <span>{{ dev.github }}</span>
+        </div>
+      </div>
+
+      <!-- Career Objective -->
+      <div class="section" *ngIf="dev.objective">
+        <h4 class="section-title">Career Objective</h4>
+        <p class="section-text">{{ dev.objective }}</p>
+      </div>
+
+      <!-- Education -->
+      <div class="section" *ngIf="dev.education.length">
+        <h4 class="section-title">Education</h4>
+        <div class="edu-item" *ngFor="let edu of dev.education">
+          <div class="edu-school">{{ edu.school }}</div>
+          <div class="edu-program">{{ edu.program }}</div>
+          <div class="edu-period">{{ edu.period }}</div>
+        </div>
+      </div>
+
+      <!-- Technical Skills -->
+      <div class="section" *ngIf="dev.technicalSkills.length">
+        <h4 class="section-title">Technical Skills</h4>
+        <div class="skills-row">
+          <span class="skill-chip tech" *ngFor="let skill of dev.technicalSkills">{{ skill }}</span>
+        </div>
+      </div>
+
+      <!-- Programming Languages -->
+      <div class="section" *ngIf="dev.programmingLanguages.length">
+        <h4 class="section-title">Programming Languages</h4>
+        <div class="prog-grid">
+          <div class="prog-item" *ngFor="let lang of dev.programmingLanguages">
+            <span class="prog-name">{{ lang.name }}</span>
+            <span class="prog-level">{{ lang.level }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Skills -->
+      <div class="section" *ngIf="dev.coreSkills.length">
+        <h4 class="section-title">Core Skills</h4>
+        <div class="skills-row">
+          <span class="skill-chip core" *ngFor="let skill of dev.coreSkills">{{ skill }}</span>
+        </div>
+      </div>
+
+      <!-- Work Experience -->
+      <div class="section" *ngIf="dev.workExperience.length">
+        <h4 class="section-title">Work Experience</h4>
+        <div class="work-item" *ngFor="let work of dev.workExperience">
+          <div class="work-header">
+            <span class="work-role">{{ work.role }}</span>
+            <span class="work-period">{{ work.period }}</span>
+          </div>
+          <div class="work-company">{{ work.company }}</div>
+          <ul class="work-highlights">
+            <li *ngFor="let h of work.highlights">{{ h }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Projects -->
+      <div class="section" *ngIf="dev.projects.length">
+        <h4 class="section-title">Projects</h4>
+        <div class="project-item" *ngFor="let proj of dev.projects">
+          <div class="proj-name">{{ proj.name }}</div>
+          <div class="proj-stack">{{ proj.stack }}</div>
+          <div class="proj-desc">{{ proj.description }}</div>
+        </div>
+      </div>
+
+      <!-- Certifications -->
+      <div class="section" *ngIf="dev.certifications.length">
+        <h4 class="section-title">Certifications</h4>
+        <div class="cert-item" *ngFor="let cert of dev.certifications">
+          <span class="cert-name">{{ cert.name }}</span>
+          <span class="cert-meta">{{ cert.issuer }}<span *ngIf="cert.year"> · {{ cert.year }}</span></span>
+        </div>
+      </div>
+
+      <!-- Awards -->
+      <div class="section" *ngIf="dev.awards.length">
+        <h4 class="section-title">Awards &amp; Achievements</h4>
+        <div class="award-item" *ngFor="let award of dev.awards">
+          <span class="award-title">{{ award.title }}</span>
+          <span class="award-meta">
+            <span *ngIf="award.organization">{{ award.organization }}</span>
+            <span *ngIf="award.year"> · {{ award.year }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Organizations -->
+      <div class="section" *ngIf="dev.organizations.length">
+        <h4 class="section-title">Organizations</h4>
+        <div class="org-list">
+          <span class="org-item" *ngFor="let org of dev.organizations">{{ org }}</span>
+        </div>
+      </div>
+
+      <!-- Languages & Hobbies -->
+      <div class="section section-bottom">
+        <div class="two-col">
+          <div class="col" *ngIf="dev.languages.length">
+            <h4 class="section-title">Languages</h4>
+            <div class="skills-row">
+              <span class="skill-chip lang" *ngFor="let lang of dev.languages">{{ lang }}</span>
+            </div>
+          </div>
+          <div class="col" *ngIf="dev.hobbies.length">
+            <h4 class="section-title">Hobbies</h4>
+            <div class="skills-row">
+              <span class="skill-chip hobby" *ngFor="let hobby of dev.hobbies">{{ hobby }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

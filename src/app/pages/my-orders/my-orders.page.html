@@ -1,0 +1,80 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>My Orders</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">My Orders</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="orders-page">
+    @if (status() === 'loading') {
+      <div class="state" role="status">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading your orders...</p>
+      </div>
+    } @else if (status() === 'error') {
+      <div class="state" role="alert">
+        <ion-icon name="alert-circle"></ion-icon>
+        <h3>Could not load your orders</h3>
+        <p>Please check your connection and try again.</p>
+        <ion-button fill="outline" routerLink="/products">Buy Coffee</ion-button>
+      </div>
+    } @else if (status() === 'empty') {
+      <div class="state" role="status">
+        <ion-icon name="receipt"></ion-icon>
+        <h3>No orders yet</h3>
+        <p>Your orders will show up here after you check out.</p>
+        <ion-button fill="outline" routerLink="/products">Buy Coffee</ion-button>
+      </div>
+    } @else {
+      <div class="orders-intro">
+        <div class="intro-text">
+          <h2>My Orders</h2>
+          <p>{{ orders().length }} order(s) · updates in real time</p>
+        </div>
+        <ion-icon name="receipt"></ion-icon>
+      </div>
+
+      @for (order of orders(); track order.id) {
+        <a class="order-card" [routerLink]="['/my-orders', order.id]">
+          <div class="order-head">
+            <div class="order-meta">
+              <span class="order-id">Order #{{ shortId(order.id) }}</span>
+              <span class="order-date">{{ orderDate(order) }}</span>
+            </div>
+            <span [class]="statusClass(order)">{{ statusLabel(order) }}</span>
+          </div>
+
+          <ul class="order-lines">
+            @for (item of order.items; track item.productId + item.size + item.sugar) {
+              <li>
+                <span class="line-name">{{ item.productName }}</span>
+                <span class="line-meta">
+                  {{ item.size }} · {{ item.sugar }} · x{{ item.quantity }}
+                </span>
+              </li>
+            }
+          </ul>
+
+          <div class="order-foot">
+            <span class="foot-meta">
+              {{ itemCount(order) }} item(s) · {{ paymentMethod(order) }}
+            </span>
+            <span class="foot-right">
+              <span [class]="paymentClass(order)">{{ paymentLabel(order) }}</span>
+              <span class="order-total">{{ formatPrice(order.total) }}</span>
+            </span>
+          </div>
+        </a>
+      }
+    }
+  </div>
+</ion-content>

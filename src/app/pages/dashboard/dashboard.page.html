@@ -1,0 +1,47 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Dashboard</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Dashboard</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="home-page">
+    <section class="brand-hero">
+      <img
+        class="brand-logo"
+        src="assets/BistroBuddiesLogo.png"
+        alt="BistroBuddies logo"
+      />
+      <div class="brand">
+        <span class="brand-bistro">Bistro</span>
+        <span class="brand-buddies">Buddies</span>
+      </div>
+      <p class="brand-tagline">COFFEE SHOP</p>
+
+      @if (customerName(); as name) {
+        <p class="welcome">Welcome back, {{ name }}!</p>
+      } @else {
+        <p class="welcome">Welcome to BistroBuddies!</p>
+      }
+    </section>
+
+    <div class="section-head">
+      <div class="section-text">
+        <h2>Latest Coffee</h2>
+        <p>Fresh drinks added most recently.</p>
+      </div>
+      <ion-icon name="cafe"></ion-icon>
+    </div>
+
+    <app-product-grid [availableOnly]="true" [limit]="6"></app-product-grid>
+  </div>
+</ion-content>

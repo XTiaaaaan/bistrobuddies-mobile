@@ -1,0 +1,77 @@
+<ion-app>
+  <ion-menu contentId="main-content" type="overlay">
+    <!-- Header Section -->
+    <ion-header class="menu-header" [translucent]="false">
+      <div class="header-bg">
+        <img src="assets/BistroBuddiesLogo.png" alt="BistroBuddies Logo" class="logo" />
+        <div class="brand">
+          <span class="brand-bistro">Bistro</span>
+          <span class="brand-buddies">Buddies</span>
+        </div>
+        <p class="tagline">COFFEE SHOP</p>
+      </div>
+      <!-- Curved / wavy gold-brown divider -->
+      <svg class="wave-divider" viewBox="0 0 400 72" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="72" fill="#3B2418" />
+        <path d="M0,20 C90,58 200,72 400,38 L400,72 L0,72 Z" fill="#A87C4F" />
+        <path d="M0,34 C110,72 220,82 400,52 L400,72 L0,72 Z" fill="#F5EDE4" />
+      </svg>
+    </ion-header>
+
+    <!-- Body Section -->
+    <ion-content class="menu-content">
+      <ion-list class="menu-list" lines="none">
+        @for (p of appPages; track p.url; let i = $index) {
+          <ion-menu-toggle auto-hide="false">
+            <ion-item
+              [class.selected]="selectedIndex() === i"
+              routerDirection="root"
+              [routerLink]="[p.url]"
+              lines="none"
+              detail="false"
+            >
+              <span class="icon-badge">
+                <ion-icon aria-hidden="true" [ios]="p.icon + '-outline'" [md]="p.icon + '-sharp'"></ion-icon>
+              </span>
+              <ion-label>{{ p.title }}</ion-label>
+              <ion-icon class="chevron" aria-hidden="true" ios="chevron-forward-outline" md="chevron-forward-sharp"></ion-icon>
+            </ion-item>
+          </ion-menu-toggle>
+        }
+      </ion-list>
+
+      <!-- Decorative Footer Graphic -->
+      <div class="footer-art" aria-hidden="true">
+        <svg viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <path d="M0,150 L0,100 Q60,70 140,88 Q210,100 280,72 Q340,46 400,62 L400,150 Z" fill="#E8D9C5" opacity="0.65" />
+          <path d="M0,150 L0,112 Q80,84 170,98 Q260,108 330,82 Q370,66 400,78 L400,150 Z" fill="#D4C4A8" opacity="0.6" />
+          <path d="M0,150 L0,124 Q110,98 200,108 Q290,116 350,94 Q380,82 400,92 L400,150 Z" fill="#C4A97D" opacity="0.5" />
+          <!-- Coffee bean 1 -->
+          <g transform="translate(300, 92) rotate(-25)">
+            <ellipse cx="0" cy="0" rx="18" ry="11" fill="#5C3D2E" />
+            <path d="M0,-11 Q3,0 0,11" stroke="#3B2418" stroke-width="1.5" fill="none" />
+          </g>
+          <!-- Coffee bean 2 -->
+          <g transform="translate(340, 104) rotate(15)">
+            <ellipse cx="0" cy="0" rx="16" ry="10" fill="#6B4A35" />
+            <path d="M0,-10 Q2.5,0 0,10" stroke="#3B2418" stroke-width="1.5" fill="none" />
+          </g>
+        </svg>
+      </div>
+    </ion-content>
+
+    <!-- Bottom Log Out Bar -->
+    <ion-footer class="menu-footer">
+      <div class="logout-bar" (click)="onLogout()">
+        <ion-icon
+          aria-hidden="true"
+          [ios]="signedIn() ? 'log-out-outline' : 'log-in-outline'"
+          [md]="signedIn() ? 'log-out-sharp' : 'log-in-sharp'"
+        ></ion-icon>
+        <span>{{ signedIn() ? 'Log Out' : 'Log In' }}</span>
+      </div>
+    </ion-footer>
+  </ion-menu>
+
+  <ion-router-outlet id="main-content"></ion-router-outlet>
+</ion-app>

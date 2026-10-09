@@ -1,0 +1,137 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/products" text="Buy Coffee"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Product Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/cart" aria-label="Open cart">
+        <ion-icon slot="icon-only" name="cart"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="details-page">
+    @if (status() === 'loading') {
+      <div class="state" role="status">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading coffee...</p>
+      </div>
+    } @else if (status() === 'error') {
+      <div class="state" role="alert">
+        <ion-icon name="alert-circle"></ion-icon>
+        <h3>Could not load this coffee</h3>
+        <p>Please check your connection and try again.</p>
+        <ion-button fill="outline" [routerLink]="['/products']">Back to Buy Coffee</ion-button>
+      </div>
+    } @else if (status() === 'missing') {
+      <div class="state" role="status">
+        <ion-icon name="cafe"></ion-icon>
+        <h3>Coffee not found</h3>
+        <p>This drink is no longer available in our list.</p>
+        <ion-button fill="outline" [routerLink]="['/products']">Back to Buy Coffee</ion-button>
+      </div>
+    } @else if (product(); as product) {
+      <section class="card product-card">
+        <div class="product-media">
+          @if (product.imageUrl) {
+            <img [src]="product.imageUrl" [alt]="product.name" />
+          } @else {
+            <ion-icon name="cafe"></ion-icon>
+          }
+          <span class="badge" [class.badge-out]="!isAvailable()">
+            {{ isAvailable() ? 'Available' : 'Sold Out' }}
+          </span>
+        </div>
+
+        <div class="product-body">
+          <h2 class="product-name">{{ product.name }}</h2>
+          @if (product.category) {
+            <p class="product-category">{{ product.category }}</p>
+          }
+          <p class="product-description">{{ product.description }}</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Size</h3>
+        <div class="size-options">
+          @for (option of sizeOptions(); track option.key) {
+            <button
+              type="button"
+              class="size-option"
+              [class.selected]="selectedSize() === option.key"
+              [disabled]="option.price === null"
+              (click)="selectSize(option.key)"
+            >
+              <span class="size-label">{{ option.label }}</span>
+              <span class="size-price">{{ formatPrice(option.price) }}</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Sugar</h3>
+        <div class="sugar-options">
+          @for (option of sugarOptions(); track option) {
+            <button
+              type="button"
+              class="sugar-option"
+              [class.selected]="sugar() === option"
+              (click)="selectSugar(option)"
+            >
+              {{ option }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Quantity</h3>
+        <div class="quantity-control">
+          <button
+            type="button"
+            class="qty-btn"
+            aria-label="Decrease quantity"
+            [disabled]="quantity() <= 1"
+            (click)="decrease()"
+          >
+            −
+          </button>
+          <span class="qty-value">{{ quantity() }}</span>
+          <button
+            type="button"
+            class="qty-btn"
+            aria-label="Increase quantity"
+            [disabled]="quantity() >= 99"
+            (click)="increase()"
+          >
+            +
+          </button>
+        </div>
+      </section>
+
+      <section class="card price-card">
+        <div class="price-row">
+          <span>Unit price ({{ sizeLabel() }})</span>
+          <span>{{ formatPrice(unitPrice()) }}</span>
+        </div>
+        <div class="price-row total">
+          <span>Item price</span>
+          <span>{{ formatPrice(itemPrice()) }}</span>
+        </div>
+      </section>
+
+      <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
+        @if (!isAvailable()) {
+          Sold Out
+        } @else {
+          Add to Cart
+        }
+      </ion-button>
+    }
+  </div>
+</ion-content>

@@ -1,0 +1,186 @@
+// BistroBuddies palette
+$espresso: #3b2418;
+$gold: #a87c4f;
+$gold-light: #d4a96a;
+$tan: #e8d9c5;
+$cream: #f5ede4;
+$pill-bg: #eddfcb;
+$pebble: #c4a97d;
+
+/* Menu panel width — hamburger overlay on narrow phone screens */
+ion-menu {
+  --width: min(88vw, 350px);
+  --max-width: 350px;
+}
+
+ion-menu .menu-content {
+  --background: #{$cream};
+}
+
+/* ───────── Header ───────── */
+.menu-header {
+  position: relative;
+  padding: 0;
+
+  .header-bg {
+    background: $espresso;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 14px 10px;
+
+    .logo {
+      width: 82px;
+      height: 82px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      justify-content: center;
+      margin-top: 6px;
+
+      .brand-bistro {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 26px;
+        color: #ffffff;
+        font-weight: 400;
+      }
+
+      .brand-buddies {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 26px;
+        color: $gold-light;
+        font-weight: 400;
+      }
+    }
+
+    .tagline {
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 2px;
+    }
+  }
+
+  .wave-divider {
+    display: block;
+    width: 100%;
+    height: 56px;
+    margin-bottom: -1px;
+  }
+}
+
+/* ───────── Body (nav list) ───────── */
+.menu-list {
+  background: transparent;
+  padding: 22px 14px 150px;
+
+  ion-menu-toggle {
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  ion-item {
+    --padding-start: 10px;
+    --padding-end: 12px;
+    --min-height: 60px;
+    --border-radius: 16px;
+    --background: transparent;
+    --background-hover: transparent;
+    --background-activated: transparent;
+    border-radius: 16px;
+
+    &.selected {
+      --background: #{$pill-bg};
+    }
+
+    .icon-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: $tan;
+
+      ion-icon {
+        font-size: 20px;
+        color: $espresso;
+      }
+    }
+
+    &.selected .icon-badge {
+      background: $espresso;
+
+      ion-icon {
+        color: #ffffff;
+      }
+    }
+
+    ion-label {
+      margin-left: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: $espresso;
+    }
+
+    .chevron {
+      font-size: 18px;
+      color: $pebble;
+    }
+  }
+}
+
+/* ───────── Decorative footer graphic ───────── */
+.footer-art {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+/* ───────── Log Out bar (menu footer) ───────── */
+.menu-footer {
+  background: $espresso;
+  padding: 0;
+
+  &::before {
+    display: none;
+  }
+
+  .logout-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 17px;
+    cursor: pointer;
+
+    ion-icon {
+      font-size: 20px;
+      color: #ffffff;
+    }
+
+    span {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+    }
+  }
+}

@@ -1,0 +1,109 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Create Account</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="auth-content">
+  <div class="auth-page">
+    <div class="auth-hero">
+      <img
+        class="auth-logo"
+        src="assets/BistroBuddiesLogo.png"
+        alt="BistroBuddies logo"
+      />
+      <div class="brand">
+        <span class="brand-bistro">Bistro</span>
+        <span class="brand-buddies">Buddies</span>
+      </div>
+      <p class="tagline">COFFEE SHOP</p>
+    </div>
+
+    <div class="auth-card">
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Sign up to start ordering your coffee.</p>
+
+      @if (errorMessage()) {
+        <p class="auth-error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <form (ngSubmit)="register()">
+        <ion-list lines="none" class="auth-fields">
+          <ion-item>
+            <ion-input
+              label="Full name"
+              labelPlacement="stacked"
+              type="text"
+              name="name"
+              autocomplete="name"
+              placeholder="Juan Dela Cruz"
+              [(ngModel)]="name"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Email"
+              labelPlacement="stacked"
+              type="email"
+              name="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+              [(ngModel)]="email"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Mobile number (optional)"
+              labelPlacement="stacked"
+              type="tel"
+              name="phone"
+              autocomplete="tel"
+              placeholder="09XX XXX XXXX"
+              [(ngModel)]="phone"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Password"
+              labelPlacement="stacked"
+              type="password"
+              name="password"
+              autocomplete="new-password"
+              placeholder="At least 6 characters"
+              [(ngModel)]="password"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Confirm password"
+              labelPlacement="stacked"
+              type="password"
+              name="confirmPassword"
+              autocomplete="new-password"
+              placeholder="Repeat your password"
+              [(ngModel)]="confirmPassword"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
+
+        <ion-button
+          type="submit"
+          expand="block"
+          class="auth-submit"
+          [disabled]="loading()"
+        >
+          @if (loading()) {
+            {{ status() }}
+          } @else {
+            Create Account
+          }
+        </ion-button>
+      </form>
+
+      <p class="auth-switch">
+        Already have an account?
+        <a routerLink="/login">Log in</a>
+      </p>
+    </div>
+  </div>
+</ion-content>

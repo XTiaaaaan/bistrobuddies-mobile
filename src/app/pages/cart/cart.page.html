@@ -1,0 +1,141 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Cart</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Cart</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="cart-page">
+    @if (isEmpty()) {
+      <div class="state" role="status">
+        <ion-icon name="cart"></ion-icon>
+        <h3>Your cart is empty</h3>
+        <p>Pick a coffee and it will show up here.</p>
+        <ion-button fill="outline" routerLink="/products">Buy Coffee</ion-button>
+      </div>
+    } @else {
+      <div class="cart-intro">
+        <div class="intro-text">
+          <h2>Your Cart</h2>
+          <p>{{ itemCount() }} item(s) · {{ formatPrice(subtotal()) }}</p>
+        </div>
+        <ion-icon name="cart"></ion-icon>
+      </div>
+
+      @for (item of items(); track itemKey(item)) {
+        <section class="item-card">
+          <div class="item-head">
+            @if (item.productImage) {
+              <img [src]="item.productImage" [alt]="item.productName" />
+            } @else {
+              <span class="image-fallback">
+                <ion-icon name="cafe"></ion-icon>
+              </span>
+            }
+
+            <div class="item-title">
+              <h3>{{ item.productName }}</h3>
+              <p class="unit-price">{{ formatPrice(item.unitPrice) }} each</p>
+            </div>
+
+            <ion-button
+              fill="clear"
+              color="danger"
+              class="remove-button"
+              [attr.aria-label]="'Remove ' + item.productName"
+              (click)="remove(item)"
+            >
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+            </ion-button>
+          </div>
+
+          <div class="item-options">
+            <ion-select
+              label="Size"
+              [value]="item.size"
+              interface="popover"
+              fill="outline"
+              (ionChange)="onSizeChange(item, $event)"
+            >
+              @for (size of sizes; track size.value) {
+                <ion-select-option [value]="size.value" [disabled]="isSizeDisabled(item, size.value)">
+                  {{ size.label }}{{ priceLabel(item.productId, size.value) }}
+                </ion-select-option>
+              }
+            </ion-select>
+
+            <ion-select
+              label="Sugar"
+              [value]="item.sugar"
+              interface="popover"
+              fill="outline"
+              (ionChange)="onSugarChange(item, $event)"
+            >
+              @for (sugar of sugarOptions; track sugar) {
+                <ion-select-option [value]="sugar">{{ sugar }}</ion-select-option>
+              }
+            </ion-select>
+          </div>
+
+          <div class="item-foot">
+            <div class="quantity-control">
+              <button
+                type="button"
+                class="qty-btn"
+                aria-label="Decrease quantity"
+                [disabled]="item.quantity <= 1"
+                (click)="decrease(item)"
+              >
+                −
+              </button>
+              <span class="qty-value">{{ item.quantity }}</span>
+              <button
+                type="button"
+                class="qty-btn"
+                aria-label="Increase quantity"
+                [disabled]="item.quantity >= maxQuantity"
+                (click)="increase(item)"
+              >
+                +
+              </button>
+            </div>
+            <span class="line-total">{{ formatPrice(item.itemSubtotal) }}</span>
+          </div>
+        </section>
+      }
+
+      <section class="summary-card">
+        <div class="summary-row">
+          <span>Items</span>
+          <span>{{ itemCount() }}</span>
+        </div>
+        <div class="summary-row total">
+          <span>Subtotal</span>
+          <span>{{ formatPrice(subtotal()) }}</span>
+        </div>
+      </section>
+
+      <ion-button
+        class="checkout-button"
+        expand="block"
+        routerLink="/checkout"
+      >
+        Proceed to Checkout
+      </ion-button>
+
+      <div class="actions">
+        <ion-button class="clear-button" fill="outline" (click)="clear()">Clear Cart</ion-button>
+        <ion-button class="shop-button" routerLink="/products">Continue Shopping</ion-button>
+      </div>
+    }
+  </div>
+</ion-content>

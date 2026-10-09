@@ -1,0 +1,101 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Log In</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="auth-content">
+  <div class="auth-page">
+    <div class="auth-hero">
+      <img
+        class="auth-logo"
+        src="assets/BistroBuddiesLogo.png"
+        alt="BistroBuddies logo"
+      />
+      <div class="brand">
+        <span class="brand-bistro">Bistro</span>
+        <span class="brand-buddies">Buddies</span>
+      </div>
+      <p class="tagline">COFFEE SHOP</p>
+    </div>
+
+    <div class="auth-card">
+      <h1 class="auth-title">Log In</h1>
+      <p class="auth-subtitle">Welcome back — order your favourite coffee.</p>
+
+      @if (errorMessage()) {
+        <p class="auth-error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <form (ngSubmit)="signIn()">
+        <ion-list lines="none" class="auth-fields">
+          <ion-item>
+            <ion-input
+              label="Email"
+              labelPlacement="stacked"
+              type="email"
+              name="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+              [(ngModel)]="email"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Password"
+              labelPlacement="stacked"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="Your password"
+              [(ngModel)]="password"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
+
+        <div class="auth-links">
+          <a routerLink="/forgot-password">Forgot password?</a>
+        </div>
+
+        <ion-button
+          type="submit"
+          expand="block"
+          class="auth-submit"
+          [disabled]="loading() || googleLoading()"
+        >
+          @if (loading()) {
+            {{ status() }}
+          } @else {
+            Log In
+          }
+        </ion-button>
+      </form>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <ion-button
+        expand="block"
+        fill="outline"
+        class="auth-google"
+        [disabled]="loading() || googleLoading()"
+        (click)="signInWithGoogle()"
+      >
+        <ion-icon slot="start" name="logo-google"></ion-icon>
+        @if (googleLoading()) {
+          {{ status() }}
+        } @else {
+          Continue with Google
+        }
+      </ion-button>
+
+      @if (googleHint()) {
+        <p class="auth-hint" role="alert">{{ googleHint() }}</p>
+      }
+
+      <p class="auth-switch">
+        New to BistroBuddies?
+        <a routerLink="/register">Create an account</a>
+      </p>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,163 @@
+$espresso: #3b2418;
+$gold: #a87c4f;
+$tan: #e8d9c5;
+$cream: #f5ede4;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.grid-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  min-height: 240px;
+
+  ion-spinner {
+    color: $gold;
+  }
+
+  ion-icon {
+    font-size: 48px;
+    color: $gold;
+  }
+
+  h3 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    color: $espresso;
+    margin: 14px 0 6px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #8b7355;
+    margin: 0 0 16px;
+    max-width: 300px;
+  }
+
+  ion-button {
+    --border-radius: 14px;
+    --border-color: $tan;
+    --box-shadow: none;
+    color: $espresso;
+    font-weight: 600;
+    height: 44px;
+  }
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.product-media {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  background: $cream;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  ion-icon {
+    font-size: 42px;
+    color: $gold;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(74, 124, 89, 0.92);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.badge-out {
+  background: rgba(179, 58, 58, 0.92);
+}
+
+.product-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 10px 12px 12px;
+}
+
+.product-name {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  color: $espresso;
+  margin: 0 0 4px;
+}
+
+.product-description {
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #8b7355;
+  margin: 0 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed $tan;
+}
+
+.price-label {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #a08b76;
+}
+
+.price {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: $espresso;
+}

@@ -1,0 +1,7 @@
+{
+  "name": "bistrobuddies-app",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

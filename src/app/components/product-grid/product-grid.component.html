@@ -1,0 +1,49 @@
+@if (status() === 'loading') {
+  <div class="grid-state" role="status">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading coffee...</p>
+  </div>
+} @else if (status() === 'error') {
+  <div class="grid-state" role="alert">
+    <ion-icon name="alert-circle"></ion-icon>
+    <h3>Could not load the coffee list</h3>
+    <p>Please check your connection and try again.</p>
+    <ion-button fill="outline" (click)="retry()">Try Again</ion-button>
+  </div>
+} @else if (products().length === 0) {
+  <div class="grid-state" role="status">
+    <ion-icon name="cafe"></ion-icon>
+    <h3>No coffee available yet</h3>
+    <p>New drinks will appear here as soon as they are added.</p>
+  </div>
+} @else {
+  <div class="product-grid">
+    @for (product of products(); track product.id) {
+      <a
+        class="product-card"
+        [routerLink]="['/products', product.id]"
+        [attr.aria-label]="'View details for ' + product.name"
+      >
+        <div class="product-media">
+          @if (product.imageUrl) {
+            <img [src]="product.imageUrl" [alt]="product.name" loading="lazy" />
+          } @else {
+            <ion-icon name="cafe"></ion-icon>
+          }
+          <span class="badge" [class.badge-out]="!isAvailable(product)">
+            {{ isAvailable(product) ? 'Available' : 'Sold Out' }}
+          </span>
+        </div>
+
+        <div class="product-info">
+          <h3 class="product-name">{{ product.name }}</h3>
+          <p class="product-description">{{ product.description }}</p>
+          <div class="product-footer">
+            <span class="price-label">Starting price</span>
+            <span class="price">{{ startingPrice(product) }}</span>
+          </div>
+        </div>
+      </a>
+    }
+  </div>
+}

@@ -1,0 +1,207 @@
+// Shared BistroBuddies styles for the customer authentication pages.
+$espresso: #3b2418;
+$gold: #a87c4f;
+$gold-light: #d4a96a;
+$tan: #e8d9c5;
+$cream: #f5ede4;
+
+@mixin bistro-auth {
+  .auth-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 24px 18px 40px;
+    box-sizing: border-box;
+  }
+
+  .auth-hero {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: $espresso;
+    border-radius: 26px;
+    padding: 26px 16px 22px;
+    box-shadow: 0 10px 26px rgba(59, 36, 24, 0.2);
+
+    .auth-logo {
+      width: 76px;
+      height: 76px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      margin-top: 8px;
+
+      .brand-bistro {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 25px;
+        color: #ffffff;
+      }
+
+      .brand-buddies {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 25px;
+        color: $gold-light;
+      }
+    }
+
+    .tagline {
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-align: center;
+      margin: 3px 0 0;
+    }
+  }
+
+  .auth-card {
+    width: 100%;
+    margin-top: 22px;
+  }
+
+  .auth-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 24px;
+    color: $espresso;
+    text-align: center;
+    margin: 0 0 6px;
+  }
+
+  .auth-subtitle {
+    text-align: center;
+    color: #8b7355;
+    font-size: 14px;
+    margin: 0 0 18px;
+  }
+
+  .auth-error {
+    background: rgba(179, 58, 58, 0.1);
+    color: #b33a3a;
+    border-radius: 12px;
+    padding: 11px 13px;
+    font-size: 13px;
+    margin: 0 0 14px;
+  }
+
+  .auth-hint {
+    background: rgba(212, 169, 106, 0.18);
+    color: #7a5a2e;
+    border-radius: 12px;
+    padding: 11px 13px;
+    font-size: 13px;
+    text-align: center;
+    margin: 12px 0 0;
+  }
+
+  .auth-success {
+    background: rgba(74, 124, 89, 0.12);
+    color: #3d6b4c;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    text-align: center;
+    margin: 0 0 16px;
+  }
+
+  .auth-fields {
+    background: transparent;
+    padding: 0;
+
+    ion-item {
+      --background: #ffffff;
+      --background-hover: #ffffff;
+      --background-activated: #ffffff;
+      --border-radius: 14px;
+      --min-height: 58px;
+      --padding-start: 14px;
+      --inner-padding-end: 14px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+
+      ion-input {
+        --placeholder-color: #a08b76;
+        font-size: 15px;
+      }
+    }
+  }
+
+  .auth-links {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 0 16px;
+
+    a {
+      font-size: 13px;
+      font-weight: 600;
+      color: $gold;
+      text-decoration: none;
+    }
+  }
+
+  .auth-submit {
+    --border-radius: 14px;
+    --box-shadow: none;
+    height: 50px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #a08b76;
+    font-size: 12px;
+    margin: 18px 0 14px;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: $tan;
+    }
+  }
+
+  .auth-google {
+    --border-radius: 14px;
+    --border-color: $tan;
+    --box-shadow: none;
+    height: 50px;
+    font-weight: 600;
+    color: $espresso;
+  }
+
+  .auth-switch {
+    text-align: center;
+    font-size: 14px;
+    color: #8b7355;
+    margin: 22px 0 0;
+
+    a {
+      color: $gold;
+      font-weight: 700;
+      text-decoration: none;
+    }
+  }
+
+  .auth-note {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #8b7355;
+    margin: 0 0 16px;
+  }
+}
