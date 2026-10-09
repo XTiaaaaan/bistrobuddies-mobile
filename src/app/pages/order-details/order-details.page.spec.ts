@@ -155,9 +155,11 @@ describe('OrderDetailsPage', () => {
 
   it('should not open a listener when the customer is signed out', () => {
     const fixture = setup(null);
+    const element = fixture.nativeElement as HTMLElement;
 
     expect(watchSpy).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.status()).toBe('error');
+    expect(fixture.componentInstance.status()).toBe('signed-out');
     expect(fixture.componentInstance.order()).toBeNull();
+    expect(element.textContent).toContain('Please sign in to view this order');
   });
 });

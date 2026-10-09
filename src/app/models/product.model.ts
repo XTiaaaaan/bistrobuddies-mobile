@@ -14,6 +14,10 @@ export interface Product {
   largePrice: number;
   sugarOptions: string[];
   available: boolean;
+  /** Canonical PHP list price reported by the backend (derived from the tiers). */
+  price?: number;
+  /** Always `PHP`; present only when the backend supplies it. */
+  currency?: string;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }

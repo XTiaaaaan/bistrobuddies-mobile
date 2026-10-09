@@ -24,29 +24,27 @@ export const routes: Routes = [
         (m) => m.ForgotPasswordPage
       ),
   },
+  // Public storefront: guests browse the real catalog before signing in.
   {
     path: 'dashboard',
-    canMatch: [authGuard],
     loadComponent: () =>
       import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage),
   },
   {
     path: 'products',
-    canMatch: [authGuard],
     loadComponent: () =>
       import('./pages/products/products.page').then((m) => m.ProductsPage),
   },
   {
     path: 'products/:id',
-    canMatch: [authGuard],
     loadComponent: () =>
       import('./pages/product-details/product-details.page').then(
         (m) => m.ProductDetailsPage
       ),
   },
+  // The cart is browsable by guests; checkout itself requires an account.
   {
     path: 'cart',
-    canMatch: [authGuard],
     loadComponent: () =>
       import('./pages/cart/cart.page').then((m) => m.CartPage),
   },
@@ -71,9 +69,34 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'profile',
+    canMatch: [authGuard],
+    loadComponent: () =>
+      import('./pages/profile/profile.page').then((m) => m.ProfilePage),
+  },
+  {
     path: 'about',
     loadComponent: () =>
       import('./pages/about/about.page').then((m) => m.AboutPage),
+  },
+  {
+    path: 'company-history',
+    loadComponent: () =>
+      import('./pages/company-history/company-history.page').then(
+        (m) => m.CompanyHistoryPage
+      ),
+  },
+  {
+    path: 'about-products',
+    loadComponent: () =>
+      import('./pages/about-products/about-products.page').then(
+        (m) => m.AboutProductsPage
+      ),
+  },
+  {
+    path: 'contact-us',
+    loadComponent: () =>
+      import('./pages/contact-us/contact-us.page').then((m) => m.ContactUsPage),
   },
   {
     path: 'developers',

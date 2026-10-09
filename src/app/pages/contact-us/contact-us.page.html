@@ -1,0 +1,56 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Contact Us</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Contact Us</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="info-page">
+    <div class="info-hero">
+      <ion-icon name="call"></ion-icon>
+      <h2>Contact Us</h2>
+      <p>How to reach BistroBuddies.</p>
+    </div>
+
+    <section class="info-card">
+      <span class="placeholder-tag">Placeholder</span>
+      <h3>BistroBuddies contact details</h3>
+      <p>
+        Official customer support contact details (phone number, email address,
+        store address and business hours) have not been provided for this app
+        yet. This section is a placeholder — no contact details are invented
+        here, because publishing a made-up number or address would mislead
+        customers.
+      </p>
+      <p>Check back once the shop publishes its contact information.</p>
+    </section>
+
+    <section class="info-card">
+      <h3>Development team</h3>
+      <p>
+        Contact details for the people who built this app — including email,
+        phone and location — are listed on the Developers page.
+      </p>
+      <ion-button fill="outline" routerLink="/developers">Open Developers</ion-button>
+    </section>
+
+    <section class="info-card">
+      <h3>Order issues</h3>
+      <p>
+        For anything about an order you already placed, open
+        <strong>My Orders</strong> and check the order status first — statuses
+        update in real time.
+      </p>
+      <ion-button fill="outline" routerLink="/my-orders">Open My Orders</ion-button>
+    </section>
+  </div>
+</ion-content>

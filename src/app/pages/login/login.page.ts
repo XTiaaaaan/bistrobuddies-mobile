@@ -51,6 +51,8 @@ export class LoginPage implements OnInit {
   readonly googleHint = signal('');
   readonly loading = signal(false);
   readonly googleLoading = signal(false);
+  /** Explains why the customer was sent back to the login screen. */
+  readonly sessionNotice = signal('');
 
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -63,6 +65,12 @@ export class LoginPage implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('reason') === 'expired') {
+      this.sessionNotice.set(
+        'Your session has expired. Please sign in again to continue.'
+      );
+    }
+
     this.auth.user$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((user) => {

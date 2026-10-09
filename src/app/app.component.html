@@ -20,6 +20,26 @@
 
     <!-- Body Section -->
     <ion-content class="menu-content">
+      <!-- Signed-in customer summary (image / name / phone when available) -->
+      <button type="button" class="profile-card" (click)="openProfile()">
+        @if (profile()?.photoUrl; as photoUrl) {
+          <img class="avatar" [src]="photoUrl" [alt]="profile()?.name ?? 'Profile photo'" />
+        } @else {
+          <span class="avatar avatar-fallback" aria-hidden="true">{{ initials() }}</span>
+        }
+        <span class="profile-text">
+          <strong>{{ profile()?.name ?? 'Sign in' }}</strong>
+          @if (profile()?.phone; as phone) {
+            <small>{{ phone }}</small>
+          } @else if (!signedIn()) {
+            <small>Sign in to see your orders</small>
+          } @else {
+            <small>View your profile</small>
+          }
+        </span>
+        <ion-icon class="chevron" aria-hidden="true" ios="chevron-forward-outline" md="chevron-forward-sharp"></ion-icon>
+      </button>
+
       <ion-list class="menu-list" lines="none">
         @for (p of appPages; track p.url; let i = $index) {
           <ion-menu-toggle auto-hide="false">

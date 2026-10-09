@@ -65,6 +65,16 @@ $tan: #e8d9c5;
     font-size: 16px;
     color: #ffffff;
   }
+
+  .sign-in-button {
+    margin-top: 14px;
+    --border-radius: 14px;
+    --border-color: rgba(232, 217, 197, 0.6);
+    --color: #f5ede4;
+    --box-shadow: none;
+    font-weight: 600;
+    height: 42px;
+  }
 }
 
 .section-head {

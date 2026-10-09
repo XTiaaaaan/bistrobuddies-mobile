@@ -14,7 +14,8 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { cafe, cart, trash } from 'ionicons/icons';
+import { alertCircle, cafe, cart, trash } from 'ionicons/icons';
+import { formatPeso } from '../../core/format/price';
 import { CartItem, CartItemKey } from '../../models/cart.model';
 import { Product, ProductSize } from '../../models/product.model';
 import { CartService, MAX_QUANTITY } from '../../services/cart.service';
@@ -23,6 +24,12 @@ import { ProductsService } from '../../services/products.service';
 type SelectChange = { detail: { value: unknown } };
 
 export const SUGAR_OPTIONS = ['No Sugar', 'Less Sugar', 'Regular', 'Extra Sugar'];
+
+/**
+ * Availability of a cart line against the live catalog.
+ * `checking` means the catalog has not been verified yet, so nothing is blocked.
+ */
+export type CartItemStatus = 'checking' | 'ok' | 'missing' | 'unavailable' | 'unpriced';
 
 @Component({
   selector: 'app-cart',
@@ -47,13 +54,15 @@ export class CartPage implements OnInit {
   private readonly cartService = inject(CartService);
   private readonly productsService = inject(ProductsService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly productsLoaded = signal(false);
   private readonly productsById = signal<Record<string, Product>>({});
 
   readonly items = this.cartService.items;
   readonly itemCount = this.cartService.itemCount;
   readonly subtotal = this.cartService.subtotal;
   readonly maxQuantity = MAX_QUANTITY;
+
+  /** Catalog state: while loading or after a network error nothing is blocked. */
+  readonly productsStatus = signal<'loading' | 'ready' | 'error'>('loading');
 
   readonly sizes: { value: ProductSize; label: string }[] = [
     { value: 'small', label: 'Small' },
@@ -64,29 +73,64 @@ export class CartPage implements OnInit {
 
   readonly isEmpty = computed(() => this.items().length === 0);
 
+  /** Cart lines that can no longer be ordered (removed, sold out or unpriced). */
+  readonly blockedItems = computed(() =>
+    this.items().filter((item) => {
+      const status = this.itemStatus(item);
+      return status !== 'ok' && status !== 'checking';
+    })
+  );
+
+  readonly hasBlockedItems = computed(() => this.blockedItems().length > 0);
+
   constructor() {
-    addIcons({ cafe, cart, trash });
+    addIcons({ alertCircle, cafe, cart, trash });
   }
 
   ngOnInit(): void {
-    this.productsService
-      .watchProducts()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (products) => {
-          const map: Record<string, Product> = {};
-          for (const product of products) {
-            map[product.id] = product;
-          }
-          this.productsById.set(map);
-          this.productsLoaded.set(true);
-        },
-        error: () => this.productsLoaded.set(true),
-      });
+    this.loadCatalog();
   }
 
   itemKey(item: CartItemKey): string {
     return `${item.productId}|${item.size}|${item.sugar}`;
+  }
+
+  /** Live availability check for one cart line. */
+  itemStatus(item: CartItem): CartItemStatus {
+    if (this.productsStatus() !== 'ready') {
+      return 'checking';
+    }
+
+    const product = this.productsById()[item.productId];
+    if (!product) {
+      return 'missing';
+    }
+    if (product.available === false) {
+      return 'unavailable';
+    }
+    if (this.priceFor(item.productId, item.size) === null) {
+      return 'unpriced';
+    }
+    return 'ok';
+  }
+
+  statusMessage(status: CartItemStatus): string {
+    switch (status) {
+      case 'missing':
+        return 'This drink is no longer on the menu. Remove it to continue.';
+      case 'unavailable':
+        return 'Sold out right now. Remove it to continue.';
+      case 'unpriced':
+        return 'This size is not available anymore. Change the size or remove it.';
+      default:
+        return '';
+    }
+  }
+
+  /** Warning shown under a cart line, or null when the line can still be ordered. */
+  itemWarning(item: CartItem): string | null {
+    const status = this.itemStatus(item);
+    return status === 'ok' || status === 'checking' ? null : this.statusMessage(status);
   }
 
   priceFor(productId: string, size: ProductSize): number | null {
@@ -111,7 +155,7 @@ export class CartPage implements OnInit {
   }
 
   isSizeDisabled(item: CartItem, size: ProductSize): boolean {
-    return this.productsLoaded() && this.priceFor(item.productId, size) === null;
+    return this.productsStatus() === 'ready' && this.priceFor(item.productId, size) === null;
   }
 
   onSizeChange(item: CartItem, event: SelectChange): void {
@@ -153,10 +197,30 @@ export class CartPage implements OnInit {
     this.cartService.clear();
   }
 
+  /** Re-checks the catalog after a network failure. */
+  retryCatalog(): void {
+    this.loadCatalog();
+  }
+
+  private loadCatalog(): void {
+    this.productsStatus.set('loading');
+    this.productsService
+      .watchProducts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (products) => {
+          const map: Record<string, Product> = {};
+          for (const product of products) {
+            map[product.id] = product;
+          }
+          this.productsById.set(map);
+          this.productsStatus.set('ready');
+        },
+        error: () => this.productsStatus.set('error'),
+      });
+  }
+
   formatPrice(value: number): string {
-    return `₱${value.toLocaleString('en-PH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    return formatPeso(value);
   }
 }

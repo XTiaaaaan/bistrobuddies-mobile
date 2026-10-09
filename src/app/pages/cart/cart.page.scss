@@ -154,6 +154,17 @@ $cream: #f5ede4;
   height: 36px;
 }
 
+.item-warning {
+  margin: -4px 0 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fdeeee;
+  border: 1px solid #f0cccc;
+  color: #8c2f2f;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
 .item-options {
   display: grid;
   grid-template-columns: 1fr 1fr;

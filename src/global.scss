@@ -27,3 +27,146 @@ ion-toolbar ion-title {
   font-weight: 600;
   letter-spacing: 0.3px;
 }
+
+/*
+ * Shared layout for the static information pages (About the App, Company
+ * History, About Our Products, Contact Us). They are rendered from the side
+ * menu for guests and signed-in customers alike.
+ */
+.info-page {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 20px;
+  padding: 26px 18px;
+  box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+
+  ion-icon {
+    font-size: 44px;
+    color: #a87c4f;
+  }
+
+  h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    color: #3b2418;
+    margin: 12px 0 4px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #8b7355;
+    margin: 0;
+    max-width: 380px;
+  }
+}
+
+.info-card {
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+
+  h3 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    color: #3b2418;
+    margin: 0 0 8px;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #6f5a45;
+    margin: 0 0 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #6f5a45;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+/* Makes placeholder content unmistakable instead of reading as fact. */
+.placeholder-tag {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fdeeee;
+  border: 1px solid #f0cccc;
+  color: #8c2f2f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+/*
+ * Shared inline notice banner (availability warnings, expired sessions and
+ * network problems). Used by the cart, checkout and order pages, so it lives
+ * here instead of being duplicated in every component stylesheet.
+ */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #f0cccc;
+  border-radius: 16px;
+  background: #fdeeee;
+  color: #8c2f2f;
+
+  ion-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    color: #b33a3a;
+  }
+
+  .notice-text {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    p {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: #a05656;
+    }
+  }
+
+  ion-button {
+    flex-shrink: 0;
+    height: 36px;
+    font-size: 13px;
+    --border-radius: 12px;
+    --border-color: #e0b1b1;
+    --color: #8c2f2f;
+  }
+}

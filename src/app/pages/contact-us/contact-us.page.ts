@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
+  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
@@ -9,14 +11,15 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { informationCircle } from 'ionicons/icons';
+import { call } from 'ionicons/icons';
 
 @Component({
-  selector: 'app-about',
-  templateUrl: './about.page.html',
-  styleUrls: ['./about.page.scss'],
+  selector: 'app-contact-us',
+  templateUrl: './contact-us.page.html',
+  styleUrls: ['./contact-us.page.scss'],
   standalone: true,
   imports: [
+    IonButton,
     IonButtons,
     IonContent,
     IonHeader,
@@ -24,12 +27,11 @@ import { informationCircle } from 'ionicons/icons';
     IonMenuButton,
     IonTitle,
     IonToolbar,
+    RouterLink,
   ],
 })
-export class AboutPage {
-
+export class ContactUsPage {
   constructor() {
-    addIcons({ informationCircle });
+    addIcons({ call });
   }
-
 }

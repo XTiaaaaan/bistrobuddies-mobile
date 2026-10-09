@@ -1,0 +1,5 @@
+/* Layout for the static information pages lives in global.scss (.info-page,
+   .info-hero, .info-card, .placeholder-tag). This page adds nothing extra. */
+:host {
+  display: block;
+}

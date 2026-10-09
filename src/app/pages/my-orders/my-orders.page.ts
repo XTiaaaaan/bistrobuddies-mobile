@@ -28,7 +28,7 @@ import { Order } from '../../models/order.model';
 import { AuthService } from '../../services/auth.service';
 import { OrdersService } from '../../services/orders.service';
 
-export type MyOrdersStatus = 'loading' | 'ready' | 'empty' | 'error';
+export type MyOrdersStatus = 'loading' | 'ready' | 'empty' | 'error' | 'signed-out';
 
 @Component({
   selector: 'app-my-orders',
@@ -66,7 +66,7 @@ export class MyOrdersPage implements OnInit {
         distinctUntilChanged(),
         switchMap((uid) => {
           if (!uid) {
-            this.status.set('error');
+            this.status.set('signed-out');
             return of<Order[] | null>(null);
           }
 

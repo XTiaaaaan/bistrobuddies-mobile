@@ -151,6 +151,19 @@
         </div>
       </section>
 
+      @if (signedOut()) {
+        <div class="notice" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Please sign in to place your order</strong>
+            <p>Your cart will be waiting when you come back.</p>
+          </div>
+          <ion-button [routerLink]="['/login']" [queryParams]="{ redirect: '/checkout' }">
+            Sign In
+          </ion-button>
+        </div>
+      }
+
       @if (errorMessage(); as message) {
         <div class="error-banner" role="alert">{{ message }}</div>
       }

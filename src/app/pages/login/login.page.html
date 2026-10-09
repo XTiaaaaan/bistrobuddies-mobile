@@ -23,6 +23,10 @@
       <h1 class="auth-title">Log In</h1>
       <p class="auth-subtitle">Welcome back — order your favourite coffee.</p>
 
+      @if (sessionNotice()) {
+        <p class="auth-error" role="alert">{{ sessionNotice() }}</p>
+      }
+
       @if (errorMessage()) {
         <p class="auth-error" role="alert">{{ errorMessage() }}</p>
       }

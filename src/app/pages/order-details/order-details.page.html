@@ -20,6 +20,19 @@
         <ion-spinner name="crescent"></ion-spinner>
         <p>Loading your order...</p>
       </div>
+    } @else if (status() === 'signed-out') {
+      <div class="state" role="alert">
+        <ion-icon name="receipt"></ion-icon>
+        <h3>Please sign in to view this order</h3>
+        <p>Your session has expired or you are signed out.</p>
+        <ion-button
+          fill="outline"
+          [routerLink]="['/login']"
+          [queryParams]="{ redirect: '/my-orders/' + id(), reason: 'expired' }"
+        >
+          Sign In
+        </ion-button>
+      </div>
     } @else if (status() === 'error') {
       <div class="state" role="alert">
         <ion-icon name="alert-circle"></ion-icon>

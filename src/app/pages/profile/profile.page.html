@@ -1,0 +1,119 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>My Profile</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">My Profile</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="profile-page">
+    @if (status() === 'loading') {
+      <div class="state" role="status">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading your profile...</p>
+      </div>
+    } @else if (status() === 'signed-out') {
+      <div class="state" role="alert">
+        <ion-icon name="person-circle"></ion-icon>
+        <h3>Please sign in to view your profile</h3>
+        <p>Your session has expired or you are signed out.</p>
+        <ion-button
+          fill="outline"
+          [routerLink]="['/login']"
+          [queryParams]="{ redirect: '/profile', reason: 'expired' }"
+        >
+          Sign In
+        </ion-button>
+      </div>
+    } @else if (status() === 'error') {
+      <div class="state" role="alert">
+        <ion-icon name="person-circle"></ion-icon>
+        <h3>Could not load your profile</h3>
+        <p>Please check your connection and try again.</p>
+        <ion-button fill="outline" (click)="retry()">Try Again</ion-button>
+      </div>
+    } @else {
+      <section class="identity-card">
+        @if (photoUrl(); as photoUrl) {
+          <img class="avatar" [src]="photoUrl" [alt]="name()" />
+        } @else {
+          <span class="avatar avatar-fallback" aria-hidden="true">{{ initials() }}</span>
+        }
+        <div class="identity-text">
+          <h2>{{ name() || 'Your account' }}</h2>
+          @if (email()) {
+            <p>{{ email() }}</p>
+          }
+        </div>
+      </section>
+
+      <section class="form-card">
+        <h3 class="card-title">Contact details</h3>
+        <p class="card-note">
+          These details are used to confirm your delivery address at checkout.
+        </p>
+
+        <label class="field">
+          <span class="field-label">Phone</span>
+          <ion-input
+            type="tel"
+            label="Phone"
+            labelPlacement="stacked"
+            placeholder="09xx xxx xxxx"
+            fill="outline"
+            [value]="phone()"
+            (ionInput)="setPhone($event)"
+          ></ion-input>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Delivery address</span>
+          <ion-textarea
+            label="Delivery address"
+            labelPlacement="stacked"
+            placeholder="House no., street, city"
+            fill="outline"
+            rows="3"
+            [value]="address()"
+            (ionInput)="setAddress($event)"
+          ></ion-textarea>
+        </label>
+
+        @if (errorMessage(); as message) {
+          <div class="notice" role="alert">
+            <ion-icon name="person-circle"></ion-icon>
+            <div class="notice-text">
+              <strong>Profile not saved</strong>
+              <p>{{ message }}</p>
+            </div>
+          </div>
+        }
+
+        @if (saved()) {
+          <p class="saved-note" role="status">Saved.</p>
+        }
+
+        <ion-button
+          class="save-button"
+          expand="block"
+          [disabled]="!canSave()"
+          (click)="save()"
+        >
+          @if (saving()) {
+            Saving...
+          } @else {
+            Save Changes
+          }
+        </ion-button>
+      </section>
+    }
+  </div>
+</ion-content>

@@ -1,0 +1,170 @@
+$espresso: #3b2418;
+$gold: #a87c4f;
+$tan: #e8d9c5;
+$cream: #f5ede4;
+
+.profile-page {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+
+  ion-icon {
+    font-size: 48px;
+    color: $gold;
+  }
+
+  h3 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    color: $espresso;
+    margin: 14px 0 6px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #8b7355;
+    margin: 0 0 16px;
+    max-width: 300px;
+  }
+
+  ion-button {
+    --border-radius: 14px;
+    --border-color: $tan;
+    --box-shadow: none;
+    color: $espresso;
+    font-weight: 600;
+    height: 44px;
+  }
+}
+
+.identity-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+
+  .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: $cream;
+  }
+
+  .avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $espresso;
+    color: #ffffff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .identity-text {
+    min-width: 0;
+
+    h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 20px;
+      color: $espresso;
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    p {
+      font-size: 13px;
+      color: #8b7355;
+      margin: 4px 0 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.form-card {
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  color: $espresso;
+  margin: 0;
+}
+
+.card-note {
+  font-size: 13px;
+  color: #8b7355;
+  margin: 0;
+}
+
+.field {
+  display: block;
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #a08b76;
+    margin-bottom: 4px;
+  }
+
+  ion-input,
+  ion-textarea {
+    --background: #ffffff;
+    --border-color: $tan;
+    --border-radius: 12px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    color: $espresso;
+  }
+}
+
+.saved-note {
+  font-size: 13px;
+  color: #4f7d5c;
+  margin: 0;
+}
+
+.save-button {
+  --border-radius: 16px;
+  --background: #3b2418;
+  --background-activated: #2c1a11;
+  --color: #ffffff;
+  font-weight: 700;
+  height: 50px;
+}

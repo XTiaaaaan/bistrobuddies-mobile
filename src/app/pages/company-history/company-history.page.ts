@@ -9,12 +9,12 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { informationCircle } from 'ionicons/icons';
+import { time } from 'ionicons/icons';
 
 @Component({
-  selector: 'app-about',
-  templateUrl: './about.page.html',
-  styleUrls: ['./about.page.scss'],
+  selector: 'app-company-history',
+  templateUrl: './company-history.page.html',
+  styleUrls: ['./company-history.page.scss'],
   standalone: true,
   imports: [
     IonButtons,
@@ -26,10 +26,8 @@ import { informationCircle } from 'ionicons/icons';
     IonToolbar,
   ],
 })
-export class AboutPage {
-
+export class CompanyHistoryPage {
   constructor() {
-    addIcons({ informationCircle });
+    addIcons({ time });
   }
-
 }
