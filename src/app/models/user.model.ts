@@ -9,6 +9,8 @@ export interface User {
   phone: string;
   address: string;
   role: UserRole;
+  /** Absolute URL of the profile picture, or null/absent when none is set. */
+  photoUrl?: string | null;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }

@@ -42,18 +42,76 @@
       </div>
     } @else {
       <section class="identity-card">
-        @if (photoUrl(); as photoUrl) {
-          <img class="avatar" [src]="photoUrl" [alt]="name()" />
-        } @else {
-          <span class="avatar avatar-fallback" aria-hidden="true">{{ initials() }}</span>
-        }
+        <div class="avatar-wrap">
+          @if (photoUrl(); as photoUrl) {
+            <img class="avatar" [src]="photoUrl" [alt]="name()" />
+          } @else {
+            <span class="avatar avatar-fallback" aria-hidden="true">{{ initials() }}</span>
+          }
+          <button
+            type="button"
+            class="avatar-edit"
+            [disabled]="photoUploading()"
+            aria-label="Change profile picture"
+            (click)="pickPhoto(photoPicker)"
+          >
+            @if (photoUploading()) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="camera"></ion-icon>
+            }
+          </button>
+          <input
+            #photoPicker
+            class="photo-picker"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            [disabled]="photoUploading()"
+            (change)="onPhotoSelected($event)"
+          />
+        </div>
+
         <div class="identity-text">
           <h2>{{ name() || 'Your account' }}</h2>
           @if (email()) {
             <p>{{ email() }}</p>
           }
+          <div class="identity-actions">
+            <button
+              type="button"
+              class="link-button"
+              [disabled]="photoUploading()"
+              (click)="pickPhoto(photoPicker)"
+            >
+              @if (photoUrl()) {
+                Change photo
+              } @else {
+                Add photo
+              }
+            </button>
+            @if (photoUrl()) {
+              <button
+                type="button"
+                class="link-button link-button-danger"
+                [disabled]="photoUploading()"
+                (click)="removePhoto()"
+              >
+                Remove photo
+              </button>
+            }
+          </div>
         </div>
       </section>
+
+      @if (photoError(); as photoMessage) {
+        <div class="notice" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Profile picture not updated</strong>
+            <p>{{ photoMessage }}</p>
+          </div>
+        </div>
+      }
 
       <section class="form-card">
         <h3 class="card-title">Contact details</h3>
@@ -62,23 +120,28 @@
         </p>
 
         <label class="field">
-          <span class="field-label">Phone</span>
-          <ion-input
-            type="tel"
-            label="Phone"
-            labelPlacement="stacked"
-            placeholder="09xx xxx xxxx"
-            fill="outline"
-            [value]="phone()"
-            (ionInput)="setPhone($event)"
-          ></ion-input>
+          <span class="field-label">Mobile number</span>
+          <span class="phone-field" [class.phone-field-invalid]="showPhoneError()">
+            <span class="phone-cc">+63</span>
+            <ion-input
+              type="tel"
+              inputmode="numeric"
+              autocomplete="tel-national"
+              placeholder="9XX XXX XXXX"
+              fill="outline"
+              [value]="phone()"
+              (ionInput)="setPhone($event)"
+              (ionBlur)="markPhoneTouched()"
+            ></ion-input>
+          </span>
+          @if (showPhoneError()) {
+            <span class="field-error" role="alert">{{ phoneError() }}</span>
+          }
         </label>
 
         <label class="field">
           <span class="field-label">Delivery address</span>
           <ion-textarea
-            label="Delivery address"
-            labelPlacement="stacked"
             placeholder="House no., street, city"
             fill="outline"
             rows="3"
@@ -89,7 +152,7 @@
 
         @if (errorMessage(); as message) {
           <div class="notice" role="alert">
-            <ion-icon name="person-circle"></ion-icon>
+            <ion-icon name="alert-circle"></ion-icon>
             <div class="notice-text">
               <strong>Profile not saved</strong>
               <p>{{ message }}</p>
