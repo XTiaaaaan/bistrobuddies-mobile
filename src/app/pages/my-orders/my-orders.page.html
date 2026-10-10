@@ -7,13 +7,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">My Orders</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
+<ion-content>
   <div class="orders-page">
     @if (status() === 'loading') {
       <div class="state" role="status">
@@ -44,16 +38,19 @@
         <ion-button fill="outline" routerLink="/products">Buy Coffee</ion-button>
       </div>
     } @else {
-      <div class="orders-intro">
+      <div class="orders-intro bb-rise">
         <div class="intro-text">
           <h2>My Orders</h2>
-          <p>{{ orders().length }} order(s) · updates in real time</p>
+          <p>
+            <span class="live-dot" aria-hidden="true"></span>
+            {{ orders().length }} order(s) · updates in real time
+          </p>
         </div>
         <ion-icon name="receipt"></ion-icon>
       </div>
 
-      @for (order of orders(); track order.id) {
-        <a class="order-card" [routerLink]="['/my-orders', order.id]">
+      @for (order of orders(); track order.id; let i = $index) {
+        <a class="order-card bb-rise" [style.animation-delay.ms]="i * 45" [routerLink]="['/my-orders', order.id]">
           <div class="order-head">
             <div class="order-meta">
               <span class="order-id">Order #{{ shortId(order.id) }}</span>

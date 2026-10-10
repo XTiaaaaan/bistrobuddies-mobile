@@ -5,14 +5,17 @@
     </ion-buttons>
     <ion-title>Product Details</ion-title>
     <ion-buttons slot="end">
-      <ion-button routerLink="/cart" aria-label="Open cart">
+      <ion-button routerLink="/cart" aria-label="Open cart" class="cart-anchor">
         <ion-icon slot="icon-only" name="cart"></ion-icon>
+        @if (cartCount() > 0) {
+          <span class="cart-badge">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
+        }
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content>
   <div class="details-page">
     @if (status() === 'loading') {
       <div class="state" role="status">
@@ -125,13 +128,15 @@
         </div>
       </section>
 
-      <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
-        @if (!isAvailable()) {
-          Sold Out
-        } @else {
-          Add to Cart
-        }
-      </ion-button>
+      <div class="add-bar">
+        <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
+          @if (!isAvailable()) {
+            Sold Out
+          } @else {
+            Add to Cart
+          }
+        </ion-button>
+      </div>
     }
   </div>
 </ion-content>

@@ -7,15 +7,9 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Dashboard</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
+<ion-content>
   <div class="home-page">
-    <section class="brand-hero">
+    <section class="brand-hero bb-rise">
       <img
         class="brand-logo"
         src="assets/BistroBuddiesLogo.png"
@@ -39,6 +33,26 @@
         </ion-button>
       }
     </section>
+
+    <nav class="quick-actions" aria-label="Quick actions">
+      <a class="quick-action" routerLink="/products" style="animation-delay: 60ms">
+        <span class="quick-icon"><ion-icon name="cafe" aria-hidden="true"></ion-icon></span>
+        <span class="quick-label">Buy Coffee</span>
+      </a>
+      <a class="quick-action" routerLink="/cart" style="animation-delay: 120ms">
+        <span class="quick-icon">
+          <ion-icon name="cart" aria-hidden="true"></ion-icon>
+          @if (cartCount() > 0) {
+            <span class="quick-count">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
+          }
+        </span>
+        <span class="quick-label">Cart</span>
+      </a>
+      <a class="quick-action" routerLink="/my-orders" style="animation-delay: 180ms">
+        <span class="quick-icon"><ion-icon name="receipt" aria-hidden="true"></ion-icon></span>
+        <span class="quick-label">My Orders</span>
+      </a>
+    </nav>
 
     <div class="section-head">
       <div class="section-text">

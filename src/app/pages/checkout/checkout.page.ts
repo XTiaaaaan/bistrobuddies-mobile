@@ -13,12 +13,13 @@ import {
   IonLabel,
   IonRadio,
   IonRadioGroup,
+  IonSpinner,
   IonTextarea,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircle, cafe, cart } from 'ionicons/icons';
+import { alertCircle, cafe, cart, checkmark } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
 import { formatPeso } from '../../core/format/price';
 import { CartItem } from '../../models/cart.model';
@@ -73,6 +74,7 @@ export function orderErrorMessage(error: unknown): string {
     IonLabel,
     IonRadio,
     IonRadioGroup,
+    IonSpinner,
     IonTextarea,
     IonTitle,
     IonToolbar,
@@ -142,7 +144,7 @@ export class CheckoutPage implements OnInit {
   );
 
   constructor() {
-    addIcons({ alertCircle, cafe, cart });
+    addIcons({ alertCircle, cafe, cart, checkmark });
   }
 
   ngOnInit(): void {

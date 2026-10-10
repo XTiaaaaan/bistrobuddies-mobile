@@ -40,7 +40,7 @@ describe('ProductDetailsPage', () => {
       providers: [
         provideRouter([]),
         { provide: ProductsService, useValue: { watchProduct: () => of(product) } },
-        { provide: CartService, useValue: { add: addSpy } },
+        { provide: CartService, useValue: { add: addSpy, itemCount: () => 0 } },
         {
           provide: ToastController,
           useValue: { create: () => Promise.resolve({ present: presentSpy }) },

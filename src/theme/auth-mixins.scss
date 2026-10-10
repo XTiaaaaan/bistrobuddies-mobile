@@ -26,6 +26,7 @@ $cream: #f5ede4;
     border-radius: 26px;
     padding: 26px 16px 22px;
     box-shadow: 0 10px 26px rgba(59, 36, 24, 0.2);
+    animation: bb-rise 0.4s var(--bb-ease) backwards;
 
     .auth-logo {
       width: 76px;
@@ -67,6 +68,7 @@ $cream: #f5ede4;
   .auth-card {
     width: 100%;
     margin-top: 22px;
+    animation: bb-rise 0.4s var(--bb-ease) 0.08s backwards;
   }
 
   .auth-title {
@@ -85,6 +87,7 @@ $cream: #f5ede4;
   }
 
   .auth-error {
+    animation: bb-fade 0.25s var(--bb-ease) both;
     background: rgba(179, 58, 58, 0.1);
     color: #b33a3a;
     border-radius: 12px;
@@ -104,6 +107,7 @@ $cream: #f5ede4;
   }
 
   .auth-success {
+    animation: bb-fade 0.3s var(--bb-ease) both;
     background: rgba(74, 124, 89, 0.12);
     color: #3d6b4c;
     border-radius: 12px;
@@ -127,11 +131,40 @@ $cream: #f5ede4;
       --inner-padding-end: 14px;
       border-radius: 14px;
       margin-bottom: 12px;
+      transition: box-shadow var(--bb-motion-base) var(--bb-ease);
+
+      &:focus-within {
+        box-shadow: 0 0 0 3px rgba(168, 124, 79, 0.18);
+      }
+
+      /* Room for the show/hide password control. */
+      &:has(.password-toggle) {
+        --inner-padding-end: 6px;
+      }
 
       ion-input {
         --placeholder-color: #a08b76;
         font-size: 15px;
       }
+    }
+  }
+
+  /* Show/hide password control inside the auth fields. */
+  .password-toggle {
+    --padding-start: 4px;
+    --padding-end: 4px;
+    margin-inline-start: auto;
+    height: 44px;
+
+    ion-icon {
+      font-size: 20px;
+      color: #a08b76;
+      transition: color var(--bb-motion-base) var(--bb-ease);
+    }
+
+    &:hover ion-icon,
+    &:focus-visible ion-icon {
+      color: $espresso;
     }
   }
 

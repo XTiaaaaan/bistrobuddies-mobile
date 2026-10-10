@@ -102,3 +102,82 @@ $tan: #e8d9c5;
     color: #a87c4f;
   }
 }
+
+/* ───────── Quick actions ───────── */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 6px 12px;
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 16px;
+  text-decoration: none;
+  box-shadow: 0 6px 16px rgba(59, 36, 24, 0.06);
+  animation: bb-rise 0.34s var(--bb-ease) backwards;
+
+  .quick-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: $tan;
+    transition: background-color var(--bb-motion-base) var(--bb-ease);
+
+    ion-icon {
+      font-size: 20px;
+      color: $espresso;
+      transition: color var(--bb-motion-base) var(--bb-ease);
+    }
+  }
+
+  .quick-count {
+    position: absolute;
+    top: -5px;
+    right: -6px;
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #a87c4f;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #ffffff;
+    animation: bb-pop 0.3s var(--bb-ease) backwards;
+  }
+
+  .quick-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: $espresso;
+    text-align: center;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: #dcc9ab;
+      transform: translateY(-2px);
+
+      .quick-icon {
+        background: $espresso;
+
+        ion-icon {
+          color: #ffffff;
+        }
+      }
+    }
+  }
+}

@@ -64,6 +64,7 @@ $cream: #f5ede4;
   border-radius: 20px;
   padding: 16px;
   box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  animation: bb-rise 0.34s var(--bb-ease) backwards;
 
   .avatar-wrap {
     position: relative;
@@ -108,6 +109,16 @@ $cream: #f5ede4;
     color: #ffffff;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(59, 36, 24, 0.3);
+    transition:
+      transform var(--bb-motion-fast) var(--bb-ease),
+      background-color var(--bb-motion-base) var(--bb-ease);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        transform: scale(1.1);
+        background: $gold;
+      }
+    }
 
     ion-icon {
       font-size: 13px;
@@ -188,6 +199,7 @@ $cream: #f5ede4;
   border-radius: 20px;
   padding: 16px;
   box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  animation: bb-rise 0.34s var(--bb-ease) 0.06s backwards;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -319,9 +331,14 @@ $cream: #f5ede4;
 }
 
 .saved-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
+  font-weight: 600;
   color: #4f7d5c;
   margin: 0;
+  animation: bb-pop 0.3s var(--bb-ease) both;
 }
 
 .save-button {

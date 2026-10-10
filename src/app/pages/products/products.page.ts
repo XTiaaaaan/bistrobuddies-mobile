@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   IonButton,
@@ -13,6 +13,7 @@ import {
 import { addIcons } from 'ionicons';
 import { cafe, cart } from 'ionicons/icons';
 import { ProductGridComponent } from '../../components/product-grid/product-grid.component';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-products',
@@ -33,6 +34,10 @@ import { ProductGridComponent } from '../../components/product-grid/product-grid
   ],
 })
 export class ProductsPage {
+  private readonly cartService = inject(CartService);
+
+  /** Live counter shown on the header cart button. */
+  readonly cartCount = computed(() => this.cartService.itemCount());
 
   constructor() {
     addIcons({ cafe, cart });

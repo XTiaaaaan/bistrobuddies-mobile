@@ -5,12 +5,15 @@ import {
   IonButton,
   IonContent,
   IonHeader,
+  IonIcon,
   IonInput,
   IonItem,
   IonList,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { eye, eyeOff } from 'ionicons/icons';
 import { authErrorMessage } from '../../core/auth/auth-errors';
 import { redirectTarget } from '../../core/auth/auth-redirect';
 import { AuthService } from '../../services/auth.service';
@@ -26,6 +29,7 @@ import { AuthService } from '../../services/auth.service';
     IonButton,
     IonContent,
     IonHeader,
+    IonIcon,
     IonInput,
     IonItem,
     IonList,
@@ -43,10 +47,25 @@ export class RegisterPage {
   readonly errorMessage = signal('');
   readonly status = signal('');
   readonly loading = signal(false);
+  /** Reveals the typed passwords while the customer checks for typos. */
+  readonly showPassword = signal(false);
+  readonly showConfirmPassword = signal(false);
 
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  constructor() {
+    addIcons({ eye, eyeOff });
+  }
+
+  togglePassword(): void {
+    this.showPassword.update((visible) => !visible);
+  }
+
+  toggleConfirmPassword(): void {
+    this.showConfirmPassword.update((visible) => !visible);
+  }
 
   async register(): Promise<void> {
     if (!this.formValid()) {

@@ -66,23 +66,45 @@
             <ion-input
               label="Password"
               labelPlacement="stacked"
-              type="password"
+              [type]="showPassword() ? 'text' : 'password'"
               name="password"
               autocomplete="new-password"
               placeholder="At least 6 characters"
               [(ngModel)]="password"
             ></ion-input>
+            <ion-button
+              fill="clear"
+              type="button"
+              slot="end"
+              class="password-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+            >
+              <ion-icon slot="icon-only" [name]="showPassword() ? 'eye-off' : 'eye'"></ion-icon>
+            </ion-button>
           </ion-item>
           <ion-item>
             <ion-input
               label="Confirm password"
               labelPlacement="stacked"
-              type="password"
+              [type]="showConfirmPassword() ? 'text' : 'password'"
               name="confirmPassword"
               autocomplete="new-password"
               placeholder="Repeat your password"
               [(ngModel)]="confirmPassword"
             ></ion-input>
+            <ion-button
+              fill="clear"
+              type="button"
+              slot="end"
+              class="password-toggle"
+              [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showConfirmPassword()"
+              (click)="toggleConfirmPassword()"
+            >
+              <ion-icon slot="icon-only" [name]="showConfirmPassword() ? 'eye-off' : 'eye'"></ion-icon>
+            </ion-button>
           </ion-item>
         </ion-list>
 

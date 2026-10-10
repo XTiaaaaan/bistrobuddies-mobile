@@ -14,7 +14,7 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { logoGoogle } from 'ionicons/icons';
+import { eye, eyeOff, logoGoogle } from 'ionicons/icons';
 import { authErrorMessage } from '../../core/auth/auth-errors';
 import { redirectTarget } from '../../core/auth/auth-redirect';
 import { AuthService } from '../../services/auth.service';
@@ -53,6 +53,8 @@ export class LoginPage implements OnInit {
   readonly googleLoading = signal(false);
   /** Explains why the customer was sent back to the login screen. */
   readonly sessionNotice = signal('');
+  /** Reveals the typed password while the customer checks for typos. */
+  readonly showPassword = signal(false);
 
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -61,7 +63,11 @@ export class LoginPage implements OnInit {
   private googleHintTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    addIcons({ logoGoogle });
+    addIcons({ eye, eyeOff, logoGoogle });
+  }
+
+  togglePassword(): void {
+    this.showPassword.update((visible) => !visible);
   }
 
   ngOnInit(): void {

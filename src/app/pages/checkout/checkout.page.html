@@ -7,11 +7,13 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content>
   <div class="checkout-page">
     @if (confirmation(); as order) {
-      <section class="card confirmation" role="status">
-        <ion-icon class="confirmation-icon" name="cafe"></ion-icon>
+      <section class="card confirmation bb-pop" role="status">
+        <span class="confirmation-mark" aria-hidden="true">
+          <ion-icon name="checkmark"></ion-icon>
+        </span>
         <h3 class="confirmation-title">Order placed!</h3>
         <p class="confirmation-hint">
           Please pay cash when your order is delivered.
@@ -68,8 +70,8 @@
         </div>
 
         <div class="review-list">
-          @for (item of items(); track item.productId + item.size + item.sugar) {
-            <div class="review-item">
+          @for (item of items(); track item.productId + item.size + item.sugar; let i = $index) {
+            <div class="review-item bb-rise" [style.animation-delay.ms]="i * 40">
               @if (item.productImage) {
                 <img [src]="item.productImage" [alt]="item.productName" />
               } @else {
@@ -221,6 +223,7 @@
         (click)="placeOrder()"
       >
         @if (submitting()) {
+          <ion-spinner name="crescent"></ion-spinner>
           Placing Order...
         } @else {
           Place Order

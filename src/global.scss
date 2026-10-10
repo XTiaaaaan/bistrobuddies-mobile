@@ -54,6 +54,7 @@ ion-toolbar ion-title {
   border-radius: 20px;
   padding: 26px 18px;
   box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  animation: bb-rise 0.36s var(--bb-ease) backwards;
 
   ion-icon {
     font-size: 44px;
@@ -81,6 +82,7 @@ ion-toolbar ion-title {
   border-radius: 20px;
   padding: 16px;
   box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  animation: bb-rise 0.36s var(--bb-ease) 0.07s backwards;
 
   h3 {
     font-family: Georgia, 'Times New Roman', serif;
@@ -138,6 +140,7 @@ ion-toolbar ion-title {
   border-radius: 16px;
   background: #fdeeee;
   color: #8c2f2f;
+  animation: bb-fade 0.28s var(--bb-ease) both;
 
   ion-icon {
     font-size: 22px;
@@ -168,5 +171,218 @@ ion-toolbar ion-title {
     --border-radius: 12px;
     --border-color: #e0b1b1;
     --color: #8c2f2f;
+  }
+}
+
+/* Confirmations reuse the same shell with a calm, positive palette. */
+.notice-ok {
+  border-color: #cbe0d1;
+  background: #eef6f0;
+  color: #2f5c3e;
+
+  ion-icon {
+    color: #4a7c59;
+  }
+
+  .notice-text p {
+    color: #4d7a60;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Motion — small, purposeful and always optional. Every animation used by
+ * the app comes from this block so `prefers-reduced-motion` can switch the
+ * whole UI off with one rule further below.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+@keyframes bb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bb-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bb-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.7);
+  }
+}
+
+@keyframes bb-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Content entrance: apply to a block, optionally delay it from the template.
+   `backwards` keeps the element's own styles authoritative once the entrance
+   finishes, so hover/press transforms still work afterwards. */
+.bb-rise {
+  animation: bb-rise 0.34s var(--bb-ease) backwards;
+}
+
+.bb-fade {
+  animation: bb-fade 0.4s var(--bb-ease) backwards;
+}
+
+.bb-pop {
+  animation: bb-pop 0.42s var(--bb-ease) backwards;
+}
+
+/* Skeleton placeholder used by loading states (product grid, etc.). */
+.bb-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #efe6da;
+  border-radius: 10px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.75) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    animation: bb-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+/* Tactile feedback for anything tappable. */
+ion-button,
+.chip,
+.qty-btn,
+.size-option,
+.sugar-option,
+.quick-action,
+.profile-card,
+.logout-bar {
+  transition:
+    transform var(--bb-motion-fast) var(--bb-ease),
+    background-color var(--bb-motion-base) var(--bb-ease),
+    border-color var(--bb-motion-base) var(--bb-ease),
+    color var(--bb-motion-base) var(--bb-ease),
+    box-shadow var(--bb-motion-base) var(--bb-ease);
+}
+
+ion-button:active:not([disabled]),
+.chip:active,
+.qty-btn:active:not([disabled]),
+.size-option:active:not([disabled]),
+.sugar-option:active:not([disabled]),
+.quick-action:active,
+.profile-card:active,
+.logout-bar:active {
+  transform: scale(0.97);
+}
+
+/* Keyboard users get the same clarity as touch users. */
+.chip:focus-visible,
+.qty-btn:focus-visible,
+.size-option:focus-visible,
+.sugar-option:focus-visible,
+.quick-action:focus-visible,
+.profile-card:focus-visible {
+  outline: 2px solid var(--bb-caramel);
+  outline-offset: 2px;
+}
+
+/* Toasts keep the brand voice: espresso surface, cream text. */
+ion-toast {
+  --background: var(--bb-espresso);
+  --color: #ffffff;
+  --border-radius: 14px;
+  --box-shadow: var(--bb-shadow-raised);
+  --margin: 12px;
+  font-size: 14px;
+}
+
+/* Live status dot (order tracking, real-time notes). */
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: #4a7c59;
+  box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.16);
+  animation: bb-pulse 1.6s ease-in-out infinite;
+}
+
+/* Header cart counter. */
+.cart-anchor {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bb-caramel);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--ion-toolbar-background, #3b2418);
+  pointer-events: none;
+  animation: bb-pop 0.3s var(--bb-ease) both;
+}
+
+/*
+ * Motion is a nicety, never a requirement: anything animated collapses to a
+ * single frame for customers who ask their device to reduce motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

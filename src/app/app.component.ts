@@ -1,4 +1,12 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import {
@@ -44,6 +52,7 @@ import {
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
 import { AuthService } from './services/auth.service';
+import { CartService } from './services/cart.service';
 import { UsersService } from './services/users.service';
 
 /** Customer summary shown at the top of the side menu. */
@@ -94,7 +103,11 @@ export class AppComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
+  private readonly cartService = inject(CartService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Live cart counter shown next to the Cart entry in the side menu. */
+  readonly cartCount = computed(() => this.cartService.itemCount());
 
   constructor() {
     addIcons({
@@ -123,6 +136,20 @@ export class AppComponent implements OnInit {
       callOutline,
       callSharp,
     });
+
+    // Keep the branded splash on screen for 2s, then reveal the app; the
+    // inline fallback in index.html covers the case where bootstrapping
+    // never happens.
+    afterNextRender(() => window.setTimeout(() => this.dismissSplash(), 2000));
+  }
+
+  private dismissSplash(): void {
+    const splash = document.getElementById('bb-splash');
+    if (!splash) {
+      return;
+    }
+    splash.classList.add('is-hidden');
+    window.setTimeout(() => splash.remove(), 400);
   }
 
   ngOnInit() {

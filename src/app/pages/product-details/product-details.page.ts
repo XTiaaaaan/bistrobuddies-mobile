@@ -64,6 +64,9 @@ export class ProductDetailsPage implements OnInit {
   private readonly toastController = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
 
+  /** Live counter shown on the header cart button. */
+  readonly cartCount = computed(() => this.cartService.itemCount());
+
   readonly sizeOptions = computed<SizeOption[]>(() => {
     const product = this.product();
     if (!product) {

@@ -1,7 +1,23 @@
 @if (status() === 'loading') {
-  <div class="grid-state" role="status">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Loading coffee...</p>
+  <div class="loading-state" role="status">
+    <p class="loading-caption">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading coffee...</span>
+    </p>
+    <div class="product-grid" aria-hidden="true">
+      @for (row of skeletonRows; track row) {
+        <div class="product-card skeleton-card">
+          <div class="product-media">
+            <span class="bb-skeleton skeleton-media"></span>
+          </div>
+          <div class="product-info">
+            <span class="bb-skeleton skeleton-line skeleton-line-short"></span>
+            <span class="bb-skeleton skeleton-line"></span>
+            <span class="bb-skeleton skeleton-line skeleton-line-mid"></span>
+          </div>
+        </div>
+      }
+    </div>
   </div>
 } @else if (status() === 'error') {
   <div class="grid-state" role="alert">
@@ -10,62 +26,126 @@
     <p>Please check your connection and try again.</p>
     <ion-button fill="outline" (click)="retry()">Try Again</ion-button>
   </div>
-} @else if (products().length === 0) {
-  <div class="grid-state" role="status">
-    <ion-icon name="cafe"></ion-icon>
-    <h3>No coffee available yet</h3>
-    <p>New drinks will appear here as soon as they are added.</p>
-  </div>
 } @else {
-  <div class="product-grid">
-    @for (product of products(); track product.id) {
-      <div class="product-card">
-        <a
-          class="product-link"
-          [routerLink]="['/products', product.id]"
-          [attr.aria-label]="'View details for ' + product.name"
-        >
-          <div class="product-media">
-            @if (hasImage(product)) {
-              <img
-                [src]="product.imageUrl"
-                [alt]="product.name"
-                loading="lazy"
-                (error)="onImageError(product.id)"
-              />
-            } @else {
-              <ion-icon name="cafe"></ion-icon>
-            }
-            <span class="badge" [class.badge-out]="!isAvailable(product)">
-              {{ isAvailable(product) ? 'Available' : 'Sold Out' }}
-            </span>
-          </div>
-
-          <div class="product-info">
-            @if (product.category) {
-              <span class="product-category">{{ product.category }}</span>
-            }
-            <h3 class="product-name">{{ product.name }}</h3>
-            <p class="product-description">{{ product.description }}</p>
-            <div class="product-footer">
-              <span class="price-label">Starting price</span>
-              <span class="price">{{ startingPrice(product) }}</span>
-            </div>
-          </div>
-        </a>
-
-        <div class="card-action">
-          <ion-button
-            expand="block"
-            size="small"
-            [disabled]="!canQuickAdd(product)"
-            [attr.aria-label]="'Add ' + product.name + ' to cart'"
-            (click)="quickAdd(product)"
+  @if (filterable() && catalog().length > 0) {
+    <div class="catalog-tools">
+      <div class="search-box">
+        <ion-icon name="search" aria-hidden="true"></ion-icon>
+        <input
+          class="search-input"
+          type="search"
+          name="product-search"
+          placeholder="Search coffee..."
+          autocomplete="off"
+          [value]="query()"
+          (input)="onQueryInput($event)"
+          aria-label="Search coffee"
+        />
+        @if (query()) {
+          <button
+            type="button"
+            class="search-clear"
+            aria-label="Clear search"
+            (click)="clearQuery()"
           >
-            {{ isAvailable(product) ? (canQuickAdd(product) ? 'Add to Cart' : 'Unavailable') : 'Sold Out' }}
-          </ion-button>
+            <ion-icon name="close-circle" aria-hidden="true"></ion-icon>
+          </button>
+        }
+      </div>
+
+      @if (categories().length > 1) {
+        <div class="chip-row">
+          <button
+            type="button"
+            class="chip"
+            [class.chip-active]="category() === ''"
+            [attr.aria-pressed]="category() === ''"
+            (click)="setCategory('')"
+          >
+            All
+          </button>
+          @for (option of categories(); track option) {
+            <button
+              type="button"
+              class="chip"
+              [class.chip-active]="category() === option"
+              [attr.aria-pressed]="category() === option"
+              (click)="setCategory(option)"
+            >
+              {{ option }}
+            </button>
+          }
         </div>
+      }
+    </div>
+  }
+
+  @if (products().length === 0) {
+    @if (hasFilter()) {
+      <div class="grid-state" role="status">
+        <ion-icon name="search"></ion-icon>
+        <h3>No coffee matches your search</h3>
+        <p>Try a different name, or clear the filters to see the full menu.</p>
+        <ion-button fill="outline" (click)="clearFilters()">Clear Filters</ion-button>
+      </div>
+    } @else {
+      <div class="grid-state" role="status">
+        <ion-icon name="cafe"></ion-icon>
+        <h3>No coffee available yet</h3>
+        <p>New drinks will appear here as soon as they are added.</p>
       </div>
     }
-  </div>
+  } @else {
+    <div class="product-grid">
+      @for (product of products(); track product.id; let i = $index) {
+        <div class="product-card bb-rise" [style.animation-delay.ms]="i * 35">
+          <a
+            class="product-link"
+            [routerLink]="['/products', product.id]"
+            [attr.aria-label]="'View details for ' + product.name"
+          >
+            <div class="product-media" [class.sold-out]="!isAvailable(product)">
+              @if (hasImage(product)) {
+                <img
+                  [src]="product.imageUrl"
+                  [alt]="product.name"
+                  loading="lazy"
+                  (error)="onImageError(product.id)"
+                />
+              } @else {
+                <ion-icon name="cafe"></ion-icon>
+              }
+              <span class="badge" [class.badge-out]="!isAvailable(product)">
+                {{ isAvailable(product) ? 'Available' : 'Sold Out' }}
+              </span>
+            </div>
+
+            <div class="product-info">
+              @if (product.category) {
+                <span class="product-category">{{ product.category }}</span>
+              }
+              <h3 class="product-name">{{ product.name }}</h3>
+              <p class="product-description">{{ product.description }}</p>
+              <div class="product-footer">
+                <span class="price-label">Starting price</span>
+                <span class="price">{{ startingPrice(product) }}</span>
+              </div>
+            </div>
+          </a>
+
+          <div class="card-action">
+            <ion-button
+              expand="block"
+              size="small"
+              [disabled]="!canQuickAdd(product)"
+              [attr.aria-label]="'Add ' + product.name + ' to cart'"
+              (click)="quickAdd(product)"
+            >
+              {{ isAvailable(product) ? (canQuickAdd(product) ? 'Add to Cart' : 'Unavailable') : 'Sold Out' }}
+            </ion-button>
+          </div>
+        </div>
+      }
+    </div>
+  }
 }

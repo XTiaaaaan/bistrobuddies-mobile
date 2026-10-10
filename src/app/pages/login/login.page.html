@@ -48,12 +48,23 @@
             <ion-input
               label="Password"
               labelPlacement="stacked"
-              type="password"
+              [type]="showPassword() ? 'text' : 'password'"
               name="password"
               autocomplete="current-password"
               placeholder="Your password"
               [(ngModel)]="password"
             ></ion-input>
+            <ion-button
+              fill="clear"
+              type="button"
+              slot="end"
+              class="password-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+            >
+              <ion-icon slot="icon-only" [name]="showPassword() ? 'eye-off' : 'eye'"></ion-icon>
+            </ion-button>
           </ion-item>
         </ion-list>
 

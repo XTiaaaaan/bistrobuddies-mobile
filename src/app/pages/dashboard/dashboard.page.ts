@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
@@ -12,9 +12,10 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { cafe, home } from 'ionicons/icons';
+import { cafe, cart, home, receipt } from 'ionicons/icons';
 import { ProductGridComponent } from '../../components/product-grid/product-grid.component';
 import { AuthService } from '../../services/auth.service';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -41,10 +42,14 @@ export class DashboardPage implements OnInit {
   readonly signedIn = signal(false);
 
   private readonly auth = inject(AuthService);
+  private readonly cartService = inject(CartService);
   private readonly destroyRef = inject(DestroyRef);
 
+  /** Live cart counter for the quick-action shortcut. */
+  readonly cartCount = computed(() => this.cartService.itemCount());
+
   constructor() {
-    addIcons({ cafe, home });
+    addIcons({ cafe, cart, home, receipt });
   }
 
   ngOnInit() {
