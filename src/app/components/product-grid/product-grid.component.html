@@ -25,8 +25,13 @@
         [attr.aria-label]="'View details for ' + product.name"
       >
         <div class="product-media">
-          @if (product.imageUrl) {
-            <img [src]="product.imageUrl" [alt]="product.name" loading="lazy" />
+          @if (hasImage(product)) {
+            <img
+              [src]="product.imageUrl"
+              [alt]="product.name"
+              loading="lazy"
+              (error)="onImageError(product.id)"
+            />
           } @else {
             <ion-icon name="cafe"></ion-icon>
           }

@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 import { Timestamp } from 'firebase/firestore';
 import { environment } from '../../environments/environment';
+import { resolveProductImageUrl } from '../core/products/product-image';
 import { Product } from '../models/product.model';
 
 /**
@@ -81,7 +82,7 @@ export function fromPayload(payload: ProductApiPayload): Product {
     name: payload.name ?? '',
     description: payload.description ?? '',
     category: payload.category ?? '',
-    imageUrl: payload.imageUrl ?? '',
+    imageUrl: resolveProductImageUrl(payload.imageUrl),
     cloudinaryPublicId: payload.cloudinaryPublicId ?? '',
     smallPrice: price(payload.smallPrice),
     mediumPrice: price(payload.mediumPrice),

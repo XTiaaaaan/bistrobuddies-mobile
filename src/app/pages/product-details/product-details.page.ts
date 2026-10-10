@@ -57,6 +57,7 @@ export class ProductDetailsPage implements OnInit {
   readonly selectedSize = signal<ProductSize>('small');
   readonly sugar = signal<string>('Regular');
   readonly quantity = signal(1);
+  readonly imageFailed = signal(false);
 
   private readonly productsService = inject(ProductsService);
   private readonly cartService = inject(CartService);
@@ -117,6 +118,7 @@ export class ProductDetailsPage implements OnInit {
       .subscribe({
         next: (product) => {
           this.product.set(product);
+          this.imageFailed.set(false);
           this.status.set(product ? 'ready' : 'missing');
           if (product) {
             this.ensureSelection();
@@ -124,6 +126,14 @@ export class ProductDetailsPage implements OnInit {
         },
         error: () => this.status.set('error'),
       });
+  }
+
+  hasImage(product: Product): boolean {
+    return Boolean(product.imageUrl) && !this.imageFailed();
+  }
+
+  onImageError(): void {
+    this.imageFailed.set(true);
   }
 
   selectSize(size: ProductSize): void {
