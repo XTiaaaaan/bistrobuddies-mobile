@@ -16,7 +16,6 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
-  ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe, cart } from 'ionicons/icons';
@@ -29,6 +28,7 @@ import { CartService } from '../../services/cart.service';
 import {
   CreateOrderItemRequest,
   CreateOrderRequest,
+  CreateOrderResponse,
   OrderApiError,
   OrdersApiService,
 } from '../../services/orders-api.service';
@@ -39,6 +39,9 @@ type InputEventLike = { detail: { value?: unknown } };
 /** Shown when the backend rejects the Bearer token (expired / revoked). */
 export const SESSION_EXPIRED_MESSAGE =
   'Your session has expired. Please sign in again to place your order.';
+
+/** Mirrors the backend's phone rule so obvious typos fail before the request. */
+export const PHONE_PATTERN = /^[0-9+\-()\s]{7,20}$/;
 
 /** Turns a backend order failure into a message the customer can act on. */
 export function orderErrorMessage(error: unknown): string {
@@ -82,7 +85,6 @@ export class CheckoutPage implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly usersService = inject(UsersService);
   private readonly router = inject(Router);
-  private readonly toastController = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly items = this.cartService.items;
@@ -108,14 +110,25 @@ export class CheckoutPage implements OnInit {
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  /** Authoritative summary returned by the backend after a successful order. */
+  readonly placedOrder = signal<CreateOrderResponse | null>(null);
 
   readonly isEmpty = computed(() => this.items().length === 0);
   readonly missingName = computed(() => this.name().trim() === '');
   readonly missingPhone = computed(() => this.phone().trim() === '');
   readonly missingAddress = computed(() => this.address().trim() === '');
+  readonly invalidPhone = computed(() => {
+    const phone = this.phone().trim();
+    return phone !== '' && !PHONE_PATTERN.test(phone);
+  });
   readonly total = computed(() => this.subtotal() + this.deliveryFee);
   /** Session expired / signed out while the checkout page was open. */
   readonly signedOut = computed(() => this.authChecked() && this.uid() === null);
+  /**
+   * The confirmation is only shown right after a successful order while the
+   * cart is empty; adding a new item returns the page to the normal flow.
+   */
+  readonly confirmation = computed(() => (this.isEmpty() ? this.placedOrder() : null));
 
   readonly canSubmit = computed(
     () =>
@@ -123,6 +136,7 @@ export class CheckoutPage implements OnInit {
       !this.submitting() &&
       !this.missingName() &&
       !this.missingPhone() &&
+      !this.invalidPhone() &&
       !this.missingAddress() &&
       this.uid() !== null
   );
@@ -207,16 +221,12 @@ export class CheckoutPage implements OnInit {
     try {
       const request = this.buildCreateOrderRequest();
       const response = await this.ordersApi.createOrder(request);
+      // Only clear the cart after the backend confirms the order, so a failed
+      // request never loses the customer's items. The returned id/totals are
+      // authoritative and drive the confirmation state.
       this.cartService.clear();
-
-      const toast = await this.toastController.create({
-        message: 'Your order has been placed.',
-        duration: 2500,
-        position: 'bottom',
-        color: 'success',
-      });
-      await toast.present();
-      await this.router.navigate(['/dashboard']);
+      this.placedOrder.set(response);
+      await this.router.navigate(['/my-orders']);
       return response.id;
     } catch (error) {
       if (error instanceof OrderApiError && error.status === 401) {

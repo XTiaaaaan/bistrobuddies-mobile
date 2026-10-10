@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { CartItemInput } from '../models/cart.model';
-import { CartService, MAX_QUANTITY } from './cart.service';
+import { CART_STORAGE_KEY, CartService, MAX_QUANTITY } from './cart.service';
 
 function item(overrides: Partial<CartItemInput> = {}): CartItemInput {
   return {
@@ -19,11 +19,15 @@ describe('CartService', () => {
   let service: CartService;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({});
     service = TestBed.inject(CartService);
   });
 
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    localStorage.clear();
+    TestBed.resetTestingModule();
+  });
 
   it('should start with an empty cart', () => {
     expect(service.items()).toEqual([]);
@@ -151,5 +155,62 @@ describe('CartService', () => {
     expect(service.items()).toEqual([]);
     expect(service.itemCount()).toBe(0);
     expect(service.subtotal()).toBe(0);
+  });
+
+  it('should persist the cart and restore it in a new instance', () => {
+    service.add(item({ quantity: 2, unitPrice: 130, size: 'medium' }));
+    service.add(item({ size: 'large', unitPrice: 160, sugar: 'No Sugar' }));
+
+    const restored = new CartService();
+
+    expect(restored.items().length).toBe(2);
+    expect(restored.itemCount()).toBe(3);
+    expect(restored.subtotal()).toBe(420);
+    expect(restored.items()[0]).toEqual({
+      productId: 'p1',
+      productName: 'House Latte',
+      productImage: 'latte.png',
+      size: 'medium',
+      sugar: 'Regular',
+      quantity: 2,
+      unitPrice: 130,
+      itemSubtotal: 260,
+    });
+  });
+
+  it('should ignore stored payloads that are not valid JSON', () => {
+    localStorage.setItem(CART_STORAGE_KEY, 'not-json{');
+
+    expect(new CartService().items()).toEqual([]);
+  });
+
+  it('should drop stored lines with a missing or invalid price', () => {
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify([
+        item({ unitPrice: 0 }),
+        { ...item({ size: 'large' }), unitPrice: 'free' },
+      ])
+    );
+
+    expect(new CartService().items()).toEqual([]);
+  });
+
+  it('should recompute the subtotal from quantity instead of trusting stored totals', () => {
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify([{ ...item({ quantity: 3, unitPrice: 100 }), itemSubtotal: 999999 }])
+    );
+
+    const restored = new CartService();
+    expect(restored.items()[0].itemSubtotal).toBe(300);
+    expect(restored.subtotal()).toBe(300);
+  });
+
+  it('should empty the stored cart when cleared', () => {
+    service.add(item());
+    service.clear();
+
+    expect(new CartService().items()).toEqual([]);
   });
 });

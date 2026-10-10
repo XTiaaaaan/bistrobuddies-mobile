@@ -41,6 +41,8 @@ function item(overrides: Partial<CartItemInput> = {}): CartItemInput {
 }
 
 describe('CartPage', () => {
+  beforeEach(() => localStorage.clear());
+
   function setup(
     items: CartItemInput[] = [],
     products: Product[] = [makeProduct()],
@@ -163,6 +165,24 @@ describe('CartPage', () => {
 
     expect(component.items()[0].sugar).toBe('Less Sugar');
     expect(component.items()[0].quantity).toBe(1);
+  });
+
+  it('should offer the product-specific sugar options for an item', () => {
+    const { component } = setup(
+      [item({ sugar: '0%' })],
+      [makeProduct({ sugarOptions: ['0%', '50%', '100%'] })]
+    );
+
+    expect(component.sugarOptionsFor(component.items()[0])).toEqual(['0%', '50%', '100%']);
+  });
+
+  it('should keep the item sugar selectable when it is not in the product options', () => {
+    const { component } = setup(
+      [item({ sugar: 'Legacy Sugar' })],
+      [makeProduct({ sugarOptions: ['No Sugar', 'Regular'] })]
+    );
+
+    expect(component.sugarOptionsFor(component.items()[0])).toContain('Legacy Sugar');
   });
 
   it('should mark sizes without a price as disabled once products load', () => {

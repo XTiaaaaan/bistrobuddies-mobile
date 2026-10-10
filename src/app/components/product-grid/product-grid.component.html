@@ -19,39 +19,53 @@
 } @else {
   <div class="product-grid">
     @for (product of products(); track product.id) {
-      <a
-        class="product-card"
-        [routerLink]="['/products', product.id]"
-        [attr.aria-label]="'View details for ' + product.name"
-      >
-        <div class="product-media">
-          @if (hasImage(product)) {
-            <img
-              [src]="product.imageUrl"
-              [alt]="product.name"
-              loading="lazy"
-              (error)="onImageError(product.id)"
-            />
-          } @else {
-            <ion-icon name="cafe"></ion-icon>
-          }
-          <span class="badge" [class.badge-out]="!isAvailable(product)">
-            {{ isAvailable(product) ? 'Available' : 'Sold Out' }}
-          </span>
-        </div>
-
-        <div class="product-info">
-          @if (product.category) {
-            <span class="product-category">{{ product.category }}</span>
-          }
-          <h3 class="product-name">{{ product.name }}</h3>
-          <p class="product-description">{{ product.description }}</p>
-          <div class="product-footer">
-            <span class="price-label">Starting price</span>
-            <span class="price">{{ startingPrice(product) }}</span>
+      <div class="product-card">
+        <a
+          class="product-link"
+          [routerLink]="['/products', product.id]"
+          [attr.aria-label]="'View details for ' + product.name"
+        >
+          <div class="product-media">
+            @if (hasImage(product)) {
+              <img
+                [src]="product.imageUrl"
+                [alt]="product.name"
+                loading="lazy"
+                (error)="onImageError(product.id)"
+              />
+            } @else {
+              <ion-icon name="cafe"></ion-icon>
+            }
+            <span class="badge" [class.badge-out]="!isAvailable(product)">
+              {{ isAvailable(product) ? 'Available' : 'Sold Out' }}
+            </span>
           </div>
+
+          <div class="product-info">
+            @if (product.category) {
+              <span class="product-category">{{ product.category }}</span>
+            }
+            <h3 class="product-name">{{ product.name }}</h3>
+            <p class="product-description">{{ product.description }}</p>
+            <div class="product-footer">
+              <span class="price-label">Starting price</span>
+              <span class="price">{{ startingPrice(product) }}</span>
+            </div>
+          </div>
+        </a>
+
+        <div class="card-action">
+          <ion-button
+            expand="block"
+            size="small"
+            [disabled]="!canQuickAdd(product)"
+            [attr.aria-label]="'Add ' + product.name + ' to cart'"
+            (click)="quickAdd(product)"
+          >
+            {{ isAvailable(product) ? (canQuickAdd(product) ? 'Add to Cart' : 'Unavailable') : 'Sold Out' }}
+          </ion-button>
         </div>
-      </a>
+      </div>
     }
   </div>
 }

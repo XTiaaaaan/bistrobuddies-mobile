@@ -83,9 +83,17 @@ export class ProductDetailsPage implements OnInit {
       return [...SUGAR_OPTIONS];
     }
 
-    const normalized = configured.map((option) => option.trim().toLowerCase());
-    const matched = SUGAR_OPTIONS.filter((option) => normalized.includes(option.toLowerCase()));
-    return matched.length > 0 ? matched : [...SUGAR_OPTIONS];
+    const normalized = configured.map((option) => option.trim()).filter((option) => option !== '');
+    if (normalized.length === 0) {
+      return [...SUGAR_OPTIONS];
+    }
+
+    // Prefer the standard order, but never drop a product's own options: the
+    // backend only accepts sugar values stored on the product document.
+    const matched = SUGAR_OPTIONS.filter((option) =>
+      normalized.some((value) => value.toLowerCase() === option.toLowerCase())
+    );
+    return matched.length > 0 ? matched : normalized;
   });
 
   readonly unitPrice = computed<number | null>(

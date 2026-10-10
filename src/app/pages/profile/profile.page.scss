@@ -47,7 +47,7 @@ $cream: #f5ede4;
 
   ion-button {
     --border-radius: 14px;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --box-shadow: none;
     color: $espresso;
     font-weight: 600;
@@ -146,7 +146,7 @@ $cream: #f5ede4;
   ion-input,
   ion-textarea {
     --background: #ffffff;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --border-radius: 12px;
     --padding-start: 12px;
     --padding-end: 12px;

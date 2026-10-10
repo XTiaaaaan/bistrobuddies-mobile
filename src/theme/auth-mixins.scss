@@ -175,7 +175,7 @@ $cream: #f5ede4;
 
   .auth-google {
     --border-radius: 14px;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --box-shadow: none;
     height: 50px;
     font-weight: 600;

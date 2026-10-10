@@ -1,14 +1,18 @@
 import { Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { IonButton, IonIcon, IonSpinner } from '@ionic/angular';
+import { IonButton, IonIcon, IonSpinner, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe } from 'ionicons/icons';
 import { formatPeso } from '../../core/format/price';
-import { Product } from '../../models/product.model';
+import { Product, ProductSize } from '../../models/product.model';
+import { CartService } from '../../services/cart.service';
 import { ProductsService } from '../../services/products.service';
 
 export type ProductGridStatus = 'loading' | 'ready' | 'error';
+
+const SIZE_ORDER: ProductSize[] = ['small', 'medium', 'large'];
+const STANDARD_SUGAR_OPTIONS = ['No Sugar', 'Less Sugar', 'Regular', 'Extra Sugar'];
 
 @Component({
   selector: 'app-product-grid',
@@ -28,6 +32,8 @@ export class ProductGridComponent implements OnInit {
   private readonly failedImages = signal<ReadonlySet<string>>(new Set());
 
   private readonly productsService = inject(ProductsService);
+  private readonly cartService = inject(CartService);
+  private readonly toastController = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
@@ -69,6 +75,74 @@ export class ProductGridComponent implements OnInit {
     }
 
     return formatPeso(Math.min(...prices));
+  }
+
+  /** Unit price for a size, or null when the product has no valid price there. */
+  priceFor(product: Product, size: ProductSize): number | null {
+    const price =
+      size === 'small'
+        ? product.smallPrice
+        : size === 'medium'
+          ? product.mediumPrice
+          : product.largePrice;
+    return typeof price === 'number' && Number.isFinite(price) && price > 0 ? price : null;
+  }
+
+  /** Smallest size that has a valid price, matching the details page default. */
+  defaultSize(product: Product): ProductSize | null {
+    return SIZE_ORDER.find((size) => this.priceFor(product, size) !== null) ?? null;
+  }
+
+  /**
+   * First sugar option the backend will accept for this product (the product
+   * document is the source of truth), or null when none is configured.
+   */
+  defaultSugar(product: Product): string | null {
+    const configured = (product.sugarOptions ?? []).filter(
+      (option) => typeof option === 'string' && option.trim() !== ''
+    );
+    if (configured.length === 0) {
+      return null;
+    }
+
+    const matched = STANDARD_SUGAR_OPTIONS.filter((option) =>
+      configured.some((value) => value.toLowerCase() === option.toLowerCase())
+    );
+    return (matched.length > 0 ? matched : configured)[0] ?? null;
+  }
+
+  canQuickAdd(product: Product): boolean {
+    return (
+      this.isAvailable(product) &&
+      this.defaultSize(product) !== null &&
+      this.defaultSugar(product) !== null
+    );
+  }
+
+  async quickAdd(product: Product): Promise<void> {
+    const size = this.defaultSize(product);
+    const sugar = this.defaultSugar(product);
+    if (!this.isAvailable(product) || size === null || sugar === null) {
+      return;
+    }
+
+    this.cartService.add({
+      productId: product.id,
+      productName: product.name,
+      productImage: product.imageUrl ?? '',
+      size,
+      sugar,
+      quantity: 1,
+      unitPrice: this.priceFor(product, size) as number,
+    });
+
+    const toast = await this.toastController.create({
+      message: `${product.name} added to your cart.`,
+      duration: 2000,
+      position: 'bottom',
+      color: 'success',
+    });
+    await toast.present();
   }
 
   private load() {

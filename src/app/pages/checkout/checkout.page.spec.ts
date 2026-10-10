@@ -40,6 +40,8 @@ function orderResponse(id = 'order-1'): CreateOrderResponse {
 }
 
 describe('CheckoutPage', () => {
+  beforeEach(() => localStorage.clear());
+
   function setup(
     items: CartItemInput[] = [item()],
     profile: unknown = null,
@@ -163,7 +165,37 @@ describe('CheckoutPage', () => {
     });
 
     expect(cart.items()).toEqual([]);
-    expect(navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(component.placedOrder()?.id).toBe('order-1');
+    expect(navigate).toHaveBeenCalledWith(['/my-orders']);
+  });
+
+  it('should show a confirmation with the order id and totals after ordering', async () => {
+    const { fixture, component } = setup([item({ quantity: 2, unitPrice: 100 })]);
+
+    fillContact(component);
+    await component.placeOrder();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('Order placed!');
+    expect(element.querySelector('[data-testid="order-id"]')?.textContent).toContain('order-1');
+    expect(element.textContent).toContain('₱200.00');
+    expect(element.textContent).toContain('PENDING');
+  });
+
+  it('should reject an obviously invalid phone number before ordering', async () => {
+    const { component, createOrder } = setup();
+
+    component.setName({ detail: { value: 'Juan dela Cruz' } });
+    component.setAddress({ detail: { value: '123 Rizal St, Manila' } });
+    component.setPhone({ detail: { value: '12' } });
+    component.submitted.set(true);
+
+    expect(component.invalidPhone()).toBe(true);
+    expect(component.canSubmit()).toBe(false);
+
+    await component.placeOrder();
+    expect(createOrder).not.toHaveBeenCalled();
   });
 
   it('should submit an online payment order', async () => {

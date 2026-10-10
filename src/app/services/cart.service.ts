@@ -6,13 +6,19 @@ import {
   CartItemPatch,
   sameCartKey,
 } from '../models/cart.model';
+import { ProductSize } from '../models/product.model';
 
 export const MAX_QUANTITY = 99;
 const MIN_QUANTITY = 1;
 
+/** Versioned storage key so incompatible cart payloads are ignored on upgrade. */
+export const CART_STORAGE_KEY = 'bistrobuddies.cart.v1';
+
+const SIZES: ProductSize[] = ['small', 'medium', 'large'];
+
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  private readonly itemsSignal = signal<CartItem[]>([]);
+  private readonly itemsSignal = signal<CartItem[]>(loadStoredCart());
 
   readonly items = this.itemsSignal.asReadonly();
   readonly itemCount = computed(() =>
@@ -42,6 +48,7 @@ export class CartService {
       };
       return updated;
     });
+    this.persist();
   }
 
   updateItem(key: CartItemKey, patch: CartItemPatch): void {
@@ -82,6 +89,7 @@ export class CartService {
       updated.splice(index, 1);
       return updated;
     });
+    this.persist();
   }
 
   increase(key: CartItemKey): void {
@@ -94,10 +102,12 @@ export class CartService {
 
   removeItem(key: CartItemKey): void {
     this.itemsSignal.update((items) => items.filter((item) => !sameCartKey(item, key)));
+    this.persist();
   }
 
   clear(): void {
     this.itemsSignal.set([]);
+    this.persist();
   }
 
   private changeQuantity(key: CartItemKey, nextQuantity: (quantity: number) => number): void {
@@ -113,10 +123,24 @@ export class CartService {
       updated[index] = { ...item, quantity, itemSubtotal: item.unitPrice * quantity };
       return updated;
     });
+    this.persist();
   }
 
   private indexOf(items: CartItem[], key: CartItemKey): number {
     return items.findIndex((item) => sameCartKey(item, key));
+  }
+
+  /** Mirrors the cart to localStorage so it survives a reload. */
+  private persist(): void {
+    const storage = getStorage();
+    if (!storage) {
+      return;
+    }
+    try {
+      storage.setItem(CART_STORAGE_KEY, JSON.stringify(this.itemsSignal()));
+    } catch {
+      // Storage can be full or blocked (private mode); the in-memory cart still works.
+    }
   }
 }
 
@@ -125,4 +149,84 @@ function clamp(quantity: number): number {
     return MIN_QUANTITY;
   }
   return Math.min(Math.max(Math.trunc(quantity), MIN_QUANTITY), MAX_QUANTITY);
+}
+
+function getStorage(): Storage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function loadStoredCart(): CartItem[] {
+  const storage = getStorage();
+  if (!storage) {
+    return [];
+  }
+
+  let raw: string | null = null;
+  try {
+    raw = storage.getItem(CART_STORAGE_KEY);
+  } catch {
+    return [];
+  }
+
+  if (!raw) {
+    return [];
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .map(sanitizeStoredItem)
+    .filter((item): item is CartItem => item !== null);
+}
+
+/**
+ * Rebuilds one stored cart line. Prices are display-only snapshots and are
+ * never trusted for checkout; invalid lines are dropped rather than guessed
+ * so the cart never shows a fabricated price.
+ */
+function sanitizeStoredItem(entry: unknown): CartItem | null {
+  if (entry === null || typeof entry !== 'object') {
+    return null;
+  }
+
+  const record = entry as Record<string, unknown>;
+  const productId = typeof record['productId'] === 'string' ? record['productId'] : '';
+  const size = record['size'];
+  const unitPrice = record['unitPrice'];
+
+  if (
+    productId === '' ||
+    !SIZES.includes(size as ProductSize) ||
+    typeof unitPrice !== 'number' ||
+    !Number.isFinite(unitPrice) ||
+    unitPrice <= 0
+  ) {
+    return null;
+  }
+
+  const quantity = clamp(typeof record['quantity'] === 'number' ? record['quantity'] : MIN_QUANTITY);
+
+  return {
+    productId,
+    productName: typeof record['productName'] === 'string' ? record['productName'] : '',
+    productImage: typeof record['productImage'] === 'string' ? record['productImage'] : '',
+    size: size as ProductSize,
+    sugar: typeof record['sugar'] === 'string' ? record['sugar'] : '',
+    quantity,
+    unitPrice,
+    itemSubtotal: unitPrice * quantity,
+  };
 }

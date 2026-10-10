@@ -47,7 +47,7 @@ $cream: #f5ede4;
 
   ion-button {
     --border-radius: 14px;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --box-shadow: none;
     color: $espresso;
     font-weight: 600;

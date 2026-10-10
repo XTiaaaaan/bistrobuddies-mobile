@@ -47,7 +47,7 @@ $cream: #f5ede4;
 
   ion-button {
     --border-radius: 14px;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --box-shadow: none;
     color: $espresso;
     font-weight: 600;
@@ -172,7 +172,7 @@ $cream: #f5ede4;
 
   ion-select {
     --background: #ffffff;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --border-radius: 12px;
     --border-width: 1px;
     --border-style: solid;
@@ -293,8 +293,8 @@ $cream: #f5ede4;
   }
 
   .clear-button {
-    --border-color: $tan;
-    --color: $espresso;
+    --border-color: #{$tan};
+    --color: #{$espresso};
   }
 
   .shop-button {
