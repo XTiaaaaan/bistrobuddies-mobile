@@ -36,8 +36,8 @@
     } @else if (product(); as product) {
       <section class="card product-card">
         <div class="product-media">
-          @if (product.imageUrl) {
-            <img [src]="product.imageUrl" [alt]="product.name" />
+          @if (hasImage(product)) {
+            <img [src]="product.imageUrl" [alt]="product.name" (error)="onImageError()" />
           } @else {
             <ion-icon name="cafe"></ion-icon>
           }

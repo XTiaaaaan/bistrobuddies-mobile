@@ -197,4 +197,52 @@ describe('ProductDetailsPage', () => {
     expect(fixture.componentInstance.status()).toBe('missing');
     expect(element.textContent).toContain('Coffee not found');
   });
+
+  it('should show the standard size prices as three distinct amounts', () => {
+    const fixture = setup(
+      makeProduct({ smallPrice: 100, mediumPrice: 120, largePrice: 150 })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('₱100.00');
+    expect(element.textContent).toContain('₱120.00');
+    expect(element.textContent).toContain('₱150.00');
+
+    const component = fixture.componentInstance;
+    component.selectSize('medium');
+    expect(component.unitPrice()).toBe(120);
+    component.selectSize('large');
+    expect(component.unitPrice()).toBe(150);
+    component.selectSize('small');
+    expect(component.unitPrice()).toBe(100);
+  });
+
+  it('should keep an absolute backend upload URL untouched', () => {
+    const url = 'http://localhost:3001/uploads/1791563575213-d13be78d.jpg';
+    const fixture = setup(makeProduct({ imageUrl: url }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should fall back to the placeholder icon when the image URL is empty', () => {
+    const fixture = setup(makeProduct({ imageUrl: '' }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('img')).toBeNull();
+    expect(element.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
+
+  it('should fall back to the placeholder icon when the image fails to load', () => {
+    const fixture = setup(makeProduct());
+    const element = fixture.nativeElement as HTMLElement;
+    const image = element.querySelector('img');
+    expect(image).not.toBeNull();
+
+    image?.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(element.querySelector('img')).toBeNull();
+    expect(element.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
 });

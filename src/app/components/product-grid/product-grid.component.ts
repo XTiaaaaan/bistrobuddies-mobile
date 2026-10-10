@@ -25,6 +25,7 @@ export class ProductGridComponent implements OnInit {
 
   readonly products = signal<Product[]>([]);
   readonly status = signal<ProductGridStatus>('loading');
+  private readonly failedImages = signal<ReadonlySet<string>>(new Set());
 
   private readonly productsService = inject(ProductsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -44,6 +45,18 @@ export class ProductGridComponent implements OnInit {
 
   isAvailable(product: Product): boolean {
     return product.available !== false;
+  }
+
+  hasImage(product: Product): boolean {
+    return Boolean(product.imageUrl) && !this.failedImages().has(product.id);
+  }
+
+  onImageError(productId: string): void {
+    this.failedImages.update((current) => {
+      const next = new Set(current);
+      next.add(productId);
+      return next;
+    });
   }
 
   startingPrice(product: Product): string {

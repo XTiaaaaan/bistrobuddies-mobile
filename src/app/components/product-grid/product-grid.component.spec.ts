@@ -152,4 +152,44 @@ describe('ProductGridComponent', () => {
       )
     ).toBe('—');
   });
+
+  it('should keep an absolute backend upload URL untouched', () => {
+    const url = 'http://localhost:3001/uploads/1791563575213-d13be78d.jpg';
+    const fixture = setup(() => of([makeProduct({ imageUrl: url })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should show the standard size prices as a starting price of ₱100', () => {
+    const fixture = setup(() => of([]));
+    const product = makeProduct({ smallPrice: 100, mediumPrice: 120, largePrice: 150 });
+
+    expect(fixture.componentInstance.startingPrice(product)).toBe('₱100.00');
+  });
+
+  it('should fall back to the placeholder icon when the image URL is empty', () => {
+    const fixture = setup(() => of([makeProduct({ imageUrl: '' })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('img')).toBeNull();
+    expect(card.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
+
+  it('should fall back to the placeholder icon when the image fails to load', () => {
+    const fixture = setup(() => of([makeProduct({})]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    const image = card.querySelector('img');
+    expect(image).not.toBeNull();
+
+    image?.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(card.querySelector('img')).toBeNull();
+    expect(card.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
 });

@@ -141,4 +141,65 @@ describe('ProductsService', () => {
     expect(product.currency).toBe('PHP');
     expect(product.available).toBe(true);
   });
+
+  it('keeps an absolute uploaded image URL untouched', async () => {
+    const promise = firstValueFrom(service.watchProducts());
+
+    httpMock.expectOne(`${baseUrl}/products`).flush({
+      products: [payload({ imageUrl: 'http://localhost:3001/uploads/a.jpg' })],
+    });
+
+    const [product] = await promise;
+    expect(product.imageUrl).toBe('http://localhost:3001/uploads/a.jpg');
+  });
+
+  it('resolves a backend-relative upload path to the backend origin, not the API path', async () => {
+    const promise = firstValueFrom(service.watchProducts());
+
+    httpMock.expectOne(`${baseUrl}/products`).flush({
+      products: [payload({ imageUrl: '/uploads/a.jpg' })],
+    });
+
+    const [product] = await promise;
+    expect(product.imageUrl).toBe(`${new URL(baseUrl).origin}/uploads/a.jpg`);
+    expect(product.imageUrl).not.toContain('/api/uploads');
+  });
+
+  it('maps a missing image URL to an empty string so the fallback renders', async () => {
+    const promise = firstValueFrom(service.watchProducts());
+
+    httpMock.expectOne(`${baseUrl}/products`).flush({
+      products: [payload({ imageUrl: '' })],
+    });
+
+    const [product] = await promise;
+    expect(product.imageUrl).toBe('');
+  });
+
+  it('keeps the standard size prices distinct', async () => {
+    const promise = firstValueFrom(service.watchProducts());
+
+    httpMock.expectOne(`${baseUrl}/products`).flush({
+      products: [
+        payload({ smallPrice: 100, mediumPrice: 120, largePrice: 150, price: 120 }),
+      ],
+    });
+
+    const [product] = await promise;
+    expect(product.smallPrice).toBe(100);
+    expect(product.mediumPrice).toBe(120);
+    expect(product.largePrice).toBe(150);
+    expect(product.price).toBe(120);
+  });
+
+  it('never turns a legacy flat price into three size prices', () => {
+    const product = fromPayload(
+      payload({ price: 100, smallPrice: null, mediumPrice: null, largePrice: null })
+    );
+
+    expect(product.price).toBe(100);
+    expect(product.smallPrice).toBe(0);
+    expect(product.mediumPrice).toBe(0);
+    expect(product.largePrice).toBe(0);
+  });
 });
