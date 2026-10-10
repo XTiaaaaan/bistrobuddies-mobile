@@ -47,7 +47,7 @@ $cream: #f5ede4;
 
   ion-button {
     --border-radius: 14px;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --box-shadow: none;
     color: $espresso;
     font-weight: 600;
@@ -65,6 +65,11 @@ $cream: #f5ede4;
   padding: 16px;
   box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
 
+  .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
   .avatar {
     width: 64px;
     height: 64px;
@@ -72,6 +77,7 @@ $cream: #f5ede4;
     object-fit: cover;
     flex-shrink: 0;
     background: $cream;
+    display: block;
   }
 
   .avatar-fallback {
@@ -83,6 +89,48 @@ $cream: #f5ede4;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 20px;
     font-weight: 700;
+  }
+
+  .avatar-edit {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: $espresso;
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(59, 36, 24, 0.3);
+
+    ion-icon {
+      font-size: 13px;
+      color: #ffffff;
+    }
+
+    ion-spinner {
+      width: 13px;
+      height: 13px;
+    }
+
+    &:active:not(:disabled) {
+      background: #2c1a11;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+
+  .photo-picker {
+    display: none;
   }
 
   .identity-text {
@@ -103,6 +151,33 @@ $cream: #f5ede4;
       margin: 4px 0 0;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .identity-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .link-button {
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: $gold;
+      cursor: pointer;
+
+      &:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+    }
+
+    .link-button-danger {
+      color: #b3555f;
     }
   }
 }
@@ -146,11 +221,100 @@ $cream: #f5ede4;
   ion-input,
   ion-textarea {
     --background: #ffffff;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --border-radius: 12px;
     --padding-start: 12px;
     --padding-end: 12px;
     color: $espresso;
+  }
+
+  .phone-field {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid $tan;
+    border-radius: 12px;
+    padding: 0 12px;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    .phone-cc {
+      padding-right: 10px;
+      margin-right: 10px;
+      border-right: 1px solid $tan;
+      color: $espresso;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    ion-input {
+      --background: transparent;
+      --border-color: transparent;
+      --border-width: 0px;
+      --border-radius: 0px;
+      --padding-start: 0px;
+      --padding-end: 0px;
+      --min-height: 44px;
+      color: $espresso;
+    }
+
+    &:focus-within {
+      border-color: $gold;
+      box-shadow: 0 0 0 3px rgba(168, 124, 79, 0.16);
+    }
+
+    &.phone-field-invalid {
+      border-color: #c0564f;
+
+      &:focus-within {
+        border-color: #c0564f;
+        box-shadow: 0 0 0 3px rgba(192, 86, 79, 0.16);
+      }
+    }
+  }
+
+  .field-error {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #b3555f;
+  }
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fdf4f1;
+  border: 1px solid #f0d7d0;
+  border-radius: 14px;
+  padding: 12px;
+
+  ion-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 18px;
+    color: #b3555f;
+  }
+
+  .notice-text {
+    min-width: 0;
+
+    strong {
+      display: block;
+      font-size: 13px;
+      color: #8f3a33;
+    }
+
+    p {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #8f5a52;
+    }
   }
 }
 

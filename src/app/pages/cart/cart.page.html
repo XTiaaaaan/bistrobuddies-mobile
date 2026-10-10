@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
@@ -95,7 +95,7 @@
               fill="outline"
               (ionChange)="onSugarChange(item, $event)"
             >
-              @for (sugar of sugarOptions; track sugar) {
+              @for (sugar of sugarOptionsFor(item); track sugar) {
                 <ion-select-option [value]="sugar">{{ sugar }}</ion-select-option>
               }
             </ion-select>

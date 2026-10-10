@@ -123,6 +123,20 @@ export class AuthService {
     return sendPasswordResetEmail(this.auth, email.trim());
   }
 
+  /**
+   * Mirrors the profile picture URL into Firebase Auth so surfaces that read
+   * `photoURL` (e.g. the side menu) update immediately. The Firestore
+   * `users/{uid}.photoUrl` copy is written by the caller first — this is
+   * best-effort sync, never the source of truth.
+   */
+  async setPhotoUrl(url: string | null): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error('You must be signed in to update your profile picture.');
+    }
+    await updateProfile(user, { photoURL: url });
+  }
+
   private async syncProfile(
     user: FirebaseUser,
     overrides?: { name?: string; phone?: string }

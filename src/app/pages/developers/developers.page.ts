@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component } from '@angular/core';
 import {
   IonButtons,
@@ -75,8 +74,6 @@ interface Developer {
   styleUrls: ['./developers.page.scss'],
   standalone: true,
   imports: [
-    NgFor,
-    NgIf,
     IonButtons,
     IonContent,
     IonHeader,

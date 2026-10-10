@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/cart" text="Cart"></ion-back-button>
@@ -9,7 +9,51 @@
 
 <ion-content [fullscreen]="true">
   <div class="checkout-page">
-    @if (isEmpty()) {
+    @if (confirmation(); as order) {
+      <section class="card confirmation" role="status">
+        <ion-icon class="confirmation-icon" name="cafe"></ion-icon>
+        <h3 class="confirmation-title">Order placed!</h3>
+        <p class="confirmation-hint">
+          Please pay cash when your order is delivered.
+        </p>
+
+        <div class="confirmation-ref">
+          <span class="ref-label">Order ID</span>
+          <span class="ref-value" data-testid="order-id">{{ order.id }}</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span>{{ formatPrice(order.subtotal) }}</span>
+        </div>
+        @if (order.deliveryFee > 0) {
+          <div class="summary-row">
+            <span>Delivery fee</span>
+            <span>{{ formatPrice(order.deliveryFee) }}</span>
+          </div>
+        }
+        <div class="summary-row total">
+          <span>Total</span>
+          <span>{{ formatPrice(order.total) }}</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Order status</span>
+          <span>{{ order.orderStatus }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Payment status</span>
+          <span>{{ order.paymentStatus }}</span>
+        </div>
+
+        <ion-button class="place-button" expand="block" routerLink="/my-orders">
+          View My Orders
+        </ion-button>
+        <ion-button fill="outline" expand="block" routerLink="/products">
+          Continue Shopping
+        </ion-button>
+      </section>
+    } @else if (isEmpty()) {
       <div class="state" role="status">
         <ion-icon name="cart"></ion-icon>
         <h3>Your cart is empty</h3>
@@ -77,6 +121,8 @@
           ></ion-input>
           @if (submitted() && missingPhone()) {
             <span class="field-error">Phone number is required.</span>
+          } @else if (submitted() && invalidPhone()) {
+            <span class="field-error">Enter a valid phone number (7-20 digits).</span>
           }
         </label>
 

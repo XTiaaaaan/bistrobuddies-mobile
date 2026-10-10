@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
@@ -15,151 +15,212 @@
   </ion-header>
 
   <div class="developers-grid">
-    <div class="dev-card" *ngFor="let dev of developers">
-      <!-- Profile Header -->
-      <div class="card-header">
-        <div class="avatar-ring">
-          <img [src]="dev.photo" [alt]="dev.name" class="avatar-img" />
-        </div>
-        <h3 class="dev-name">{{ dev.name }}</h3>
-        <p class="dev-title">{{ dev.title }}</p>
-        <span class="role-badge">{{ dev.role }}</span>
-      </div>
-
-      <!-- Contact -->
-      <div class="section contact-row">
-        <div class="contact-item">
-          <span class="contact-icon">✉</span>
-          <span>{{ dev.email }}</span>
-        </div>
-        <div class="contact-item">
-          <span class="contact-icon">☎</span>
-          <span>{{ dev.phone }}</span>
-        </div>
-        <div class="contact-item">
-          <span class="contact-icon">📍</span>
-          <span>{{ dev.location }}</span>
-        </div>
-        <div class="contact-item" *ngIf="dev.github">
-          <span class="contact-icon">💻</span>
-          <span>{{ dev.github }}</span>
-        </div>
-      </div>
-
-      <!-- Career Objective -->
-      <div class="section" *ngIf="dev.objective">
-        <h4 class="section-title">Career Objective</h4>
-        <p class="section-text">{{ dev.objective }}</p>
-      </div>
-
-      <!-- Education -->
-      <div class="section" *ngIf="dev.education.length">
-        <h4 class="section-title">Education</h4>
-        <div class="edu-item" *ngFor="let edu of dev.education">
-          <div class="edu-school">{{ edu.school }}</div>
-          <div class="edu-program">{{ edu.program }}</div>
-          <div class="edu-period">{{ edu.period }}</div>
-        </div>
-      </div>
-
-      <!-- Technical Skills -->
-      <div class="section" *ngIf="dev.technicalSkills.length">
-        <h4 class="section-title">Technical Skills</h4>
-        <div class="skills-row">
-          <span class="skill-chip tech" *ngFor="let skill of dev.technicalSkills">{{ skill }}</span>
-        </div>
-      </div>
-
-      <!-- Programming Languages -->
-      <div class="section" *ngIf="dev.programmingLanguages.length">
-        <h4 class="section-title">Programming Languages</h4>
-        <div class="prog-grid">
-          <div class="prog-item" *ngFor="let lang of dev.programmingLanguages">
-            <span class="prog-name">{{ lang.name }}</span>
-            <span class="prog-level">{{ lang.level }}</span>
+    @for (dev of developers; track dev.name) {
+      <div class="dev-card">
+        <!-- Profile Header -->
+        <div class="card-header">
+          <div class="avatar-ring">
+            <img [src]="dev.photo" [alt]="dev.name" class="avatar-img" />
           </div>
+          <h3 class="dev-name">{{ dev.name }}</h3>
+          <p class="dev-title">{{ dev.title }}</p>
+          <span class="role-badge">{{ dev.role }}</span>
         </div>
-      </div>
 
-      <!-- Core Skills -->
-      <div class="section" *ngIf="dev.coreSkills.length">
-        <h4 class="section-title">Core Skills</h4>
-        <div class="skills-row">
-          <span class="skill-chip core" *ngFor="let skill of dev.coreSkills">{{ skill }}</span>
-        </div>
-      </div>
-
-      <!-- Work Experience -->
-      <div class="section" *ngIf="dev.workExperience.length">
-        <h4 class="section-title">Work Experience</h4>
-        <div class="work-item" *ngFor="let work of dev.workExperience">
-          <div class="work-header">
-            <span class="work-role">{{ work.role }}</span>
-            <span class="work-period">{{ work.period }}</span>
+        <!-- Contact -->
+        <div class="section contact-row">
+          <div class="contact-item">
+            <span class="contact-icon">✉</span>
+            <span>{{ dev.email }}</span>
           </div>
-          <div class="work-company">{{ work.company }}</div>
-          <ul class="work-highlights">
-            <li *ngFor="let h of work.highlights">{{ h }}</li>
-          </ul>
+          <div class="contact-item">
+            <span class="contact-icon">☎</span>
+            <span>{{ dev.phone }}</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📍</span>
+            <span>{{ dev.location }}</span>
+          </div>
+          @if (dev.github) {
+            <div class="contact-item">
+              <span class="contact-icon">💻</span>
+              <span>{{ dev.github }}</span>
+            </div>
+          }
         </div>
-      </div>
 
-      <!-- Projects -->
-      <div class="section" *ngIf="dev.projects.length">
-        <h4 class="section-title">Projects</h4>
-        <div class="project-item" *ngFor="let proj of dev.projects">
-          <div class="proj-name">{{ proj.name }}</div>
-          <div class="proj-stack">{{ proj.stack }}</div>
-          <div class="proj-desc">{{ proj.description }}</div>
-        </div>
-      </div>
+        <!-- Career Objective -->
+        @if (dev.objective) {
+          <div class="section">
+            <h4 class="section-title">Career Objective</h4>
+            <p class="section-text">{{ dev.objective }}</p>
+          </div>
+        }
 
-      <!-- Certifications -->
-      <div class="section" *ngIf="dev.certifications.length">
-        <h4 class="section-title">Certifications</h4>
-        <div class="cert-item" *ngFor="let cert of dev.certifications">
-          <span class="cert-name">{{ cert.name }}</span>
-          <span class="cert-meta">{{ cert.issuer }}<span *ngIf="cert.year"> · {{ cert.year }}</span></span>
-        </div>
-      </div>
+        <!-- Education -->
+        @if (dev.education.length) {
+          <div class="section">
+            <h4 class="section-title">Education</h4>
+            @for (edu of dev.education; track edu.school + edu.program) {
+              <div class="edu-item">
+                <div class="edu-school">{{ edu.school }}</div>
+                <div class="edu-program">{{ edu.program }}</div>
+                <div class="edu-period">{{ edu.period }}</div>
+              </div>
+            }
+          </div>
+        }
 
-      <!-- Awards -->
-      <div class="section" *ngIf="dev.awards.length">
-        <h4 class="section-title">Awards &amp; Achievements</h4>
-        <div class="award-item" *ngFor="let award of dev.awards">
-          <span class="award-title">{{ award.title }}</span>
-          <span class="award-meta">
-            <span *ngIf="award.organization">{{ award.organization }}</span>
-            <span *ngIf="award.year"> · {{ award.year }}</span>
-          </span>
-        </div>
-      </div>
-
-      <!-- Organizations -->
-      <div class="section" *ngIf="dev.organizations.length">
-        <h4 class="section-title">Organizations</h4>
-        <div class="org-list">
-          <span class="org-item" *ngFor="let org of dev.organizations">{{ org }}</span>
-        </div>
-      </div>
-
-      <!-- Languages & Hobbies -->
-      <div class="section section-bottom">
-        <div class="two-col">
-          <div class="col" *ngIf="dev.languages.length">
-            <h4 class="section-title">Languages</h4>
+        <!-- Technical Skills -->
+        @if (dev.technicalSkills.length) {
+          <div class="section">
+            <h4 class="section-title">Technical Skills</h4>
             <div class="skills-row">
-              <span class="skill-chip lang" *ngFor="let lang of dev.languages">{{ lang }}</span>
+              @for (skill of dev.technicalSkills; track skill) {
+                <span class="skill-chip tech">{{ skill }}</span>
+              }
             </div>
           </div>
-          <div class="col" *ngIf="dev.hobbies.length">
-            <h4 class="section-title">Hobbies</h4>
-            <div class="skills-row">
-              <span class="skill-chip hobby" *ngFor="let hobby of dev.hobbies">{{ hobby }}</span>
+        }
+
+        <!-- Programming Languages -->
+        @if (dev.programmingLanguages.length) {
+          <div class="section">
+            <h4 class="section-title">Programming Languages</h4>
+            <div class="prog-grid">
+              @for (lang of dev.programmingLanguages; track lang.name) {
+                <div class="prog-item">
+                  <span class="prog-name">{{ lang.name }}</span>
+                  <span class="prog-level">{{ lang.level }}</span>
+                </div>
+              }
             </div>
+          </div>
+        }
+
+        <!-- Core Skills -->
+        @if (dev.coreSkills.length) {
+          <div class="section">
+            <h4 class="section-title">Core Skills</h4>
+            <div class="skills-row">
+              @for (skill of dev.coreSkills; track skill) {
+                <span class="skill-chip core">{{ skill }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Work Experience -->
+        @if (dev.workExperience.length) {
+          <div class="section">
+            <h4 class="section-title">Work Experience</h4>
+            @for (work of dev.workExperience; track work.role) {
+              <div class="work-item">
+                <div class="work-header">
+                  <span class="work-role">{{ work.role }}</span>
+                  <span class="work-period">{{ work.period }}</span>
+                </div>
+                <div class="work-company">{{ work.company }}</div>
+                <ul class="work-highlights">
+                  @for (h of work.highlights; track h) {
+                    <li>{{ h }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Projects -->
+        @if (dev.projects.length) {
+          <div class="section">
+            <h4 class="section-title">Projects</h4>
+            @for (proj of dev.projects; track proj.name) {
+              <div class="project-item">
+                <div class="proj-name">{{ proj.name }}</div>
+                <div class="proj-stack">{{ proj.stack }}</div>
+                <div class="proj-desc">{{ proj.description }}</div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Certifications -->
+        @if (dev.certifications.length) {
+          <div class="section">
+            <h4 class="section-title">Certifications</h4>
+            @for (cert of dev.certifications; track cert.name) {
+              <div class="cert-item">
+                <span class="cert-name">{{ cert.name }}</span>
+                <span class="cert-meta">
+                  {{ cert.issuer }}
+                  @if (cert.year) {
+                    <span> · {{ cert.year }}</span>
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Awards -->
+        @if (dev.awards.length) {
+          <div class="section">
+            <h4 class="section-title">Awards &amp; Achievements</h4>
+            @for (award of dev.awards; track award.title) {
+              <div class="award-item">
+                <span class="award-title">{{ award.title }}</span>
+                <span class="award-meta">
+                  @if (award.organization) {
+                    <span>{{ award.organization }}</span>
+                  }
+                  @if (award.year) {
+                    <span> · {{ award.year }}</span>
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Organizations -->
+        @if (dev.organizations.length) {
+          <div class="section">
+            <h4 class="section-title">Organizations</h4>
+            <div class="org-list">
+              @for (org of dev.organizations; track org) {
+                <span class="org-item">{{ org }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Languages & Hobbies -->
+        <div class="section section-bottom">
+          <div class="two-col">
+            @if (dev.languages.length) {
+              <div class="col">
+                <h4 class="section-title">Languages</h4>
+                <div class="skills-row">
+                  @for (lang of dev.languages; track lang) {
+                    <span class="skill-chip lang">{{ lang }}</span>
+                  }
+                </div>
+              </div>
+            }
+            @if (dev.hobbies.length) {
+              <div class="col">
+                <h4 class="section-title">Hobbies</h4>
+                <div class="skills-row">
+                  @for (hobby of dev.hobbies; track hobby) {
+                    <span class="skill-chip hobby">{{ hobby }}</span>
+                  }
+                </div>
+              </div>
+            }
           </div>
         </div>
       </div>
-    </div>
+    }
   </div>
 </ion-content>

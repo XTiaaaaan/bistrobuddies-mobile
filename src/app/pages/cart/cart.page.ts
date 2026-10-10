@@ -69,7 +69,6 @@ export class CartPage implements OnInit {
     { value: 'medium', label: 'Medium' },
     { value: 'large', label: 'Large' },
   ];
-  readonly sugarOptions = SUGAR_OPTIONS;
 
   readonly isEmpty = computed(() => this.items().length === 0);
 
@@ -156,6 +155,18 @@ export class CartPage implements OnInit {
 
   isSizeDisabled(item: CartItem, size: ProductSize): boolean {
     return this.productsStatus() === 'ready' && this.priceFor(item.productId, size) === null;
+  }
+
+  /**
+   * Sugar choices for a cart line: the product's own options when known,
+   * otherwise the standard list. The item's current value is always included
+   * so a legacy sugar level stays selectable.
+   */
+  sugarOptionsFor(item: CartItem): string[] {
+    const configured = this.productsById()[item.productId]?.sugarOptions;
+    const base =
+      Array.isArray(configured) && configured.length > 0 ? configured : SUGAR_OPTIONS;
+    return base.includes(item.sugar) ? base : [...base, item.sugar];
   }
 
   onSizeChange(item: CartItem, event: SelectChange): void {

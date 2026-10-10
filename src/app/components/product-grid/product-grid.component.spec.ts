@@ -1,8 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { ToastController } from '@ionic/angular';
 import { Timestamp } from 'firebase/firestore';
 import { Observable, Subject, of } from 'rxjs';
 import { Product } from '../../models/product.model';
+import { CartService } from '../../services/cart.service';
 import { ProductsService } from '../../services/products.service';
 import { ProductGridComponent } from './product-grid.component';
 
@@ -26,12 +28,23 @@ function makeProduct(overrides: Partial<Product>): Product {
 }
 
 describe('ProductGridComponent', () => {
+  let addSpy: ReturnType<typeof vi.fn>;
+  let presentSpy: ReturnType<typeof vi.fn>;
+
   function setup(watch: () => Observable<Product[]>): ComponentFixture<ProductGridComponent> {
+    addSpy = vi.fn();
+    presentSpy = vi.fn(() => Promise.resolve());
+
     TestBed.configureTestingModule({
       imports: [ProductGridComponent],
       providers: [
         provideRouter([]),
         { provide: ProductsService, useValue: { watchProducts: vi.fn(watch) } },
+        { provide: CartService, useValue: { add: addSpy } },
+        {
+          provide: ToastController,
+          useValue: { create: () => Promise.resolve({ present: presentSpy }) },
+        },
       ],
     });
     return TestBed.createComponent(ProductGridComponent);
@@ -191,5 +204,73 @@ describe('ProductGridComponent', () => {
 
     expect(card.querySelector('img')).toBeNull();
     expect(card.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
+
+  it('should quick-add a product with its default size, sugar and unit price', async () => {
+    const fixture = setup(() =>
+      of([makeProduct({ sugarOptions: ['No Sugar', 'Regular', 'Extra Sugar'] })])
+    );
+    fixture.detectChanges();
+
+    const product = fixture.componentInstance.products()[0];
+    await fixture.componentInstance.quickAdd(product);
+
+    expect(addSpy).toHaveBeenCalledWith({
+      productId: 'p1',
+      productName: 'House Latte',
+      productImage: 'https://example.com/latte.png',
+      size: 'small',
+      sugar: 'No Sugar',
+      quantity: 1,
+      unitPrice: 100,
+    });
+    expect(presentSpy).toHaveBeenCalled();
+  });
+
+  it('should keep a product-specific sugar option when quick-adding', async () => {
+    const fixture = setup(() => of([makeProduct({ sugarOptions: ['0%', '50%', '100%'] })]));
+    fixture.detectChanges();
+
+    const product = fixture.componentInstance.products()[0];
+    await fixture.componentInstance.quickAdd(product);
+
+    expect(addSpy.mock.calls[0][0]).toMatchObject({ size: 'small', sugar: '0%' });
+  });
+
+  it('should use the first size with a valid price for quick add', async () => {
+    const fixture = setup(() =>
+      of([makeProduct({ smallPrice: 0, mediumPrice: 120, largePrice: 150, sugarOptions: ['Regular'] })])
+    );
+    fixture.detectChanges();
+
+    const product = fixture.componentInstance.products()[0];
+    expect(fixture.componentInstance.defaultSize(product)).toBe('medium');
+
+    await fixture.componentInstance.quickAdd(product);
+    expect(addSpy.mock.calls[0][0]).toMatchObject({ size: 'medium', unitPrice: 120 });
+  });
+
+  it('should not quick-add an unavailable product', async () => {
+    const fixture = setup(() => of([makeProduct({ available: false })]));
+    fixture.detectChanges();
+
+    const product = fixture.componentInstance.products()[0];
+    expect(fixture.componentInstance.canQuickAdd(product)).toBe(false);
+
+    await fixture.componentInstance.quickAdd(product);
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not quick-add a product without a valid price', async () => {
+    const fixture = setup(() =>
+      of([makeProduct({ smallPrice: 0, mediumPrice: 0, largePrice: 0 })])
+    );
+    fixture.detectChanges();
+
+    const product = fixture.componentInstance.products()[0];
+    expect(fixture.componentInstance.canQuickAdd(product)).toBe(false);
+
+    await fixture.componentInstance.quickAdd(product);
+    expect(addSpy).not.toHaveBeenCalled();
   });
 });

@@ -17,6 +17,13 @@ ion-menu .menu-content {
   --background: #{$cream};
 }
 
+/* Lay the panel out as a column so the decorative art can settle at the very
+   bottom of the menu instead of floating over the navigation list. */
+ion-menu .menu-content::part(scroll) {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ───────── Header ───────── */
 .menu-header {
   position: relative;
@@ -91,6 +98,7 @@ ion-menu .menu-content {
   box-shadow: 0 6px 16px rgba(59, 36, 24, 0.08);
   text-align: left;
   cursor: pointer;
+  flex-shrink: 0;
 
   .avatar {
     width: 46px;
@@ -147,7 +155,8 @@ ion-menu .menu-content {
 /* ───────── Body (nav list) ───────── */
 .menu-list {
   background: transparent;
-  padding: 22px 14px 150px;
+  padding: 22px 14px 28px;
+  flex-shrink: 0;
 
   ion-menu-toggle {
     display: block;
@@ -208,16 +217,15 @@ ion-menu .menu-content {
 
 /* ───────── Decorative footer graphic ───────── */
 .footer-art {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  margin-top: auto;
+  flex-shrink: 0;
   pointer-events: none;
+  line-height: 0;
 
   svg {
     display: block;
     width: 100%;
-    height: auto;
+    height: 120px;
   }
 }
 

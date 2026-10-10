@@ -137,6 +137,16 @@ describe('ProductDetailsPage', () => {
     ]);
   });
 
+  it('should offer a product-specific sugar option when it is not standard', () => {
+    const component = setup(
+      makeProduct({ sugarOptions: ['0%', '50%', '100%'] })
+    ).componentInstance;
+
+    expect(component.sugarOptions()).toEqual(['0%', '50%', '100%']);
+    expect(component.sugar()).toBe('0%');
+    expect(component.canAddToCart()).toBe(true);
+  });
+
   it('should add the configured item to the cart', async () => {
     const component = setup(makeProduct()).componentInstance;
 

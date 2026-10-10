@@ -47,7 +47,7 @@ $cream: #f5ede4;
 
   ion-button {
     --border-radius: 14px;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --box-shadow: none;
     color: $espresso;
     font-weight: 600;
@@ -173,7 +173,7 @@ $cream: #f5ede4;
   ion-input,
   ion-textarea {
     --background: #ffffff;
-    --border-color: $tan;
+    --border-color: #{$tan};
     --border-radius: 12px;
     --border-width: 1px;
     --border-style: solid;
@@ -186,7 +186,7 @@ $cream: #f5ede4;
 
 .payment-option {
   --background: #ffffff;
-  --border-color: $tan;
+  --border-color: #{$tan};
   --border-radius: 14px;
   --border-width: 1px;
   --border-style: solid;
@@ -194,7 +194,7 @@ $cream: #f5ede4;
 
   &.selected {
     --border-color: #3b2418;
-    --background: $cream;
+    --background: #{$cream};
   }
 
   .payment-label {
@@ -248,4 +248,62 @@ $cream: #f5ede4;
   --color: #ffffff;
   font-weight: 700;
   height: 50px;
+}
+
+.confirmation {
+  align-items: center;
+  text-align: center;
+
+  .confirmation-icon {
+    font-size: 52px;
+    color: #4a7c59;
+  }
+
+  .confirmation-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    color: $espresso;
+    margin: 0;
+  }
+
+  .confirmation-hint {
+    font-size: 14px;
+    color: #8b7355;
+    margin: 0 0 6px;
+  }
+
+  .confirmation-ref {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 14px;
+    background: $cream;
+    border: 1px dashed $tan;
+
+    .ref-label {
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #a08b76;
+      font-weight: 700;
+    }
+
+    .ref-value {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: $espresso;
+      word-break: break-all;
+    }
+  }
+
+  .summary-row {
+    width: 100%;
+  }
+
+  ion-button {
+    width: 100%;
+  }
 }
