@@ -17,12 +17,18 @@ describe('CompanyHistoryPage', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('labels the missing company information as a placeholder', () => {
+  it('tells the company story in a single paragraph', () => {
     const element = fixture.nativeElement as HTMLElement;
+    const text = element.textContent ?? '';
 
-    expect(element.textContent).toContain('Company History');
-    expect(element.textContent).toContain('Placeholder');
-    expect(element.textContent).toContain('placeholder');
-    expect(element.querySelectorAll('.placeholder-tag').length).toBeGreaterThan(0);
+    expect(text).toContain('Company History');
+    expect(text).toContain('five coffee-loving friends');
+    expect(text).toContain('Technological Institute of the Philippines');
+    expect(text).toContain(
+      'to make enjoying delicious coffee easier and more convenient for everyone'
+    );
+    expect(element.querySelectorAll('.info-card')).toHaveLength(1);
+    expect(element.querySelectorAll('.info-card p')).toHaveLength(1);
+    expect(element.querySelectorAll('.placeholder-tag')).toHaveLength(0);
   });
 });

@@ -218,6 +218,17 @@ $cream: #f5ede4;
   margin: 0;
 }
 
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  .field {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
+
 .field {
   display: block;
 

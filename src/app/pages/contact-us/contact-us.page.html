@@ -16,25 +16,162 @@
     </div>
 
     <section class="info-card">
-      <span class="placeholder-tag">Placeholder</span>
-      <h3>BistroBuddies contact details</h3>
-      <p>
-        Official customer support contact details (phone number, email address,
-        store address and business hours) have not been provided for this app
-        yet. This section is a placeholder — no contact details are invented
-        here, because publishing a made-up number or address would mislead
-        customers.
-      </p>
-      <p>Check back once the shop publishes its contact information.</p>
+      <h3>{{ company.name }} contact details</h3>
+      <ul class="contact-list">
+        <li>
+          <ion-icon name="location" aria-hidden="true"></ion-icon>
+          <span>{{ company.address }}</span>
+        </li>
+        <li>
+          <ion-icon name="call" aria-hidden="true"></ion-icon>
+          <a [href]="'tel:' + company.phone">{{ company.phone }}</a>
+        </li>
+        <li>
+          <ion-icon name="mail" aria-hidden="true"></ion-icon>
+          <a [href]="'mailto:' + company.email">{{ company.email }}</a>
+        </li>
+      </ul>
     </section>
 
     <section class="info-card">
-      <h3>Development team</h3>
-      <p>
-        Contact details for the people who built this app — including email,
-        phone and location — are listed on the Developers page.
+      <h3>Send us a message</h3>
+      <p class="form-note">
+        Messages are submitted to BistroBuddies for our team to review. Please
+        do not include payment card details.
       </p>
-      <ion-button fill="outline" routerLink="/developers">Open Developers</ion-button>
+
+      @if (!signedIn() && authChecked()) {
+        <div class="notice" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Sign in to send a message</strong>
+            <p>You need to be signed in so we know who to reply to.</p>
+          </div>
+          <ion-button
+            fill="outline"
+            routerLink="/login"
+            [queryParams]="{ redirect: '/contact-us' }"
+          >
+            Sign In
+          </ion-button>
+        </div>
+      }
+
+      @if (submitted()) {
+        <div class="notice notice-ok" role="status">
+          <ion-icon name="checkmark-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Message sent</strong>
+            <p>Your message has been submitted successfully.</p>
+          </div>
+        </div>
+      }
+
+      @if (formError(); as error) {
+        <div class="notice" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Message not sent</strong>
+            <p>{{ error }}</p>
+          </div>
+          @if (authError()) {
+            <ion-button
+              fill="outline"
+              routerLink="/login"
+              [queryParams]="{ redirect: '/contact-us', reason: 'expired' }"
+            >
+              Sign In
+            </ion-button>
+          }
+        </div>
+      }
+
+      <form class="contact-form" (ngSubmit)="submit()" novalidate>
+        <label class="field">
+          <span class="field-label">Name</span>
+          <ion-input
+            type="text"
+            name="name"
+            autocomplete="name"
+            placeholder="Your name"
+            fill="outline"
+            [maxlength]="nameMax"
+            [disabled]="!signedIn()"
+            [ngModel]="name()"
+            (ngModelChange)="setName($event)"
+          ></ion-input>
+          @if (nameError(); as error) {
+            <span class="field-error" role="alert">{{ error }}</span>
+          }
+        </label>
+
+        <label class="field">
+          <span class="field-label">Email</span>
+          <ion-input
+            type="email"
+            name="email"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="you@example.com"
+            fill="outline"
+            [maxlength]="emailMax"
+            [disabled]="!signedIn()"
+            [ngModel]="email()"
+            (ngModelChange)="setEmail($event)"
+          ></ion-input>
+          @if (emailError(); as error) {
+            <span class="field-error" role="alert">{{ error }}</span>
+          }
+        </label>
+
+        <label class="field">
+          <span class="field-label">Subject</span>
+          <ion-input
+            type="text"
+            name="subject"
+            placeholder="What is this about?"
+            fill="outline"
+            [maxlength]="subjectMax"
+            [disabled]="!signedIn()"
+            [ngModel]="subject()"
+            (ngModelChange)="setSubject($event)"
+          ></ion-input>
+          @if (subjectError(); as error) {
+            <span class="field-error" role="alert">{{ error }}</span>
+          }
+        </label>
+
+        <label class="field">
+          <span class="field-label">Message</span>
+          <ion-textarea
+            name="message"
+            placeholder="Tell us how we can help"
+            fill="outline"
+            rows="5"
+            [maxlength]="messageMax"
+            [disabled]="!signedIn()"
+            [ngModel]="message()"
+            (ngModelChange)="setMessage($event)"
+          ></ion-textarea>
+          @if (messageError(); as error) {
+            <span class="field-error" role="alert">{{ error }}</span>
+          }
+        </label>
+
+        <ion-button
+          class="send-button"
+          type="submit"
+          expand="block"
+          [disabled]="!canSubmit()"
+        >
+          @if (submitting()) {
+            <ion-spinner name="crescent"></ion-spinner>
+            Sending...
+          } @else {
+            Send Message
+          }
+        </ion-button>
+      </form>
     </section>
 
     <section class="info-card">
@@ -45,6 +182,15 @@
         update in real time.
       </p>
       <ion-button fill="outline" routerLink="/my-orders">Open My Orders</ion-button>
+    </section>
+
+    <section class="info-card">
+      <h3>Development team</h3>
+      <p>
+        Contact details for the people who built this app — including email,
+        phone and location — are listed on the Developers page.
+      </p>
+      <ion-button fill="outline" routerLink="/developers">Open Developers</ion-button>
     </section>
   </div>
 </ion-content>

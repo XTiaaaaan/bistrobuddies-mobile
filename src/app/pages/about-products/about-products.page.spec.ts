@@ -17,11 +17,15 @@ describe('AboutProductsPage', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('labels the missing product story as a placeholder and shows peso pricing', () => {
+  it('describes the coffee and keeps the product facts with peso pricing', () => {
     const element = fixture.nativeElement as HTMLElement;
+    const text = element.textContent ?? '';
 
-    expect(element.textContent).toContain('About Our Products');
-    expect(element.querySelectorAll('.placeholder-tag').length).toBeGreaterThan(0);
-    expect(element.textContent).toContain('₱');
+    expect(text).toContain('About Our Products');
+    expect(text).toContain('fresh coffee beans');
+    expect(text).toContain('rich aroma and satisfying flavor in every cup');
+    expect(text).toContain('made with care and quality ingredients');
+    expect(text).toContain('₱');
+    expect(element.querySelectorAll('.placeholder-tag')).toHaveLength(0);
   });
 });

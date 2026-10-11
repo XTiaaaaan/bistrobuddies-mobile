@@ -108,10 +108,43 @@
       }
 
       <section class="form-card">
-        <h3 class="card-title">Contact details</h3>
+        <h3 class="card-title">Profile details</h3>
         <p class="card-note">
-          These details are used to confirm your delivery address at checkout.
+          Your name and contact details are used to confirm your order at
+          checkout.
         </p>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">First name</span>
+            <ion-input
+              type="text"
+              autocomplete="given-name"
+              placeholder="First name"
+              fill="outline"
+              [value]="firstName()"
+              (ionInput)="setFirstName($event)"
+            ></ion-input>
+            @if (firstNameError(); as error) {
+              <span class="field-error" role="alert">{{ error }}</span>
+            }
+          </label>
+
+          <label class="field">
+            <span class="field-label">Last name</span>
+            <ion-input
+              type="text"
+              autocomplete="family-name"
+              placeholder="Last name"
+              fill="outline"
+              [value]="lastName()"
+              (ionInput)="setLastName($event)"
+            ></ion-input>
+            @if (lastNameError(); as error) {
+              <span class="field-error" role="alert">{{ error }}</span>
+            }
+          </label>
+        </div>
 
         <label class="field">
           <span class="field-label">Mobile number</span>

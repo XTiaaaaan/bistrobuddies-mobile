@@ -5,6 +5,9 @@ export type UserRole = 'customer' | 'admin';
 export interface User {
   uid: string;
   name: string;
+  /** Editable profile parts; `name` stays the combined display name. */
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   address: string;

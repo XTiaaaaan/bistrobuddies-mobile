@@ -14,4 +14,14 @@ describe('AboutPage', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('describes the app as a convenient way to order coffee from home', () => {
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('mobile coffee-ordering app');
+    expect(text).toContain('from the comfort of your home');
+    expect(text).toContain('choose your preferred size and sugar level');
+    expect(text).toContain('place your order through your phone');
+    expect(text).not.toContain('Placeholder');
+  });
 });
