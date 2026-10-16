@@ -153,6 +153,31 @@ describe('ProductsService', () => {
     expect(product.imageUrl).toBe('http://localhost:3001/uploads/a.jpg');
   });
 
+  it('keeps an absolute HTTPS Cloudinary URL directly without backend prefix', async () => {
+    const cloudinaryUrl =
+      'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    const promise = firstValueFrom(service.watchProducts());
+
+    httpMock.expectOne(`${baseUrl}/products`).flush({
+      products: [payload({ imageUrl: cloudinaryUrl })],
+    });
+
+    const [product] = await promise;
+    expect(product.imageUrl).toBe(cloudinaryUrl);
+    expect(product.imageUrl).not.toContain(baseUrl);
+  });
+
+  it('keeps a bundled asset image URL root-relative', async () => {
+    const promise = firstValueFrom(service.watchProducts());
+
+    httpMock.expectOne(`${baseUrl}/products`).flush({
+      products: [payload({ imageUrl: 'assets/products/hot/Americano.png' })],
+    });
+
+    const [product] = await promise;
+    expect(product.imageUrl).toBe('/assets/products/hot/Americano.png');
+  });
+
   it('resolves a backend-relative upload path to the backend origin, not the API path', async () => {
     const promise = firstValueFrom(service.watchProducts());
 

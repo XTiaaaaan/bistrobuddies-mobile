@@ -175,6 +175,24 @@ describe('ProductGridComponent', () => {
     expect(card.querySelector('img')?.getAttribute('src')).toBe(url);
   });
 
+  it('should render an absolute HTTPS Cloudinary URL directly', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    const fixture = setup(() => of([makeProduct({ imageUrl: url })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should fall back to the placeholder icon when the image URL is blank whitespace', () => {
+    const fixture = setup(() => of([makeProduct({ imageUrl: '   ' })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('img')).toBeNull();
+    expect(card.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
+
   it('should show the standard size prices as a starting price of ₱100', () => {
     const fixture = setup(() => of([]));
     const product = makeProduct({ smallPrice: 100, mediumPrice: 120, largePrice: 150 });

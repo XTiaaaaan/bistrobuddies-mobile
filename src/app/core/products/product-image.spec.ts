@@ -46,4 +46,33 @@ describe('resolveProductImageUrl', () => {
     expect(resolveProductImageUrl('data:image/png;base64,AAAA')).toBe('data:image/png;base64,AAAA');
     expect(resolveProductImageUrl('//cdn.example.com/x.png')).toBe('//cdn.example.com/x.png');
   });
+
+  it('renders absolute HTTPS Cloudinary URLs directly without backend prefix', () => {
+    const cloudinaryUrl =
+      'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    expect(resolveProductImageUrl(cloudinaryUrl)).toBe(cloudinaryUrl);
+    expect(resolveProductImageUrl(cloudinaryUrl)).not.toContain(environment.apiBaseUrl);
+    expect(resolveProductImageUrl(cloudinaryUrl)).not.toContain(`${apiOrigin}/`);
+  });
+
+  it('upgrades plain http Cloudinary URLs to https without backend prefix', () => {
+    expect(
+      resolveProductImageUrl('http://res.cloudinary.com/demo/image/upload/v1/latte.jpg')
+    ).toBe('https://res.cloudinary.com/demo/image/upload/v1/latte.jpg');
+  });
+
+  it('normalizes scheme-less Cloudinary hosts to absolute https URLs', () => {
+    expect(
+      resolveProductImageUrl('//res.cloudinary.com/demo/image/upload/v1/latte.jpg')
+    ).toBe('https://res.cloudinary.com/demo/image/upload/v1/latte.jpg');
+    expect(
+      resolveProductImageUrl('res.cloudinary.com/demo/image/upload/v1/latte.jpg')
+    ).toBe('https://res.cloudinary.com/demo/image/upload/v1/latte.jpg');
+  });
+
+  it('trims surrounding whitespace from Cloudinary URLs', () => {
+    const cloudinaryUrl =
+      'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    expect(resolveProductImageUrl(`  ${cloudinaryUrl}  `)).toBe(cloudinaryUrl);
+  });
 });

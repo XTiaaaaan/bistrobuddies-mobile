@@ -140,7 +140,7 @@ export class ProductDetailsPage implements OnInit {
   }
 
   hasImage(product: Product): boolean {
-    return Boolean(product.imageUrl) && !this.imageFailed();
+    return Boolean(product.imageUrl?.trim()) && !this.imageFailed();
   }
 
   onImageError(): void {

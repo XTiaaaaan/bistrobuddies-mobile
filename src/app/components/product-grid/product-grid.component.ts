@@ -111,7 +111,7 @@ export class ProductGridComponent implements OnInit {
   }
 
   hasImage(product: Product): boolean {
-    return Boolean(product.imageUrl) && !this.failedImages().has(product.id);
+    return Boolean(product.imageUrl?.trim()) && !this.failedImages().has(product.id);
   }
 
   onImageError(productId: string): void {

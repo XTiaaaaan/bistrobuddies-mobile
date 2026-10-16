@@ -235,6 +235,22 @@ describe('ProductDetailsPage', () => {
     expect(element.querySelector('img')?.getAttribute('src')).toBe(url);
   });
 
+  it('should render an absolute HTTPS Cloudinary URL directly', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    const fixture = setup(makeProduct({ imageUrl: url }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should fall back to the placeholder icon when the image URL is blank whitespace', () => {
+    const fixture = setup(makeProduct({ imageUrl: '   ' }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('img')).toBeNull();
+    expect(element.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
+
   it('should fall back to the placeholder icon when the image URL is empty', () => {
     const fixture = setup(makeProduct({ imageUrl: '' }));
     const element = fixture.nativeElement as HTMLElement;
