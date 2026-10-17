@@ -24,6 +24,7 @@ import {
   paymentStatusClass,
   paymentStatusLabel,
 } from '../../core/orders/order-display';
+import { refundDisplay, RefundDisplay } from '../../core/orders/refund-display';
 import { Order } from '../../models/order.model';
 import { AuthService } from '../../services/auth.service';
 import { OrdersService } from '../../services/orders.service';
@@ -119,6 +120,11 @@ export class MyOrdersPage implements OnInit {
 
   paymentMethod(order: Order): string {
     return paymentMethodLabel(order.paymentMethod);
+  }
+
+  /** Refund facts for a cancelled order; hidden for all other statuses. */
+  refund(order: Order): RefundDisplay {
+    return refundDisplay(order);
   }
 
   formatPrice(value: number): string {

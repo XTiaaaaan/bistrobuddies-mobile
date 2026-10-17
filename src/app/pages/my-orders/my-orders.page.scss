@@ -246,9 +246,19 @@ $cream: #f5ede4;
   color: #8a6234;
 }
 
+.pay-verifying {
+  background: rgba(200, 146, 58, 0.2);
+  color: #9a6a1f;
+}
+
 .pay-paid {
   background: rgba(74, 124, 89, 0.18);
   color: #3c7a4f;
+}
+
+.pay-rejected {
+  background: rgba(179, 58, 58, 0.14);
+  color: #b33a3a;
 }
 
 .pay-failed {
@@ -259,4 +269,42 @@ $cream: #f5ede4;
 .pay-refunded {
   background: rgba(58, 106, 168, 0.16);
   color: #2f5f96;
+}
+
+.refund-none {
+  background: rgba(168, 124, 79, 0.16);
+  color: #8a6234;
+}
+
+.refund-pending {
+  background: rgba(200, 146, 58, 0.2);
+  color: #9a6a1f;
+}
+
+.refund-completed {
+  background: rgba(74, 124, 89, 0.18);
+  color: #3c7a4f;
+}
+
+.refund-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed $tan;
+
+  /* Sits under the order card; keeps the status pill and sentence aligned. */
+  .refund-message {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #6b5540;
+    text-align: right;
+  }
+
+  &.completed .refund-message {
+    color: #3c7a4f;
+  }
 }

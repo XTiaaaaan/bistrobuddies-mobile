@@ -15,14 +15,56 @@
           <ion-icon name="checkmark"></ion-icon>
         </span>
         <h3 class="confirmation-title">Order placed!</h3>
-        <p class="confirmation-hint">
-          Please pay cash when your order is delivered.
-        </p>
+        @if (isGcashOrder()) {
+          <p class="confirmation-hint" data-testid="gcash-payment-hint">
+            Scan the QR code below to pay with GCash, then submit your details.
+          </p>
+        } @else {
+          <p class="confirmation-hint">
+            Please pay cash when your order is delivered.
+          </p>
+        }
 
         <div class="confirmation-ref">
           <span class="ref-label">Order ID</span>
           <span class="ref-value" data-testid="order-id">{{ order.id }}</span>
         </div>
+
+        @if (gcashNotice(); as notice) {
+          <div class="gcash-notice" role="status" data-testid="gcash-notice">{{ notice }}</div>
+        } @else if (showGcashPaymentPanel()) {
+          <div class="gcash-panel" data-testid="gcash-payment-panel">
+            @if (gcashDetailsFailed()) {
+              <div class="gcash-notice" role="alert" data-testid="gcash-submit-error">
+                {{ gcashMessages.submissionFailed }}
+              </div>
+            }
+            <h4 class="gcash-title">Pay with GCash</h4>
+            <ol class="gcash-steps">
+              <li>{{ gcashMessages.scanning }}</li>
+              <li>{{ gcashMessages.exactAmount }}</li>
+              <li>Enter the account name and number you paid from below.</li>
+            </ol>
+
+            <figure class="gcash-qr">
+              <img [src]="gcashQrAsset" alt="GCash payment QR code" />
+              <figcaption>Official BistroBuddies GCash QR code</figcaption>
+            </figure>
+
+            <div class="gcash-amount">
+              <span>Amount to pay</span>
+              <strong data-testid="gcash-amount">{{ formatPrice(order.total) }}</strong>
+            </div>
+
+            <app-gcash-submission-form
+              [orderId]="order.id"
+              [initialName]="gcashName()"
+              [initialNumber]="gcashNumber()"
+              (submitted)="onGcashSubmitted($event)"
+              (sessionExpired)="onGcashSessionExpired()"
+            ></app-gcash-submission-form>
+          </div>
+        }
 
         <div class="summary-row">
           <span>Subtotal</span>
@@ -41,11 +83,11 @@
 
         <div class="summary-row">
           <span>Order status</span>
-          <span>{{ order.orderStatus }}</span>
+          <span>{{ orderStatusText(order.orderStatus) }}</span>
         </div>
         <div class="summary-row">
           <span>Payment status</span>
-          <span>{{ order.paymentStatus }}</span>
+          <span data-testid="payment-status">{{ paymentStatusText(order.paymentStatus) }}</span>
         </div>
 
         <ion-button class="place-button" expand="block" routerLink="/my-orders">
@@ -170,6 +212,7 @@
               [class.selected]="paymentMethod() === method.value"
               lines="none"
               button
+              (click)="selectPaymentMethod(method.value)"
             >
               <ion-radio [value]="method.value" slot="start"></ion-radio>
               <ion-label>
@@ -179,6 +222,37 @@
             </ion-item>
           }
         </ion-radio-group>
+
+        @if (gcashSelected()) {
+          <div class="gcash-panel" data-testid="gcash-collect-panel">
+            <h4 class="gcash-title">Pay with GCash</h4>
+            <ol class="gcash-steps">
+              <li>{{ gcashMessages.scanning }}</li>
+              <li>{{ gcashMessages.exactAmount }}</li>
+              <li>Pay now, then enter the account name and number you paid from.</li>
+            </ol>
+
+            <figure class="gcash-qr">
+              <img [src]="gcashQrAsset" alt="GCash payment QR code" />
+              <figcaption>Official BistroBuddies GCash QR code</figcaption>
+            </figure>
+
+            <div class="gcash-amount">
+              <span>Amount to pay</span>
+              <strong data-testid="gcash-amount">{{ formatPrice(total()) }}</strong>
+            </div>
+
+            <app-gcash-submission-form
+              (valueChange)="onGcashCollect($event)"
+            ></app-gcash-submission-form>
+
+            @if (!gcashDetailsValid()) {
+              <p class="gcash-required-hint" data-testid="gcash-required-hint">
+                Enter your GCash account name and mobile number above to place this order.
+              </p>
+            }
+          </div>
+        }
       </section>
 
       <section class="card">

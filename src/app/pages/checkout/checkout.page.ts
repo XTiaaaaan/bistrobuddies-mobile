@@ -19,11 +19,20 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircle, cafe, cart, checkmark } from 'ionicons/icons';
+import { alertCircle, cafe, cart, checkmark, qrCode } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
 import { formatPeso } from '../../core/format/price';
+import { orderStatusLabel, paymentStatusLabel } from '../../core/orders/order-display';
+import {
+  GCASH_MESSAGES,
+  GCASH_QR_ASSET,
+  isValidGcashAccountName,
+  isValidGcashNumber,
+} from '../../core/payment/gcash';
+import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
 import { CartItem } from '../../models/cart.model';
-import { PaymentMethod } from '../../models/payment.model';
+import { OrderStatus } from '../../models/order.model';
+import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
 import {
@@ -79,6 +88,7 @@ export function orderErrorMessage(error: unknown): string {
     IonTitle,
     IonToolbar,
     RouterLink,
+    GcashSubmissionFormComponent,
   ],
 })
 export class CheckoutPage implements OnInit {
@@ -95,17 +105,24 @@ export class CheckoutPage implements OnInit {
   readonly paymentMethods = [
     { value: PaymentMethod.COD, label: 'COD', hint: 'Pay cash when your order arrives.' },
     {
-      value: PaymentMethod.ONLINE,
-      label: 'Online Payment',
-      hint: 'Online payment is not enabled in this build yet.',
+      value: PaymentMethod.GCASH,
+      label: 'GCash',
+      hint: 'Pay by scanning the QR code shown below and enter your GCash details.',
     },
   ];
+
+  /** Fixed local QR asset; never uploaded to or managed by the backend. */
+  readonly gcashQrAsset = GCASH_QR_ASSET;
+  readonly gcashMessages = GCASH_MESSAGES;
 
   readonly name = signal('');
   readonly phone = signal('');
   readonly address = signal('');
   readonly comment = signal('');
   readonly paymentMethod = signal<PaymentMethod>(PaymentMethod.COD);
+  /** GCash account details the customer pays with — collected before placing. */
+  readonly gcashName = signal('');
+  readonly gcashNumber = signal('');
   readonly uid = signal<string | null>(null);
   /** True once the auth state has been resolved at least once. */
   readonly authChecked = signal(false);
@@ -114,6 +131,10 @@ export class CheckoutPage implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   /** Authoritative summary returned by the backend after a successful order. */
   readonly placedOrder = signal<CreateOrderResponse | null>(null);
+  /** Set once the GCash details POST succeeds, so the form is not shown again. */
+  readonly gcashDetailsSubmitted = signal(false);
+  /** Set when the details POST failed after the order was created (retry). */
+  readonly gcashDetailsFailed = signal(false);
 
   readonly isEmpty = computed(() => this.items().length === 0);
   readonly missingName = computed(() => this.name().trim() === '');
@@ -124,6 +145,17 @@ export class CheckoutPage implements OnInit {
     return phone !== '' && !PHONE_PATTERN.test(phone);
   });
   readonly total = computed(() => this.subtotal() + this.deliveryFee);
+  /** Whether GCash is the selected payment method. */
+  readonly gcashSelected = computed(() => this.paymentMethod() === PaymentMethod.GCASH);
+  /**
+   * GCash details must be complete and valid before the order can be placed:
+   * the customer cannot finish checkout without providing them.
+   */
+  readonly gcashDetailsValid = computed(
+    () =>
+      isValidGcashAccountName(this.gcashName()) &&
+      isValidGcashNumber(this.gcashNumber())
+  );
   /** Session expired / signed out while the checkout page was open. */
   readonly signedOut = computed(() => this.authChecked() && this.uid() === null);
   /**
@@ -131,6 +163,48 @@ export class CheckoutPage implements OnInit {
    * cart is empty; adding a new item returns the page to the normal flow.
    */
   readonly confirmation = computed(() => (this.isEmpty() ? this.placedOrder() : null));
+  /** The payment method the backend confirmed for the placed order. */
+  readonly placedPaymentMethod = computed<PaymentMethod | null>(() => {
+    const order = this.placedOrder();
+    if (!order) {
+      return null;
+    }
+    const method = order.paymentMethod ?? this.paymentMethod();
+    return (method as PaymentMethod) ?? null;
+  });
+  readonly isGcashOrder = computed(
+    () => this.placedPaymentMethod() === PaymentMethod.GCASH
+  );
+  /**
+   * The GCash QR + details form is only shown while the order is still
+   * awaiting payment and the details have not been accepted yet.
+   */
+  readonly showGcashPaymentPanel = computed(() => {
+    const order = this.placedOrder();
+    if (!order || !this.isGcashOrder()) {
+      return false;
+    }
+    if (this.gcashDetailsSubmitted()) {
+      return false;
+    }
+    const status = (order.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING;
+    return status === PaymentStatus.PENDING || status === PaymentStatus.REJECTED;
+  });
+  /** Customer-facing message about the GCash payment state during checkout. */
+  readonly gcashNotice = computed(() => {
+    const order = this.placedOrder();
+    if (!order || !this.isGcashOrder()) {
+      return null;
+    }
+    const status = (order.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING;
+    if (status === PaymentStatus.REJECTED) {
+      return GCASH_MESSAGES.rejected;
+    }
+    if (this.gcashDetailsSubmitted() || status === PaymentStatus.VERIFYING) {
+      return GCASH_MESSAGES.submitted;
+    }
+    return null;
+  });
 
   readonly canSubmit = computed(
     () =>
@@ -140,11 +214,12 @@ export class CheckoutPage implements OnInit {
       !this.missingPhone() &&
       !this.invalidPhone() &&
       !this.missingAddress() &&
-      this.uid() !== null
+      this.uid() !== null &&
+      (!this.gcashSelected() || this.gcashDetailsValid())
   );
 
   constructor() {
-    addIcons({ alertCircle, cafe, cart, checkmark });
+    addIcons({ alertCircle, cafe, cart, checkmark, qrCode });
   }
 
   ngOnInit(): void {
@@ -200,15 +275,49 @@ export class CheckoutPage implements OnInit {
   }
 
   setPaymentMethod(event: InputEventLike): void {
-    const value = event.detail.value;
-    if (value === PaymentMethod.COD || value === PaymentMethod.ONLINE) {
+    this.selectPaymentMethod(event.detail.value);
+  }
+
+  /**
+   * Selects the payment method directly.
+   *
+   * Ionic no longer selects an `ion-radio` when the surrounding `ion-item`
+   * (e.g. its label) is clicked, so the item click handler drives selection
+   * while `ion-radio-group`'s `ionChange` still handles keyboard use.
+   */
+  selectPaymentMethod(value: unknown): void {
+    if (value === PaymentMethod.COD || value === PaymentMethod.GCASH) {
       this.paymentMethod.set(value);
     }
+  }
+
+  /** Collects the GCash account details typed in the pre-order form. */
+  onGcashCollect(event: { accountName: string; accountNumber: string }): void {
+    this.gcashName.set(event.accountName);
+    this.gcashNumber.set(event.accountNumber);
+  }
+
+  /** Called when the GCash submission form reports success. */
+  onGcashSubmitted(event: { paymentStatus: string }): void {
+    this.gcashDetailsSubmitted.set(true);
+    this.gcashDetailsFailed.set(false);
+    const current = this.placedOrder();
+    if (current) {
+      this.placedOrder.set({ ...current, paymentStatus: event.paymentStatus });
+    }
+  }
+
+  /** Sends the customer to sign in again when their session expired. */
+  async onGcashSessionExpired(): Promise<void> {
+    await this.router.navigate(['/login'], {
+      queryParams: { redirect: '/checkout', reason: 'expired' },
+    });
   }
 
   async placeOrder(): Promise<string | void> {
     this.submitted.set(true);
     this.errorMessage.set(null);
+    this.gcashDetailsFailed.set(false);
 
     if (!this.canSubmit()) {
       return;
@@ -228,7 +337,16 @@ export class CheckoutPage implements OnInit {
       // authoritative and drive the confirmation state.
       this.cartService.clear();
       this.placedOrder.set(response);
-      await this.router.navigate(['/my-orders']);
+      // A GCash order keeps the customer on this page: the required details
+      // were already collected in the form, so they are submitted to the
+      // backend immediately. COD orders keep the existing redirect to
+      // My Orders.
+      const method = response.paymentMethod ?? request.paymentMethod;
+      if (method === PaymentMethod.GCASH) {
+        await this.submitGcashDetailsFor(response);
+      } else {
+        await this.router.navigate(['/my-orders']);
+      }
       return response.id;
     } catch (error) {
       if (error instanceof OrderApiError && error.status === 401) {
@@ -241,6 +359,28 @@ export class CheckoutPage implements OnInit {
       this.errorMessage.set(orderErrorMessage(error));
     } finally {
       this.submitting.set(false);
+    }
+  }
+
+  /**
+   * Submits the GCash details collected during checkout for the freshly
+   * created order. On failure the order stays in `PENDING` — the confirmation
+   * view keeps showing the QR code and a prefilled form so the customer can
+   * retry here or later from Order Details.
+   */
+  private async submitGcashDetailsFor(order: CreateOrderResponse): Promise<void> {
+    try {
+      const result = await this.ordersApi.submitGcashDetails(order.id, {
+        accountName: this.gcashName().trim(),
+        accountNumber: this.gcashNumber().trim(),
+      });
+      this.onGcashSubmitted({ paymentStatus: result.paymentStatus });
+    } catch (error) {
+      if (error instanceof OrderApiError && error.status === 401) {
+        await this.onGcashSessionExpired();
+        return;
+      }
+      this.gcashDetailsFailed.set(true);
     }
   }
 
@@ -270,6 +410,14 @@ export class CheckoutPage implements OnInit {
 
   formatPrice(value: number): string {
     return formatPeso(value);
+  }
+
+  paymentStatusText(status: string): string {
+    return paymentStatusLabel(status);
+  }
+
+  orderStatusText(status: string): string {
+    return orderStatusLabel(status as OrderStatus);
   }
 }
 

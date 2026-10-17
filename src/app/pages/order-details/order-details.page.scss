@@ -321,9 +321,19 @@ $cream: #f5ede4;
   color: #8a6234;
 }
 
+.pay-verifying {
+  background: rgba(200, 146, 58, 0.2);
+  color: #9a6a1f;
+}
+
 .pay-paid {
   background: rgba(74, 124, 89, 0.18);
   color: #3c7a4f;
+}
+
+.pay-rejected {
+  background: rgba(179, 58, 58, 0.14);
+  color: #b33a3a;
 }
 
 .pay-failed {
@@ -334,4 +344,137 @@ $cream: #f5ede4;
 .pay-refunded {
   background: rgba(58, 106, 168, 0.16);
   color: #2f5f96;
+}
+
+.refund-none {
+  background: rgba(168, 124, 79, 0.16);
+  color: #8a6234;
+}
+
+.refund-pending {
+  background: rgba(200, 146, 58, 0.2);
+  color: #9a6a1f;
+}
+
+.refund-completed {
+  background: rgba(74, 124, 89, 0.18);
+  color: #3c7a4f;
+}
+
+.refund-card {
+  /* Soft tinted panel so cancelled-order refund facts read as a distinct
+     block without alarming the customer. */
+  &.pending {
+    background: rgba(200, 146, 58, 0.06);
+    border-color: rgba(200, 146, 58, 0.28);
+  }
+
+  &.completed {
+    background: rgba(74, 124, 89, 0.06);
+    border-color: rgba(74, 124, 89, 0.28);
+  }
+
+  .refund-head {
+    display: flex;
+    align-items: center;
+  }
+
+  .refund-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #6b5540;
+  }
+
+  &.completed .refund-message {
+    color: #3c7a4f;
+  }
+}
+
+.gcash-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gcash-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+
+  img {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid $tan;
+  }
+
+  figcaption {
+    font-size: 12px;
+    color: #8b7355;
+  }
+}
+
+.gcash-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b5540;
+
+  li {
+    line-height: 1.4;
+  }
+}
+
+.gcash-status-note {
+  font-size: 13px;
+  color: #6b5540;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(168, 124, 79, 0.12);
+  border: 1px solid rgba(168, 124, 79, 0.35);
+}
+
+.gcash-rejected-note {
+  font-size: 13px;
+  color: #8a3a3a;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(179, 58, 58, 0.1);
+  border: 1px solid rgba(179, 58, 58, 0.35);
+}
+
+.cancel-error {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(178, 78, 56, 0.1);
+  border: 1px solid rgba(178, 78, 56, 0.35);
+  font-size: 13px;
+  color: #9c4a33;
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.cancel-confirm {
+  p {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: $espresso;
+    font-weight: 600;
+  }
+}
+
+.cancel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }

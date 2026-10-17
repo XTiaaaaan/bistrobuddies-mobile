@@ -52,6 +52,61 @@
         </div>
       </section>
 
+      @if (canCancel()) {
+        <section class="card bb-rise" data-testid="cancel-order-section">
+          @if (cancelError(); as cancelMsg) {
+            <div class="cancel-error" role="alert" data-testid="cancel-error">
+              {{ cancelMsg }}
+            </div>
+          }
+
+          @if (cancelOpen()) {
+            <div
+              class="cancel-confirm"
+              role="alertdialog"
+              aria-label="Confirm order cancellation"
+              data-testid="cancel-confirm"
+            >
+              <p>Cancel this order? This cannot be undone.</p>
+              <div class="cancel-actions">
+                <ion-button
+                  color="danger"
+                  [disabled]="cancelling()"
+                  (click)="confirmCancel()"
+                  data-testid="confirm-cancel-button"
+                >
+                  @if (cancelling()) {
+                    <ion-spinner name="crescent"></ion-spinner>
+                    Cancelling...
+                  } @else {
+                    Yes, cancel order
+                  }
+                </ion-button>
+                <ion-button
+                  fill="outline"
+                  [disabled]="cancelling()"
+                  (click)="closeCancelConfirm()"
+                  data-testid="keep-order-button"
+                >
+                  Keep order
+                </ion-button>
+              </div>
+            </div>
+          } @else {
+            <ion-button
+              fill="outline"
+              color="danger"
+              expand="block"
+              [disabled]="cancelling()"
+              (click)="openCancelConfirm()"
+              data-testid="cancel-order-button"
+            >
+              Cancel Order
+            </ion-button>
+          }
+        </section>
+      }
+
       <section class="card bb-rise">
         <div class="card-head">
           <h3 class="card-title">Items</h3>
@@ -107,13 +162,106 @@
         </div>
         <div class="detail-row">
           <span class="detail-label">Payment status</span>
-          <span [class]="paymentClass(order)">{{ paymentLabel(order) }}</span>
+          <span [class]="paymentClass(order)" data-testid="payment-status">{{ paymentLabel(order) }}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Order status</span>
           <span [class]="statusClass(order)">{{ statusLabel(order) }}</span>
         </div>
+
+        @if (order.gcashDetails; as details) {
+          <div class="detail-row">
+            <span class="detail-label">GCash name</span>
+            <span class="detail-value">{{ details.accountName }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">GCash number</span>
+            <span class="detail-value">{{ details.accountNumber }}</span>
+          </div>
+        }
+
+        @if (gcashRejected()) {
+          <p class="gcash-rejected-note" role="alert" data-testid="gcash-rejected-note">
+            {{ gcashMessages.rejected }}
+          </p>
+          @if (canResubmit()) {
+            <ion-button fill="outline" expand="block" (click)="openResubmit()">
+              Resubmit GCash details
+            </ion-button>
+          }
+        } @else if (gcashVerifying()) {
+          <p class="gcash-status-note" data-testid="gcash-verifying-note">
+            {{ gcashMessages.verifying }}
+          </p>
+        } @else if (gcashPaid()) {
+          <p class="gcash-status-note" data-testid="gcash-paid-note">
+            Your GCash payment has been verified. Thank you!
+          </p>
+        }
       </section>
+
+      @if (refund().show) {
+        <section
+          class="card bb-rise refund-card"
+          [class.none]="refund().state === 'none'"
+          [class.pending]="refund().state === 'pending'"
+          [class.completed]="refund().state === 'completed'"
+          data-testid="refund-status"
+        >
+          <div class="refund-head">
+            <span [class]="refund().badgeClass">{{ refund().label }}</span>
+          </div>
+          <p class="refund-message">{{ refund().message }}</p>
+
+          @if (refund().amountText; as amountText) {
+            <div class="detail-row">
+              <span class="detail-label">Refund amount</span>
+              <span class="detail-value" data-testid="refund-amount">{{ amountText }}</span>
+            </div>
+          }
+          @if (refund().completedText; as completedText) {
+            <div class="detail-row">
+              <span class="detail-label">Refund completed</span>
+              <span class="detail-value" data-testid="refund-completed-date">{{ completedText }}</span>
+            </div>
+          }
+        </section>
+      }
+
+      @if (isGcashOrder()) {
+        <section class="card bb-rise" data-testid="gcash-payment-section">
+          <h3 class="card-title">GCash payment</h3>
+
+          @if (showGcashForm()) {
+            <div class="gcash-instructions">
+              <ol class="gcash-steps">
+                <li>{{ gcashMessages.scanning }}</li>
+                <li>{{ gcashMessages.exactAmount }}</li>
+                <li>Enter the account name and number you paid from below.</li>
+              </ol>
+
+              <figure class="gcash-qr">
+                <img [src]="gcashQrAsset" alt="GCash payment QR code" />
+                <figcaption>Official BistroBuddies GCash QR code</figcaption>
+              </figure>
+
+              <div class="detail-row">
+                <span class="detail-label">Amount to pay</span>
+                <span class="detail-value" data-testid="gcash-amount">{{ formatPrice(order.total) }}</span>
+              </div>
+
+              <app-gcash-submission-form
+                [orderId]="order.id"
+                [initialName]="order.gcashDetails?.accountName ?? ''"
+                [initialNumber]="order.gcashDetails?.accountNumber ?? ''"
+                [submitLabel]="canResubmit() ? 'Resubmit Details' : 'Submit Details'"
+                (submitted)="onGcashSubmitted($event)"
+                (sessionExpired)="onGcashSessionExpired()"
+              ></app-gcash-submission-form>
+            </div>
+          }
+        </section>
+      }
 
       <section class="card bb-rise">
         <h3 class="card-title">Delivery</h3>

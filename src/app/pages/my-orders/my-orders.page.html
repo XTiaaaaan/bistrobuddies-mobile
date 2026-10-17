@@ -79,6 +79,21 @@
               <span class="order-total">{{ formatPrice(order.total) }}</span>
             </span>
           </div>
+
+          @if (refund(order); as refundInfo) {
+            @if (refundInfo.show) {
+              <div
+                class="refund-row"
+                [class.none]="refundInfo.state === 'none'"
+                [class.pending]="refundInfo.state === 'pending'"
+                [class.completed]="refundInfo.state === 'completed'"
+                data-testid="order-refund-status"
+              >
+                <span [class]="refundInfo.badgeClass">{{ refundInfo.label }}</span>
+                <span class="refund-message">{{ refundInfo.message }}</span>
+              </div>
+            }
+          }
         </a>
       }
     }

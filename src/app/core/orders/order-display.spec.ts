@@ -26,16 +26,26 @@ describe('order display helpers', () => {
 
   it('should label and class every payment status', () => {
     expect(paymentStatusLabel(PaymentStatus.PENDING)).toBe('Pending');
+    expect(paymentStatusLabel(PaymentStatus.VERIFYING)).toBe('Verifying payment');
     expect(paymentStatusLabel(PaymentStatus.PAID)).toBe('Paid');
+    expect(paymentStatusLabel(PaymentStatus.REJECTED)).toBe('Payment rejected');
     expect(paymentStatusLabel(PaymentStatus.FAILED)).toBe('Failed');
     expect(paymentStatusLabel(PaymentStatus.REFUNDED)).toBe('Refunded');
 
+    expect(paymentStatusClass(PaymentStatus.VERIFYING)).toBe('badge pay-verifying');
+    expect(paymentStatusClass(PaymentStatus.REJECTED)).toBe('badge pay-rejected');
     expect(paymentStatusClass(PaymentStatus.PAID)).toBe('badge pay-paid');
     expect(paymentStatusClass(PaymentStatus.FAILED)).toBe('badge pay-failed');
   });
 
-  it('should label payment methods', () => {
+  it('should fall back to a readable label for unknown statuses', () => {
+    expect(paymentStatusLabel('SOMETHING_NEW')).toBe('Something new');
+    expect(paymentStatusLabel(undefined)).toBe('Pending');
+  });
+
+  it('should label payment methods, keeping legacy ONLINE orders readable', () => {
     expect(paymentMethodLabel(PaymentMethod.COD)).toBe('COD');
+    expect(paymentMethodLabel(PaymentMethod.GCASH)).toBe('GCash');
     expect(paymentMethodLabel(PaymentMethod.ONLINE)).toBe('Online Payment');
   });
 

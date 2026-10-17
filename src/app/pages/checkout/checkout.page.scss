@@ -322,3 +322,95 @@ $cream: #f5ede4;
     width: 100%;
   }
 }
+
+.gcash-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  padding: 14px;
+  border-radius: 16px;
+  background: $cream;
+  border: 1px dashed $tan;
+}
+
+.gcash-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  color: $espresso;
+  margin: 0;
+}
+
+.gcash-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b5540;
+
+  li {
+    line-height: 1.4;
+  }
+}
+
+.gcash-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+
+  img {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid $tan;
+  }
+
+  figcaption {
+    font-size: 12px;
+    color: #8b7355;
+  }
+}
+
+.gcash-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid $tan;
+  font-size: 13px;
+  color: #8b7355;
+
+  strong {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 20px;
+    color: $espresso;
+  }
+}
+
+.gcash-notice {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(168, 124, 79, 0.12);
+  border: 1px solid rgba(168, 124, 79, 0.35);
+  font-size: 13px;
+  color: #6b5540;
+  text-align: left;
+}
+
+.gcash-required-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8b7355;
+}
