@@ -39,10 +39,13 @@ const PHILIPPINE_MOBILE = /^9\d{9}$/;
  * Private customer profile. Reached only through the guarded `/profile` route;
  * it reads and updates the caller's own `users/{uid}` document (never `role`).
  *
- * The mobile number is stored as the full international value
- * (`+639XXXXXXXXX`) but edited as the 10 digits after the fixed `+63` prefix,
- * so the country code can never be mistyped. Profile pictures are uploaded to
- * the backend and stored as a URL — never as bytes in Firestore.
+ * The first and last name are edited separately and saved both as
+ * `firstName`/`lastName` and as the combined `name` used everywhere else in
+ * the app (side menu, checkout, orders). The mobile number is stored as the
+ * full international value (`+639XXXXXXXXX`) but edited as the 10 digits
+ * after the fixed `+63` prefix, so the country code can never be mistyped.
+ * Profile pictures are uploaded to the backend and stored as a URL — never
+ * as bytes in Firestore.
  */
 @Component({
   selector: 'app-profile',
@@ -66,7 +69,9 @@ const PHILIPPINE_MOBILE = /^9\d{9}$/;
 })
 export class ProfilePage implements OnInit {
   readonly status = signal<ProfileStatus>('loading');
-  readonly name = signal('');
+  /** Editable name parts; `name` below is derived from them. */
+  readonly firstName = signal('');
+  readonly lastName = signal('');
   readonly email = signal('');
   /** National mobile digits only (no +63), e.g. `9171234567`. */
   readonly phone = signal('');
@@ -92,10 +97,22 @@ export class ProfilePage implements OnInit {
 
   private uid: string | null = null;
 
+  /** Full display name derived from the two editable name fields. */
+  readonly name = computed(() => `${this.firstName()} ${this.lastName()}`.trim());
+
   readonly initials = computed(() => {
     const parts = this.name().split(/\s+/).filter(Boolean);
     return parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('');
   });
+
+  /** Both parts are required so the profile keeps a usable full name. */
+  readonly firstNameError = computed<string | null>(() =>
+    this.firstName().trim() ? null : 'First name is required.'
+  );
+
+  readonly lastNameError = computed<string | null>(() =>
+    this.lastName().trim() ? null : 'Last name is required.'
+  );
 
   /** `null` when the number is empty (optional) or a valid PH mobile number. */
   readonly phoneError = computed<string | null>(() => {
@@ -114,7 +131,12 @@ export class ProfilePage implements OnInit {
   );
 
   readonly canSave = computed(
-    () => this.status() === 'ready' && !this.saving() && this.phoneError() === null
+    () =>
+      this.status() === 'ready' &&
+      !this.saving() &&
+      this.firstNameError() === null &&
+      this.lastNameError() === null &&
+      this.phoneError() === null
   );
 
   constructor() {
@@ -135,6 +157,16 @@ export class ProfilePage implements OnInit {
         this.photoUrl.set(resolveProductImageUrl(user.photoURL) || null);
         void this.loadProfile(user.uid, user.displayName ?? '');
       });
+  }
+
+  setFirstName(event: InputEventLike): void {
+    this.firstName.set(asText(event));
+    this.saved.set(false);
+  }
+
+  setLastName(event: InputEventLike): void {
+    this.lastName.set(asText(event));
+    this.saved.set(false);
   }
 
   setPhone(event: InputEventLike): void {
@@ -212,6 +244,12 @@ export class ProfilePage implements OnInit {
     if (!uid || this.saving()) {
       return;
     }
+    const firstName = this.firstName().trim();
+    const lastName = this.lastName().trim();
+    if (!firstName || !lastName) {
+      // Required-field messages are already rendered under the inputs.
+      return;
+    }
     if (this.phoneError() !== null) {
       this.phoneTouched.set(true);
       return;
@@ -220,11 +258,17 @@ export class ProfilePage implements OnInit {
     this.saving.set(true);
     this.errorMessage.set(null);
     try {
-      // Only contact details are written; `role` is deliberately never sent.
+      // Only this customer's own profile fields are written; `role` is
+      // deliberately never sent and other fields keep their stored values.
+      const name = `${firstName} ${lastName}`;
       await this.users.updateUser(uid, {
+        firstName,
+        lastName,
+        name,
         phone: this.phone() ? `${PHONE_COUNTRY_CODE}${this.phone()}` : '',
         address: this.address().trim(),
       });
+      await this.syncAuthName(name);
       this.saved.set(true);
 
       await this.toast('Your profile has been saved.');
@@ -275,6 +319,19 @@ export class ProfilePage implements OnInit {
     }
   }
 
+  /**
+   * Mirrors the full name into Firebase Auth (dashboard greeting, and the
+   * profile sync that runs on every login). Firestore already holds the name
+   * at this point, so a failure here must not surface as a save error.
+   */
+  private async syncAuthName(name: string): Promise<void> {
+    try {
+      await this.auth.setDisplayName(name);
+    } catch {
+      // Best-effort only — the Firestore copy is the source of truth.
+    }
+  }
+
   private async toast(message: string): Promise<void> {
     const toast = await this.toastController.create({
       message,
@@ -289,8 +346,11 @@ export class ProfilePage implements OnInit {
     this.status.set('loading');
     try {
       const doc = await this.users.getUser(uid);
-      const name = (doc?.name ?? displayName ?? '').trim();
-      this.name.set(name);
+      // Legacy profiles only store the combined `name`; split it so the two
+      // inputs stay editable, then prefer the dedicated parts when present.
+      const parts = splitName((doc?.name ?? displayName ?? '').trim());
+      this.firstName.set((doc?.firstName ?? '').trim() || parts.first);
+      this.lastName.set((doc?.lastName ?? '').trim() || parts.last);
       if (!this.email().trim()) {
         this.email.set(doc?.email ?? '');
       }
@@ -305,7 +365,9 @@ export class ProfilePage implements OnInit {
 
       this.status.set('ready');
     } catch {
-      this.name.set(displayName.trim());
+      const parts = splitName(displayName.trim());
+      this.firstName.set(parts.first);
+      this.lastName.set(parts.last);
       this.status.set('error');
     }
   }
@@ -314,6 +376,19 @@ export class ProfilePage implements OnInit {
 function asText(event: InputEventLike): string {
   const value = event.detail.value;
   return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Splits a stored full name onto the editable first/last parts: the first
+ * word becomes the first name and everything after it the last name, so
+ * multi-word surnames such as `dela Cruz` survive the round trip.
+ */
+function splitName(fullName: string): { first: string; last: string } {
+  const parts = fullName.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return { first: '', last: '' };
+  }
+  return { first: parts[0], last: parts.slice(1).join(' ') };
 }
 
 /**

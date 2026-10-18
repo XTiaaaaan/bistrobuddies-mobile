@@ -4,15 +4,11 @@
       <ion-back-button defaultHref="/products" text="Buy Coffee"></ion-back-button>
     </ion-buttons>
     <ion-title>Product Details</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/cart" aria-label="Open cart">
-        <ion-icon slot="icon-only" name="cart"></ion-icon>
-      </ion-button>
-    </ion-buttons>
+    <app-header-cart-button slot="end"></app-header-cart-button>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content>
   <div class="details-page">
     @if (status() === 'loading') {
       <div class="state" role="status">
@@ -125,13 +121,15 @@
         </div>
       </section>
 
-      <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
-        @if (!isAvailable()) {
-          Sold Out
-        } @else {
-          Add to Cart
-        }
-      </ion-button>
+      <div class="add-bar">
+        <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
+          @if (!isAvailable()) {
+            Sold Out
+          } @else {
+            Add to Cart
+          }
+        </ion-button>
+      </div>
     }
   </div>
 </ion-content>

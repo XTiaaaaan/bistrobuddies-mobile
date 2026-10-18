@@ -1,0 +1,165 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>My Messages</ion-title>
+    <ion-buttons slot="end">
+      <ion-button
+        [disabled]="refreshing() || status() === 'loading'"
+        aria-label="Refresh messages"
+        (click)="refresh()"
+      >
+        <ion-icon
+          slot="icon-only"
+          name="refresh"
+          [class.spin]="refreshing()"
+        ></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingText="Pull to refresh"
+      refreshingText="Refreshing..."
+    ></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="messages-page">
+    @if (status() === 'loading') {
+      <div class="state" role="status">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading your messages...</p>
+      </div>
+    } @else if (status() === 'signed-out') {
+      <div class="state" role="alert">
+        <ion-icon name="mail"></ion-icon>
+        <h3>Please sign in to see your messages</h3>
+        <p>Your session has expired or you are signed out.</p>
+        <ion-button
+          fill="outline"
+          [routerLink]="['/login']"
+          [queryParams]="{ redirect: '/my-messages', reason: 'expired' }"
+        >
+          Sign In
+        </ion-button>
+      </div>
+    } @else if (status() === 'error') {
+      <div class="state" role="alert">
+        <ion-icon name="alert-circle"></ion-icon>
+        <h3>Could not load your messages</h3>
+        <p>{{ errorMessage() }}</p>
+        <ion-button fill="outline" (click)="load()">Try Again</ion-button>
+      </div>
+    } @else if (status() === 'empty') {
+      <div class="state" role="status">
+        <ion-icon name="mail"></ion-icon>
+        <h3>You haven't sent any messages yet.</h3>
+        <p>
+          Messages you send through Contact Us will appear here with their
+          status.
+        </p>
+        <ion-button fill="outline" routerLink="/contact-us">Contact Us</ion-button>
+      </div>
+    } @else {
+      <div class="messages-intro bb-rise">
+        <div class="intro-text">
+          <h2>My Messages</h2>
+          <p>{{ messages().length }} message(s)</p>
+        </div>
+        <ion-icon name="mail"></ion-icon>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="notice" role="alert">
+          <ion-icon name="alert-circle"></ion-icon>
+          <div class="notice-text">
+            <strong>Could not refresh</strong>
+            <p>{{ errorMessage() }}</p>
+          </div>
+        </div>
+      }
+
+      @for (message of messages(); track message.id; let i = $index) {
+        <button
+          type="button"
+          class="message-card bb-rise"
+          [style.animation-delay.ms]="i * 45"
+          [attr.aria-label]="'View message: ' + message.subject"
+          (click)="openMessage(message)"
+        >
+          <div class="message-head">
+            <span class="message-subject">{{ message.subject }}</span>
+            <span [class]="statusClass(message.status)">
+              {{ statusLabel(message.status) }}
+            </span>
+          </div>
+
+          <p class="message-preview">{{ preview(message.message) }}</p>
+
+          <div class="message-foot">
+            <span class="message-date">{{ formatDate(message.createdAt) }}</span>
+            <span class="message-hint">{{ statusHint(message.status) }}</span>
+          </div>
+        </button>
+      }
+    }
+  </div>
+
+  <ion-modal
+    [isOpen]="selected() !== null"
+    (didDismiss)="closeDetail()"
+    aria-label="Message details"
+  >
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Message details</ion-title>
+          <ion-buttons slot="end">
+            <ion-button
+              [disabled]="refreshing()"
+              aria-label="Refresh message replies"
+              (click)="refresh()"
+            >
+              <ion-icon
+                slot="icon-only"
+                name="refresh"
+                [class.spin]="refreshing()"
+              ></ion-icon>
+            </ion-button>
+            <ion-button
+              aria-label="Close message details"
+              (click)="closeDetail()"
+            >
+              <ion-icon slot="icon-only" name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="detail-content">
+            @if (selected(); as message) {
+              <div class="detail-panel">
+                <div class="detail-head">
+                  <h2>{{ message.subject }}</h2>
+                  <span [class]="statusClass(message.status)">
+                    {{ statusLabel(message.status) }}
+                  </span>
+                </div>
+                <p class="detail-hint">{{ statusHint(message.status) }}</p>
+
+                <section class="detail-block">
+                  <app-message-conversation [message]="message" />
+                </section>
+
+                <p class="detail-foot">
+                  Last updated {{ formatDate(message.updatedAt) }}
+                </p>
+              </div>
+            }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

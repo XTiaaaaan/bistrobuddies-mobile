@@ -7,12 +7,13 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">My Orders</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingText="Pull to refresh"
+      refreshingText="Refreshing..."
+    ></ion-refresher-content>
+  </ion-refresher>
 
   <div class="orders-page">
     @if (status() === 'loading') {
@@ -44,16 +45,19 @@
         <ion-button fill="outline" routerLink="/products">Buy Coffee</ion-button>
       </div>
     } @else {
-      <div class="orders-intro">
+      <div class="orders-intro bb-rise">
         <div class="intro-text">
           <h2>My Orders</h2>
-          <p>{{ orders().length }} order(s) · updates in real time</p>
+          <p>
+            <span class="live-dot" aria-hidden="true"></span>
+            {{ orders().length }} order(s)
+          </p>
         </div>
         <ion-icon name="receipt"></ion-icon>
       </div>
 
-      @for (order of orders(); track order.id) {
-        <a class="order-card" [routerLink]="['/my-orders', order.id]">
+      @for (order of orders(); track order.id; let i = $index) {
+        <a class="order-card bb-rise" [style.animation-delay.ms]="i * 45" [routerLink]="['/my-orders', order.id]">
           <div class="order-head">
             <div class="order-meta">
               <span class="order-id">Order #{{ shortId(order.id) }}</span>
@@ -82,6 +86,21 @@
               <span class="order-total">{{ formatPrice(order.total) }}</span>
             </span>
           </div>
+
+          @if (refund(order); as refundInfo) {
+            @if (refundInfo.show) {
+              <div
+                class="refund-row"
+                [class.none]="refundInfo.state === 'none'"
+                [class.pending]="refundInfo.state === 'pending'"
+                [class.completed]="refundInfo.state === 'completed'"
+                data-testid="order-refund-status"
+              >
+                <span [class]="refundInfo.badgeClass">{{ refundInfo.label }}</span>
+                <span class="refund-message">{{ refundInfo.message }}</span>
+              </div>
+            }
+          }
         </a>
       }
     }

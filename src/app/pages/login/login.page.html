@@ -1,6 +1,5 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Log In</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -21,7 +20,7 @@
 
     <div class="auth-card">
       <h1 class="auth-title">Log In</h1>
-      <p class="auth-subtitle">Welcome back — order your favourite coffee.</p>
+      <p class="auth-subtitle">Welcome back! Order your favourite coffee.</p>
 
       @if (sessionNotice()) {
         <p class="auth-error" role="alert">{{ sessionNotice() }}</p>
@@ -48,12 +47,23 @@
             <ion-input
               label="Password"
               labelPlacement="stacked"
-              type="password"
+              [type]="showPassword() ? 'text' : 'password'"
               name="password"
               autocomplete="current-password"
               placeholder="Your password"
               [(ngModel)]="password"
             ></ion-input>
+            <ion-button
+              fill="clear"
+              type="button"
+              slot="end"
+              class="password-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+            >
+              <ion-icon slot="icon-only" [name]="showPassword() ? 'eye-off' : 'eye'"></ion-icon>
+            </ion-button>
           </ion-item>
         </ion-list>
 

@@ -1,3 +1,41 @@
 @use '../../../theme/auth-mixins' as *;
 
 @include bistro-auth;
+
+/* Explicit Terms of Service consent shown above the submit button. The links
+   live outside the checkbox so tapping a link never counts as acceptance. */
+.auth-consent {
+  margin: 4px 0 16px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #efe2d3;
+  border-radius: 14px;
+
+  .consent-text {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6f5a45;
+
+    a {
+      color: $gold;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid #e8d9c5;
+
+      &:hover,
+      &:focus-visible {
+        color: $espresso;
+        border-bottom-color: $espresso;
+      }
+    }
+  }
+
+  .consent-checkbox {
+    --size: 20px;
+    --border-radius: 6px;
+    --checkmark-color: #ffffff;
+    font-size: 13px;
+    color: $espresso;
+  }
+}

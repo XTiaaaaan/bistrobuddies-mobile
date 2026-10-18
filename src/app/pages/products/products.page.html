@@ -4,30 +4,27 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
     <ion-title>Buy Coffee</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/cart" aria-label="Open cart">
-        <ion-icon slot="icon-only" name="cart"></ion-icon>
-      </ion-button>
-    </ion-buttons>
+    <app-header-cart-button slot="end"></app-header-cart-button>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Buy Coffee</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingText="Pull to refresh"
+      refreshingText="Refreshing..."
+    ></ion-refresher-content>
+  </ion-refresher>
 
   <div class="products-page">
-    <div class="products-intro">
+    <div class="products-intro bb-rise">
       <div class="intro-text">
-        <h2>Buy Coffee</h2>
-        <p>Our newest brews, listed from most recently added.</p>
+        <h2>Our Menu</h2>
+        <p>Browse our newest brews.</p>
       </div>
       <ion-icon name="cafe"></ion-icon>
     </div>
 
-    <app-product-grid></app-product-grid>
+    <app-product-grid [filterable]="true"></app-product-grid>
   </div>
 </ion-content>

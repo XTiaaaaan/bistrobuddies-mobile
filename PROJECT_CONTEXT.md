@@ -62,7 +62,7 @@ that redirects unauthenticated users to `/login?redirect=<url>`. Post-login redi
 | Cart | **In-memory Angular signals only** — `services/cart.service.ts`. Keyed by `productId+size+sugar`, qty clamped 1–99. **Lost on reload** (no localStorage) |
 | Checkout | `pages/checkout/checkout.page.ts:170-231` → `OrdersApiService.createOrder()` → `POST {apiBaseUrl}/orders` with `Authorization: Bearer <firebase id token>` |
 | Order history | Live Firestore reads scoped to `customerId == uid` — `orders.service.ts:42-49`; detail page does a client-side ownership check (`order-details.page.ts:92-96`) |
-| Payments | **None.** `services/payments.service.ts` is dead code; `PaymentMethod.ONLINE` is only a radio value sent to the backend |
+| Payments | **None.** `services/payments.service.ts` is dead code; checkout offers `COD`/`GCASH` only |
 
 **This app never writes products or orders to Firestore** (that was removed; writes go through the backend).
 
@@ -88,7 +88,7 @@ Request (`orders-api.service.ts:10-29`) — **no prices sent**:
 { "items": [{ "productId", "size", "sugar", "quantity" }],
   "customer": { "name", "phone" },
   "address": { "recipientName", "phone", "address", "city?", "postalCode?" },
-  "customerComment", "paymentMethod": "COD" | "ONLINE" }
+  "customerComment", "paymentMethod": "COD" | "GCASH" }
 ```
 Response (`:32-39`): `{ id, subtotal, deliveryFee, total, orderStatus, paymentStatus }`.
 Errors are mapped to `OrderApiError` with HTTP status (`:84-108`).
@@ -119,7 +119,7 @@ interface Product {
 `subtotal/deliveryFee/total`, `paymentMethod`, `paymentStatus`.
 
 ### payment.model.ts
-`PaymentMethod { COD, ONLINE }`, `PaymentStatus { PENDING, PAID, FAILED, REFUNDED }`, `Payment` (unused).
+`PaymentMethod { COD, GCASH }`, `PaymentStatus { PENDING, PAID, FAILED, REFUNDED }`, `Payment` (unused).
 
 ### user.model.ts / cart.model.ts
 `UserRole = 'customer' | 'admin'`; `User{uid,name,email,phone,address,role,...}`.
@@ -198,7 +198,7 @@ Both builds/tests also emit a non-fatal Browserslist "unsupported browsers" warn
 | Checkout | ✅ **WORKS** | `pages/checkout/checkout.page.ts:170-231` |
 | COD | ✅ **WORKS** | `PaymentMethod.COD`, default radio (`checkout.page.ts:86`) |
 | Order history | ✅ **WORKS** | `my-orders.page.ts:63-90`, `order-details.page.ts:65-101` |
-| PayMongo (client side) | ❌ **MISSING** | Zero PayMongo code; `ONLINE` is only a stored enum value. `payments.service.ts` is dead code |
+| PayMongo (client side) | ❌ **MISSING** | Zero PayMongo code. `payments.service.ts` is dead code |
 | Responsive UI | ⚠️ **PARTIAL** | Fluid auto-fill grid (`product-grid.component.scss:55`), capped 520 px columns, Ionic flex utils — but **zero `@media` breakpoints** in `src/` |
 | App icon / splash | ❌ **MISSING** | Only a browser favicon (`src/assets/icon/favicon.png`). `capacitor.config.ts` has no icon/splash keys, no `resources/` folder, no `@capacitor/splash-screen` config. `index.html:6` title is still "Ionic App" |
 | Android packaging | ⚠️ **PARTIAL** | Capacitor configured (`webDir: 'www'`, cli 8.5.1, `ionic.config.json` integrations) but **no `android/` folder**, and `appId: 'io.ionic.starter'` is the untouched starter ID (`capacitor.config.ts:4`) — must change before Play Store submission |

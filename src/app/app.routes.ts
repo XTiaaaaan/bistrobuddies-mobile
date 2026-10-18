@@ -69,6 +69,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'my-messages',
+    canMatch: [authGuard],
+    loadComponent: () =>
+      import('./pages/my-messages/my-messages.page').then(
+        (m) => m.MyMessagesPage
+      ),
+  },
+  {
     path: 'profile',
     canMatch: [authGuard],
     loadComponent: () =>
@@ -102,5 +110,10 @@ export const routes: Routes = [
     path: 'developers',
     loadComponent: () =>
       import('./pages/developers/developers.page').then((m) => m.DevelopersPage),
+  },
+  {
+    path: 'terms',
+    loadComponent: () =>
+      import('./pages/terms/terms.page').then((m) => m.TermsPage),
   },
 ];

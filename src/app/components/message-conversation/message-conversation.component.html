@@ -1,0 +1,27 @@
+@if (message(); as m) {
+  <div class="conversation">
+    <h3>Conversation</h3>
+
+    <div class="bubble from-customer">
+      <div class="bubble-meta">
+        <span class="bubble-sender">You</span>
+        <span class="bubble-date">{{ formatDate(m.createdAt) }}</span>
+      </div>
+      <p class="bubble-text">{{ m.message }}</p>
+    </div>
+
+    @for (reply of replies(); track reply.id) {
+      <div class="bubble from-admin">
+        <div class="bubble-meta">
+          <span class="bubble-sender">{{ replySender(reply) }}</span>
+          <span class="bubble-date">{{ formatDate(reply.createdAt) }}</span>
+        </div>
+        <p class="bubble-text">{{ reply.reply }}</p>
+      </div>
+    } @empty {
+      <p class="no-replies">
+        Our team hasn't replied yet. Please check back later.
+      </p>
+    }
+  </div>
+}

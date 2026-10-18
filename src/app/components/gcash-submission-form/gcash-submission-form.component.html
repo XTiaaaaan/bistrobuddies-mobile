@@ -1,0 +1,60 @@
+<form class="gcash-form" (submit)="$event.preventDefault(); submit()">
+  <label class="field">
+    <span class="field-label">GCash account name</span>
+    <ion-input
+      type="text"
+      label="GCash account name"
+      labelPlacement="stacked"
+      placeholder="Juan dela Cruz"
+      fill="outline"
+      autocomplete="name"
+      [value]="accountName()"
+      (ionInput)="setName($event)"
+    ></ion-input>
+    @if (invalidName()) {
+      <span class="field-error" data-testid="gcash-name-error">
+        Enter the full name on the GCash account (at least 2 characters).
+      </span>
+    }
+  </label>
+
+  <label class="field">
+    <span class="field-label">GCash mobile number</span>
+    <ion-input
+      type="tel"
+      inputmode="tel"
+      label="GCash mobile number"
+      labelPlacement="stacked"
+      placeholder="0917 123 4567"
+      fill="outline"
+      autocomplete="tel"
+      [value]="accountNumber()"
+      (ionInput)="setNumber($event)"
+    ></ion-input>
+    @if (invalidNumber()) {
+      <span class="field-error" data-testid="gcash-number-error">
+        Enter a valid Philippine mobile number (e.g. 0917 123 4567).
+      </span>
+    }
+  </label>
+
+  @if (errorMessage(); as message) {
+    <div class="error-banner" role="alert" data-testid="gcash-error">{{ message }}</div>
+  }
+
+  @if (orderId()) {
+    <ion-button
+      class="submit-button"
+      type="submit"
+      expand="block"
+      [disabled]="!canSubmit()"
+    >
+      @if (submitting()) {
+        <ion-spinner name="crescent"></ion-spinner>
+        Submitting...
+      } @else {
+        {{ submitLabel() }}
+      }
+    </ion-button>
+  }
+</form>

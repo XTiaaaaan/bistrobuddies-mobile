@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { ToastController } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
+import { GCASH_QR_ASSET } from '../../core/payment/gcash';
 import { CartItemInput } from '../../models/cart.model';
 import { PaymentMethod } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
@@ -9,6 +10,7 @@ import { CartService } from '../../services/cart.service';
 import {
   CreateOrderRequest,
   CreateOrderResponse,
+  GcashDetailsRequest,
   OrderApiError,
   OrdersApiService,
 } from '../../services/orders-api.service';
@@ -28,7 +30,10 @@ function item(overrides: Partial<CartItemInput> = {}): CartItemInput {
   };
 }
 
-function orderResponse(id = 'order-1'): CreateOrderResponse {
+function orderResponse(
+  id = 'order-1',
+  overrides: Partial<CreateOrderResponse> = {}
+): CreateOrderResponse {
   return {
     id,
     subtotal: 200,
@@ -36,24 +41,44 @@ function orderResponse(id = 'order-1'): CreateOrderResponse {
     total: 200,
     orderStatus: 'PENDING',
     paymentStatus: 'PENDING',
+    ...overrides,
   };
 }
 
 describe('CheckoutPage', () => {
-  beforeEach(() => localStorage.clear());
+  let alertCreate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    alertCreate = vi.fn(() =>
+      Promise.resolve({ present: vi.fn(() => Promise.resolve()) })
+    );
+  });
 
   function setup(
     items: CartItemInput[] = [item()],
     profile: unknown = null,
     createOrder: ReturnType<typeof vi.fn> = vi.fn(() =>
       Promise.resolve(orderResponse())
+    ),
+    submitGcashDetails: ReturnType<typeof vi.fn> = vi.fn(() =>
+      Promise.resolve({
+        id: 'order-1',
+        paymentStatus: 'VERIFYING',
+        gcashDetails: {
+          accountName: 'Juan dela Cruz',
+          accountNumber: '09171234567',
+        },
+      })
     )
   ): {
     fixture: ComponentFixture<CheckoutPage>;
     component: CheckoutPage;
     cart: CartService;
     createOrder: ReturnType<typeof vi.fn>;
+    submitGcashDetails: ReturnType<typeof vi.fn>;
     navigate: ReturnType<typeof vi.fn>;
+    alertCreate: ReturnType<typeof vi.fn>;
   } {
     TestBed.configureTestingModule({
       imports: [CheckoutPage],
@@ -66,11 +91,12 @@ describe('CheckoutPage', () => {
           },
         },
         { provide: UsersService, useValue: { getUser: () => Promise.resolve(profile) } },
-        { provide: OrdersApiService, useValue: { createOrder } },
+        { provide: OrdersApiService, useValue: { createOrder, submitGcashDetails } },
         {
           provide: ToastController,
           useValue: { create: () => Promise.resolve({ present: () => Promise.resolve() }) },
         },
+        { provide: AlertController, useValue: { create: alertCreate } },
       ],
     });
 
@@ -84,13 +110,32 @@ describe('CheckoutPage', () => {
     const fixture = TestBed.createComponent(CheckoutPage);
     fixture.detectChanges();
 
-    return { fixture, component: fixture.componentInstance, cart, createOrder, navigate };
+    return {
+      fixture,
+      component: fixture.componentInstance,
+      cart,
+      createOrder,
+      submitGcashDetails,
+      navigate,
+      alertCreate,
+    };
   }
 
   function fillContact(component: CheckoutPage): void {
     component.setName({ detail: { value: 'Juan dela Cruz' } });
     component.setPhone({ detail: { value: '09171234567' } });
     component.setAddress({ detail: { value: '123 Rizal St, Manila' } });
+  }
+
+  function fillGcash(component: CheckoutPage): void {
+    component.onGcashCollect({
+      accountName: 'Juan dela Cruz',
+      accountNumber: '09171234567',
+    });
+  }
+
+  function selectGcash(component: CheckoutPage): void {
+    component.setPaymentMethod({ detail: { value: PaymentMethod.GCASH } });
   }
 
   afterEach(() => TestBed.resetTestingModule());
@@ -169,6 +214,64 @@ describe('CheckoutPage', () => {
     expect(navigate).toHaveBeenCalledWith(['/my-orders']);
   });
 
+  it('confirms the order summary with the customer before placing it', async () => {
+    const { component, createOrder, alertCreate } = setup([
+      item({ quantity: 2, unitPrice: 100 }),
+    ]);
+
+    fillContact(component);
+    await component.confirmAndPlaceOrder();
+
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(alertCreate).toHaveBeenCalledTimes(1);
+
+    const options = alertCreate.mock.calls[0][0] as {
+      header: string;
+      message: string;
+      buttons: { text: string; role?: string; handler?: () => void }[];
+    };
+    expect(options.header).toBe('Place your order?');
+    expect(options.message).toContain('2 items');
+    expect(options.message).toContain('₱200.00');
+    expect(options.message).toContain('COD');
+
+    options.buttons.find((button) => button.text === 'Place Order')?.handler?.();
+    expect(createOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not place the order when the confirmation is cancelled', async () => {
+    const { component, createOrder, alertCreate } = setup();
+
+    fillContact(component);
+    await component.confirmAndPlaceOrder();
+
+    const options = alertCreate.mock.calls[0][0] as {
+      buttons: { text: string; role?: string; handler?: () => void }[];
+    };
+    const back = options.buttons.find((button) => button.role === 'cancel');
+    expect(back?.handler).toBeUndefined();
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('ignores a second placeOrder while one is already in flight', async () => {
+    let resolveOrder: (value: CreateOrderResponse) => void = () => {};
+    const pending = new Promise<CreateOrderResponse>((resolve) => {
+      resolveOrder = resolve;
+    });
+    const createOrder = vi.fn(() => pending);
+    const { component } = setup([item()], null, createOrder);
+
+    fillContact(component);
+    const first = component.placeOrder();
+    const second = component.placeOrder();
+
+    expect(createOrder).toHaveBeenCalledTimes(1);
+
+    resolveOrder(orderResponse());
+    await Promise.all([first, second]);
+    expect(createOrder).toHaveBeenCalledTimes(1);
+  });
+
   it('should show a confirmation with the order id and totals after ordering', async () => {
     const { fixture, component } = setup([item({ quantity: 2, unitPrice: 100 })]);
 
@@ -180,7 +283,9 @@ describe('CheckoutPage', () => {
     expect(element.textContent).toContain('Order placed!');
     expect(element.querySelector('[data-testid="order-id"]')?.textContent).toContain('order-1');
     expect(element.textContent).toContain('₱200.00');
-    expect(element.textContent).toContain('PENDING');
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Pending'
+    );
   });
 
   it('should reject an obviously invalid phone number before ordering', async () => {
@@ -198,15 +303,264 @@ describe('CheckoutPage', () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
-  it('should submit an online payment order', async () => {
-    const { component, createOrder } = setup();
+  it('should offer COD and GCash as the payment options', () => {
+    const { component, fixture } = setup();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(component.paymentMethods.map((method) => method.value)).toEqual([
+      PaymentMethod.COD,
+      PaymentMethod.GCASH,
+    ]);
+    expect(element.textContent).toContain('GCash');
+    expect(element.textContent).not.toContain('Online Payment');
+    expect(component.paymentMethod()).toBe(PaymentMethod.COD);
+  });
+
+  it('shows a Terms of Service notice without gating Place Order', () => {
+    const { component, fixture } = setup();
+    const notice = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="checkout-terms-notice"]'
+    );
+
+    expect(notice).toBeTruthy();
+    expect(notice?.textContent).toContain('Terms of Service');
+    expect(notice?.querySelector('a')?.getAttribute('href')).toBe('/terms');
+
+    // The notice is informational only: it never changes canSubmit().
+    fillContact(component);
+    expect(component.canSubmit()).toBe(true);
+  });
+
+  it('should select the payment method when its row is clicked', () => {
+    const { fixture, component } = setup();
+
+    expect(component.paymentMethod()).toBe(PaymentMethod.COD);
+
+    const items = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('ion-item.payment-option')
+    );
+    expect(items).toHaveLength(2);
+
+    items[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.paymentMethod()).toBe(PaymentMethod.GCASH);
+    expect(items[1].classList.contains('selected')).toBe(true);
+
+    items[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.paymentMethod()).toBe(PaymentMethod.COD);
+  });
+
+  it('should ignore unknown payment method values', () => {
+    const { component } = setup();
+
+    component.selectPaymentMethod('BITCOIN');
+    expect(component.paymentMethod()).toBe(PaymentMethod.COD);
+  });
+
+  it('should show the GCash QR panel and require details before placing the order', () => {
+    const { fixture, component } = setup();
 
     fillContact(component);
-    component.setPaymentMethod({ detail: { value: PaymentMethod.ONLINE } });
+    selectGcash(component);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    // GCash collects the account details up front: no details, no order.
+    expect(component.gcashSelected()).toBe(true);
+    expect(component.canSubmit()).toBe(false);
+    expect(element.querySelector('[data-testid="gcash-collect-panel"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="gcash-required-hint"]')).toBeTruthy();
+
+    fillGcash(component);
+    expect(component.gcashDetailsValid()).toBe(true);
+    expect(component.canSubmit()).toBe(true);
+    fixture.detectChanges();
+    expect(element.querySelector('[data-testid="gcash-required-hint"]')).toBeNull();
+
+    // COD keeps working without the extra details.
+    component.setPaymentMethod({ detail: { value: PaymentMethod.COD } });
+    fixture.detectChanges();
+    expect(component.canSubmit()).toBe(true);
+    expect(element.querySelector('[data-testid="gcash-collect-panel"]')).toBeNull();
+  });
+
+  it('should present the QR code and the amount to pay in the collect panel', () => {
+    const { fixture, component } = setup([item({ quantity: 2, unitPrice: 100 })]);
+
+    fillContact(component);
+    selectGcash(component);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const qr = element.querySelector('.gcash-qr img') as HTMLImageElement | null;
+    expect(qr?.getAttribute('src')).toBe(GCASH_QR_ASSET);
+    expect(element.textContent).toContain('Pay the exact total shown below');
+    expect(element.querySelector('[data-testid="gcash-amount"]')?.textContent).toContain(
+      '₱200.00'
+    );
+    expect(element.querySelector('[data-testid="gcash-name-error"]')).toBeNull();
+    expect(element.querySelector('[data-testid="gcash-number-error"]')).toBeNull();
+    expect(element.querySelector('.gcash-form .submit-button')).toBeNull();
+  });
+
+  it('should block Place Order while GCash details are incomplete and ask via the API only once valid', async () => {
+    const validResponse = orderResponse('order-2', {
+      paymentMethod: PaymentMethod.GCASH,
+    });
+    const { component, cart, createOrder, submitGcashDetails, navigate } = setup(
+      [item()],
+      null,
+      vi.fn(() => Promise.resolve(validResponse))
+    );
+
+    fillContact(component);
+    selectGcash(component);
     await component.placeOrder();
 
+    // Incomplete details keep the order from being created at all.
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(submitGcashDetails).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+
+    fillGcash(component);
+    await component.placeOrder();
+
+    expect(createOrder).toHaveBeenCalledTimes(1);
     const request = createOrder.mock.calls[0][0] as CreateOrderRequest;
-    expect(request.paymentMethod).toBe(PaymentMethod.ONLINE);
+    expect(request.paymentMethod).toBe(PaymentMethod.GCASH);
+
+    // The collected details are submitted for the fresh order id.
+    expect(submitGcashDetails).toHaveBeenCalledTimes(1);
+    const [orderId, details] = submitGcashDetails.mock.calls[0] as [
+      string,
+      GcashDetailsRequest,
+    ];
+    expect(orderId).toBe('order-2');
+    expect(details).toEqual({
+      accountName: 'Juan dela Cruz',
+      accountNumber: '09171234567',
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(cart.items()).toEqual([]);
+
+    expect(component.isGcashOrder()).toBe(true);
+    expect(component.gcashDetailsSubmitted()).toBe(true);
+    expect(component.showGcashPaymentPanel()).toBe(false);
+  });
+
+  it('should show the verifying notice once details are submitted with the order', async () => {
+    const { fixture, component } = setup();
+
+    fillContact(component);
+    selectGcash(component);
+    fillGcash(component);
+    await component.placeOrder();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[data-testid="gcash-notice"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="gcash-payment-panel"]')).toBeNull();
+    expect(element.textContent).toContain('verify');
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Verifying'
+    );
+  });
+
+  it('should keep the QR panel with a retry form when details submission fails', async () => {
+    const failing = vi.fn(() =>
+      Promise.reject(new OrderApiError('The server rejected the request (500).', 500))
+    );
+    const { fixture, component, cart } = setup(
+      [item()],
+      null,
+      vi.fn(() =>
+        Promise.resolve(orderResponse('order-2', { paymentMethod: PaymentMethod.GCASH }))
+      ),
+      failing
+    );
+
+    fillContact(component);
+    selectGcash(component);
+    fillGcash(component);
+    await component.placeOrder();
+    fixture.detectChanges();
+
+    expect(component.placedOrder()?.id).toBe('order-2');
+    expect(cart.items()).toEqual([]);
+
+    const element = fixture.nativeElement as HTMLElement;
+    // The order exists and stays PENDING; the panel still offers the form.
+    expect(component.showGcashPaymentPanel()).toBe(true);
+    expect(element.querySelector('[data-testid="gcash-payment-panel"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="gcash-submit-error"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Pending'
+    );
+  });
+
+  it('should send the customer back to login when details submission expires the session', async () => {
+    const expired = vi.fn(() =>
+      Promise.reject(new OrderApiError('Authentication is required.', 401))
+    );
+    const { component, navigate } = setup(
+      [item()],
+      null,
+      vi.fn(() =>
+        Promise.resolve(orderResponse('order-2', { paymentMethod: PaymentMethod.GCASH }))
+      ),
+      expired
+    );
+
+    fillContact(component);
+    selectGcash(component);
+    fillGcash(component);
+    await component.placeOrder();
+
+    expect(navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { redirect: '/checkout', reason: 'expired' },
+    });
+  });
+
+  it('should explain a rejected GCash payment instead of showing the form', async () => {
+    const { fixture, component } = setup(
+      [item()],
+      null,
+      vi.fn(() =>
+        Promise.resolve(orderResponse('order-3', { paymentMethod: PaymentMethod.GCASH }))
+      ),
+      vi.fn(() => Promise.resolve({ id: 'order-3', paymentStatus: 'REJECTED' }))
+    );
+
+    fillContact(component);
+    selectGcash(component);
+    fillGcash(component);
+    await component.placeOrder();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('could not be verified');
+    expect(element.querySelector('[data-testid="gcash-notice"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="gcash-payment-panel"]')).toBeNull();
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Payment rejected'
+    );
+  });
+
+  it('should keep using COD when the backend omits the confirmed payment method', async () => {
+    const { component, fixture } = setup();
+
+    fillContact(component);
+    component.setPaymentMethod({ detail: { value: PaymentMethod.COD } });
+    await component.placeOrder();
+
+    expect(component.isGcashOrder()).toBe(false);
+    expect(component.showGcashPaymentPanel()).toBe(false);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="gcash-collect-panel"]')
+    ).toBeNull();
   });
 
   it('should store an empty comment when the customer leaves it blank', async () => {

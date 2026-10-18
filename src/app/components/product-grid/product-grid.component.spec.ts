@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { Timestamp } from 'firebase/firestore';
-import { Observable, Subject, of } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
 import { ProductsService } from '../../services/products.service';
@@ -83,6 +83,41 @@ describe('ProductGridComponent', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.status()).toBe('ready');
     expect(fixture.nativeElement.textContent).toContain('No coffee available yet');
+  });
+
+  it('should re-fetch the catalog on reload for a pull-to-refresh', async () => {
+    let attempts = 0;
+    const fixture = setup(() =>
+      attempts++ === 0
+        ? of([makeProduct({ id: 'old', name: 'Old Brew' })])
+        : of([makeProduct({ id: 'new', name: 'Fresh Brew' })])
+    );
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.products()[0].id).toBe('old');
+
+    await fixture.componentInstance.reload();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.status()).toBe('ready');
+    expect(fixture.componentInstance.products()[0].id).toBe('new');
+  });
+
+  it('should keep the products already shown when a reload fails', async () => {
+    let attempts = 0;
+    const fixture = setup(() =>
+      attempts++ === 0 ? of([makeProduct({ id: 'old' })]) : throwError(() => new Error('offline'))
+    );
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.status()).toBe('ready');
+
+    await fixture.componentInstance.reload();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.status()).toBe('ready');
+    expect(fixture.componentInstance.products()[0].id).toBe('old');
+    expect(fixture.nativeElement.textContent).toContain('House Latte');
   });
 
   it('should list the newest available products first', () => {
@@ -175,6 +210,24 @@ describe('ProductGridComponent', () => {
     expect(card.querySelector('img')?.getAttribute('src')).toBe(url);
   });
 
+  it('should render an absolute HTTPS Cloudinary URL directly', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    const fixture = setup(() => of([makeProduct({ imageUrl: url })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should fall back to the placeholder icon when the image URL is blank whitespace', () => {
+    const fixture = setup(() => of([makeProduct({ imageUrl: '   ' })]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('img')).toBeNull();
+    expect(card.querySelector('.product-media ion-icon')).not.toBeNull();
+  });
+
   it('should show the standard size prices as a starting price of ₱100', () => {
     const fixture = setup(() => of([]));
     const product = makeProduct({ smallPrice: 100, mediumPrice: 120, largePrice: 150 });
@@ -225,6 +278,19 @@ describe('ProductGridComponent', () => {
       unitPrice: 100,
     });
     expect(presentSpy).toHaveBeenCalled();
+  });
+
+  it('should ignore a second quick-add while the first is still in progress', async () => {
+    const fixture = setup(() => of([makeProduct({ sugarOptions: ['Regular'] })]));
+    fixture.detectChanges();
+
+    const product = fixture.componentInstance.products()[0];
+    const first = fixture.componentInstance.quickAdd(product);
+    const second = fixture.componentInstance.quickAdd(product);
+    await Promise.all([first, second]);
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.isAdding(product)).toBe(false);
   });
 
   it('should keep a product-specific sugar option when quick-adding', async () => {

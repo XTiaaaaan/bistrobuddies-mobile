@@ -52,6 +52,9 @@
             >
               <span class="icon-badge">
                 <ion-icon aria-hidden="true" [ios]="p.icon + '-outline'" [md]="p.icon + '-sharp'"></ion-icon>
+                @if (p.url === '/cart' && cartCount() > 0) {
+                  <span class="icon-badge-count">{{ cartCount() }}</span>
+                }
               </span>
               <ion-label>{{ p.title }}</ion-label>
               <ion-icon class="chevron" aria-hidden="true" ios="chevron-forward-outline" md="chevron-forward-sharp"></ion-icon>

@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Ionic App</title>
+  <title>BistroBuddies</title>
 
   <base href="/" />
 
@@ -11,16 +11,161 @@
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="msapplication-tap-highlight" content="no" />
+  <meta name="theme-color" content="#3B2418" />
 
   <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
 
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="BistroBuddies" />
+
+  <!--
+    Lightweight branded loading veil. It is plain DOM + inline CSS so it can
+    paint before the bundles finish downloading, it never blocks input, and the
+    script below guarantees it disappears even if the app fails to boot.
+  -->
+  <style>
+    .bb-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #3b2418;
+      pointer-events: none;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.36s ease, visibility 0.36s ease;
+    }
+
+    .bb-splash.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .bb-splash__inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: bb-splash-in 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+
+    .bb-splash__logo {
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+      border-radius: 50%;
+      animation: bb-splash-glow 2.4s ease-in-out infinite;
+    }
+
+    .bb-splash__brand {
+      margin-top: 14px;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 26px;
+      color: #ffffff;
+    }
+
+    .bb-splash__brand span:last-child {
+      color: #d4a96a;
+    }
+
+    .bb-splash__tagline {
+      margin-top: 6px;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: rgba(245, 237, 228, 0.75);
+      text-transform: uppercase;
+    }
+
+    .bb-splash__bar {
+      width: 112px;
+      height: 3px;
+      margin-top: 22px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(232, 217, 197, 0.24);
+    }
+
+    .bb-splash__bar i {
+      display: block;
+      width: 42%;
+      height: 100%;
+      border-radius: inherit;
+      background: #a87c4f;
+      animation: bb-splash-bar 1.1s ease-in-out infinite;
+    }
+
+    @keyframes bb-splash-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes bb-splash-glow {
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(212, 169, 106, 0);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(212, 169, 106, 0.12);
+      }
+    }
+
+    @keyframes bb-splash-bar {
+      0% {
+        transform: translateX(-120%);
+      }
+      100% {
+        transform: translateX(320%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .bb-splash,
+      .bb-splash__inner,
+      .bb-splash__logo,
+      .bb-splash__bar i {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div id="bb-splash" class="bb-splash" role="status" aria-label="Loading BistroBuddies">
+    <div class="bb-splash__inner">
+      <img class="bb-splash__logo" src="assets/BistroBuddiesLogo.png" alt="" />
+      <div class="bb-splash__brand"><span>Bistro</span><span>Buddies</span></div>
+      <div class="bb-splash__tagline">Coffee Shop</div>
+      <div class="bb-splash__bar"><i></i></div>
+    </div>
+  </div>
+
   <app-root></app-root>
+
+  <script>
+    (function () {
+      var splash = document.getElementById('bb-splash');
+      if (!splash) return;
+      var hide = function () {
+        splash.classList.add('is-hidden');
+        window.setTimeout(function () {
+          if (splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 400);
+      };
+      // The app hides it as soon as it has rendered; this is the safety net.
+      window.setTimeout(hide, 3500);
+    })();
+  </script>
 </body>
 
 </html>

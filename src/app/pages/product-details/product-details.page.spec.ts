@@ -40,7 +40,7 @@ describe('ProductDetailsPage', () => {
       providers: [
         provideRouter([]),
         { provide: ProductsService, useValue: { watchProduct: () => of(product) } },
-        { provide: CartService, useValue: { add: addSpy } },
+        { provide: CartService, useValue: { add: addSpy, itemCount: () => 0 } },
         {
           provide: ToastController,
           useValue: { create: () => Promise.resolve({ present: presentSpy }) },
@@ -168,6 +168,17 @@ describe('ProductDetailsPage', () => {
     expect(presentSpy).toHaveBeenCalled();
   });
 
+  it('should ignore repeated taps while an add is still in progress', async () => {
+    const component = setup(makeProduct()).componentInstance;
+
+    const first = component.addToCart();
+    const second = component.addToCart();
+    await Promise.all([first, second]);
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(component.adding()).toBe(false);
+  });
+
   it('should not allow adding an unavailable product', async () => {
     const fixture = setup(makeProduct({ available: false }));
     const component = fixture.componentInstance;
@@ -233,6 +244,22 @@ describe('ProductDetailsPage', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should render an absolute HTTPS Cloudinary URL directly', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/v1234567890/latte.jpg';
+    const fixture = setup(makeProduct({ imageUrl: url }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('img')?.getAttribute('src')).toBe(url);
+  });
+
+  it('should fall back to the placeholder icon when the image URL is blank whitespace', () => {
+    const fixture = setup(makeProduct({ imageUrl: '   ' }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('img')).toBeNull();
+    expect(element.querySelector('.product-media ion-icon')).not.toBeNull();
   });
 
   it('should fall back to the placeholder icon when the image URL is empty', () => {

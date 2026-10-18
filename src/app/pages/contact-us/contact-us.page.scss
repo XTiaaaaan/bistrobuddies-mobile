@@ -1,7 +1,99 @@
 /* Layout for the static information pages lives in global.scss (.info-page,
-   .info-hero, .info-card, .placeholder-tag). */
+   .info-hero, .info-card, .notice). This page adds the contact list and the
+   message form, styled with the same coffee palette. */
 :host {
   display: block;
+}
+
+.contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #6f5a45;
+    overflow-wrap: anywhere;
+  }
+
+  ion-icon {
+    flex-shrink: 0;
+    font-size: 18px;
+    color: #a87c4f;
+  }
+
+  a {
+    color: #3b2418;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid #e8d9c5;
+
+    &:hover,
+    &:focus-visible {
+      color: #a87c4f;
+      border-bottom-color: #a87c4f;
+    }
+  }
+}
+
+.form-note {
+  font-size: 13px;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.field {
+  display: block;
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #a08b76;
+    margin-bottom: 4px;
+  }
+
+  ion-input,
+  ion-textarea {
+    --background: #ffffff;
+    --border-color: #e8d9c5;
+    --border-radius: 12px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    color: #3b2418;
+  }
+
+  .field-error {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #b3555f;
+  }
+}
+
+/* More specific than `.info-card ion-button` below so the espresso fill and
+   cream label are not overridden (same-color text made the label invisible). */
+.contact-form .send-button {
+  --border-radius: 16px;
+  --background: #3b2418;
+  --background-activated: #2c1a11;
+  --color: #ffffff;
+  font-weight: 700;
+  height: 50px;
+  margin-top: 4px;
 }
 
 .info-card ion-button {
@@ -11,4 +103,11 @@
   --color: #3b2418;
   font-weight: 600;
   height: 44px;
+}
+
+/* The success banner keeps its calm green palette instead of the shared
+   red-bordered notice button styling. */
+.notice-ok ion-button {
+  --border-color: #cbe0d1;
+  --color: #2f5c3e;
 }

@@ -10,6 +10,8 @@ import { ProfilePage } from './profile.page';
 const profileDoc = {
   uid: 'u1',
   name: 'Juan dela Cruz',
+  firstName: 'Juan',
+  lastName: 'dela Cruz',
   email: 'juan@example.com',
   phone: '09171234567',
   address: '123 Rizal St, Manila',
@@ -23,10 +25,13 @@ const signedInUser = {
   photoURL: null,
 };
 
+/** Any shape the Firestore user document may have (legacy docs lack name parts). */
+type ProfileDoc = Partial<typeof profileDoc> & Record<string, unknown>;
+
 interface SetupOptions {
   user?: unknown;
   updateUser?: ReturnType<typeof vi.fn>;
-  getUser?: () => Promise<typeof profileDoc | null>;
+  getUser?: () => Promise<ProfileDoc | null>;
   uploadPhoto?: ReturnType<typeof vi.fn>;
   validate?: (file: File) => string | null;
 }
@@ -39,6 +44,7 @@ describe('ProfilePage', () => {
     uploadPhoto: ReturnType<typeof vi.fn>;
     validate: (file: File) => string | null;
     setPhotoUrl: ReturnType<typeof vi.fn>;
+    setDisplayName: ReturnType<typeof vi.fn>;
   } {
     const user = 'user' in options ? options.user : signedInUser;
     const updateUser = options.updateUser ?? vi.fn(() => Promise.resolve());
@@ -47,13 +53,14 @@ describe('ProfilePage', () => {
       vi.fn(() => Promise.resolve('http://localhost:3001/uploads/pic.png'));
     const validate = options.validate ?? (() => null);
     const setPhotoUrl = vi.fn(() => Promise.resolve());
+    const setDisplayName = vi.fn(() => Promise.resolve());
     const getUser = options.getUser ?? (() => Promise.resolve(profileDoc));
 
     TestBed.configureTestingModule({
       imports: [ProfilePage],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { user$: of(user), setPhotoUrl } },
+        { provide: AuthService, useValue: { user$: of(user), setPhotoUrl, setDisplayName } },
         { provide: UsersService, useValue: { getUser, updateUser } },
         { provide: ProfileApiService, useValue: { validate, uploadPhoto } },
         {
@@ -65,37 +72,143 @@ describe('ProfilePage', () => {
 
     const fixture = TestBed.createComponent(ProfilePage);
     fixture.detectChanges();
-    return { fixture, component: fixture.componentInstance, updateUser, uploadPhoto, validate, setPhotoUrl };
+    return {
+      fixture,
+      component: fixture.componentInstance,
+      updateUser,
+      uploadPhoto,
+      validate,
+      setPhotoUrl,
+      setDisplayName,
+    };
   }
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('loads the signed-in customer profile with the phone normalized to 10 digits', async () => {
+  it('loads the signed-in customer profile with the name split into first and last parts', async () => {
     const { fixture, component } = setup();
     await fixture.whenStable();
 
     expect(component.status()).toBe('ready');
+    expect(component.firstName()).toBe('Juan');
+    expect(component.lastName()).toBe('dela Cruz');
     expect(component.name()).toBe('Juan dela Cruz');
     expect(component.phone()).toBe('9171234567');
     expect(component.address()).toBe('123 Rizal St, Manila');
     expect(component.email()).toBe('juan@example.com');
   });
 
-  it('saves the mobile number with the +63 country code and never sends the role', async () => {
-    const { fixture, component, updateUser } = setup();
+  it('splits a legacy single-field name so both inputs stay editable', async () => {
+    const { fixture, component } = setup({
+      getUser: () =>
+        Promise.resolve({
+          uid: 'u1',
+          name: 'Maria Clara Santos',
+          email: 'maria@example.com',
+          phone: '',
+          address: '',
+          role: 'customer',
+        }),
+    });
     await fixture.whenStable();
 
+    expect(component.firstName()).toBe('Maria');
+    expect(component.lastName()).toBe('Clara Santos');
+    expect(component.name()).toBe('Maria Clara Santos');
+  });
+
+  it('saves the first and last name with the contact details and never sends the role', async () => {
+    const { fixture, component, updateUser, setDisplayName } = setup();
+    await fixture.whenStable();
+
+    component.setFirstName({ detail: { value: 'Juanito' } });
+    component.setLastName({ detail: { value: 'Dela Cruz' } });
     component.setPhone({ detail: { value: '9179998888' } });
     component.setAddress({ detail: { value: '456 Bonifacio Ave' } });
     await component.save();
 
     expect(updateUser).toHaveBeenCalledTimes(1);
     expect(updateUser).toHaveBeenCalledWith('u1', {
+      firstName: 'Juanito',
+      lastName: 'Dela Cruz',
+      name: 'Juanito Dela Cruz',
       phone: '+639179998888',
       address: '456 Bonifacio Ave',
     });
+    expect(setDisplayName).toHaveBeenCalledWith('Juanito Dela Cruz');
     expect(component.saved()).toBe(true);
     expect(component.saving()).toBe(false);
+  });
+
+  it('trims surrounding whitespace around both names before saving', async () => {
+    const { fixture, component, updateUser } = setup();
+    await fixture.whenStable();
+
+    component.setFirstName({ detail: { value: '  Ana  ' } });
+    component.setLastName({ detail: { value: '  Reyes ' } });
+    await component.save();
+
+    expect(updateUser).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ firstName: 'Ana', lastName: 'Reyes', name: 'Ana Reyes' })
+    );
+  });
+
+  it('rejects an empty first or last name and saves nothing', async () => {
+    const { fixture, component, updateUser } = setup();
+    await fixture.whenStable();
+
+    component.setFirstName({ detail: { value: '   ' } });
+    expect(component.firstNameError()).toBe('First name is required.');
+    expect(component.canSave()).toBe(false);
+
+    await component.save();
+    expect(updateUser).not.toHaveBeenCalled();
+    expect(component.saved()).toBe(false);
+
+    component.setFirstName({ detail: { value: 'Juan' } });
+    component.setLastName({ detail: { value: '' } });
+    expect(component.lastNameError()).toBe('Last name is required.');
+    expect(component.canSave()).toBe(false);
+
+    await component.save();
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it('shows the updated names when the profile page is reopened', async () => {
+    let stored: Record<string, unknown> = { ...profileDoc };
+    const updateUser = vi.fn((uid: string, patch: Record<string, unknown>) => {
+      stored = { ...stored, ...patch };
+      return Promise.resolve();
+    });
+    const getUser = vi.fn(() => Promise.resolve({ ...stored } as ProfileDoc));
+
+    const first = setup({ updateUser, getUser });
+    await first.fixture.whenStable();
+    first.component.setFirstName({ detail: { value: 'Juanito' } });
+    first.component.setLastName({ detail: { value: 'Dela Cruz' } });
+    await first.component.save();
+    first.fixture.destroy();
+    TestBed.resetTestingModule();
+
+    // A fresh page instance reads the persisted document again.
+    const second = setup({ updateUser, getUser });
+    await second.fixture.whenStable();
+
+    expect(second.component.firstName()).toBe('Juanito');
+    expect(second.component.lastName()).toBe('Dela Cruz');
+    expect(second.component.name()).toBe('Juanito Dela Cruz');
+  });
+
+  it('only ever updates the signed-in customer document', async () => {
+    const { fixture, component, updateUser } = setup();
+    await fixture.whenStable();
+
+    component.setFirstName({ detail: { value: 'Juanito' } });
+    await component.save();
+
+    expect(updateUser).toHaveBeenCalledTimes(1);
+    expect(updateUser.mock.calls[0][0]).toBe('u1');
   });
 
   it('keeps only digits, accepts a pasted 09 number and enforces the 10-digit limit', async () => {
@@ -140,7 +253,13 @@ describe('ProfilePage', () => {
     expect(component.canSave()).toBe(true);
 
     await component.save();
-    expect(updateUser).toHaveBeenCalledWith('u1', { phone: '', address: '123 Rizal St, Manila' });
+    expect(updateUser).toHaveBeenCalledWith('u1', {
+      firstName: 'Juan',
+      lastName: 'dela Cruz',
+      name: 'Juan dela Cruz',
+      phone: '',
+      address: '123 Rizal St, Manila',
+    });
   });
 
   it('uploads a chosen profile picture and stores its URL in Firestore and Auth', async () => {
@@ -196,6 +315,20 @@ describe('ProfilePage', () => {
     expect(component.photoUploading()).toBe(false);
   });
 
+  it('shows the first and last name fields with their validation messages', async () => {
+    const { fixture, component } = setup();
+    await fixture.whenStable();
+
+    component.setFirstName({ detail: { value: '' } });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('First name');
+    expect(element.textContent).toContain('Last name');
+    expect(element.textContent).toContain('First name is required.');
+    expect(element.textContent).toContain('Save Changes');
+  });
+
   it('keeps the profile private when the customer is signed out', async () => {
     const { fixture, component } = setup({ user: null });
     await fixture.whenStable();
@@ -211,7 +344,13 @@ describe('ProfilePage', () => {
       imports: [ProfilePage],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { user$: of({ uid: 'u1', email: 'a@b.c' }) } },
+        {
+          provide: AuthService,
+          useValue: {
+            user$: of({ uid: 'u1', email: 'a@b.c' }),
+            setDisplayName: vi.fn(() => Promise.resolve()),
+          },
+        },
         {
           provide: UsersService,
           useValue: {

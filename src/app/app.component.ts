@@ -1,4 +1,12 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import {
@@ -24,6 +32,8 @@ import {
   cartSharp,
   receiptOutline,
   receiptSharp,
+  mailOutline,
+  mailSharp,
   informationCircleOutline,
   informationCircleSharp,
   peopleOutline,
@@ -40,10 +50,13 @@ import {
   cafeSharp,
   callOutline,
   callSharp,
+  documentTextOutline,
+  documentTextSharp,
 } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
 import { AuthService } from './services/auth.service';
+import { CartService } from './services/cart.service';
 import { UsersService } from './services/users.service';
 
 /** Customer summary shown at the top of the side menu. */
@@ -79,10 +92,12 @@ export class AppComponent implements OnInit {
     { title: 'Buy Coffee', url: '/products', icon: 'list' },
     { title: 'Cart', url: '/cart', icon: 'cart' },
     { title: 'My Orders', url: '/my-orders', icon: 'receipt' },
+    { title: 'My Messages', url: '/my-messages', icon: 'mail' },
     { title: 'Company History', url: '/company-history', icon: 'time' },
     { title: 'About Our Products', url: '/about-products', icon: 'cafe' },
     { title: 'About the App', url: '/about', icon: 'information-circle' },
     { title: 'Contact Us', url: '/contact-us', icon: 'call' },
+    { title: 'Terms of Service', url: '/terms', icon: 'document-text' },
     { title: 'Developers', url: '/developers', icon: 'people' },
   ];
 
@@ -94,7 +109,11 @@ export class AppComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
+  private readonly cartService = inject(CartService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Live cart counter shown next to the Cart entry in the side menu. */
+  readonly cartCount = computed(() => this.cartService.itemCount());
 
   constructor() {
     addIcons({
@@ -106,6 +125,8 @@ export class AppComponent implements OnInit {
       cartSharp,
       receiptOutline,
       receiptSharp,
+      mailOutline,
+      mailSharp,
       informationCircleOutline,
       informationCircleSharp,
       peopleOutline,
@@ -122,7 +143,23 @@ export class AppComponent implements OnInit {
       cafeSharp,
       callOutline,
       callSharp,
+      documentTextOutline,
+      documentTextSharp,
     });
+
+    // Keep the branded splash on screen for 2s, then reveal the app; the
+    // inline fallback in index.html covers the case where bootstrapping
+    // never happens.
+    afterNextRender(() => window.setTimeout(() => this.dismissSplash(), 2000));
+  }
+
+  private dismissSplash(): void {
+    const splash = document.getElementById('bb-splash');
+    if (!splash) {
+      return;
+    }
+    splash.classList.add('is-hidden');
+    window.setTimeout(() => splash.remove(), 400);
   }
 
   ngOnInit() {

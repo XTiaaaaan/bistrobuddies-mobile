@@ -65,6 +65,7 @@ $cream: #f5ede4;
   border-radius: 20px;
   padding: 16px;
   box-shadow: 0 8px 20px rgba(59, 36, 24, 0.08);
+  animation: bb-rise 0.34s var(--bb-ease) backwards;
 }
 
 .card-title {
@@ -92,6 +93,7 @@ $cream: #f5ede4;
     height: 100%;
     object-fit: cover;
     display: block;
+    animation: bb-fade 0.45s var(--bb-ease) both;
   }
 
   ion-icon {
@@ -273,6 +275,15 @@ $cream: #f5ede4;
       font-size: 20px;
     }
   }
+}
+
+/* Keeps the primary action reachable while the option cards scroll. */
+.add-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 16px 0 4px;
+  background: linear-gradient(to top, #{$cream} 62%, rgba(245, 237, 228, 0));
 }
 
 .add-button {

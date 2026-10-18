@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Timestamp } from 'firebase/firestore';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { Order, OrderStatus } from '../../models/order.model';
+import { Order, OrderStatus, RefundStatus } from '../../models/order.model';
 import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
 import { OrdersService } from '../../services/orders.service';
@@ -135,6 +135,181 @@ describe('MyOrdersPage', () => {
     expect(element.querySelector('.st-pending')).toBeNull();
   });
 
+  it('should render a GCash verifying payment status with an understandable label', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        paymentMethod: PaymentMethod.GCASH,
+        paymentStatus: PaymentStatus.VERIFYING,
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('GCash');
+    expect(element.textContent).toContain('Verifying payment');
+    expect(element.querySelector('.pay-verifying')).toBeTruthy();
+  });
+
+  it('should render a rejected GCash payment status', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        paymentMethod: PaymentMethod.GCASH,
+        paymentStatus: PaymentStatus.REJECTED,
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Payment rejected');
+    expect(element.querySelector('.pay-rejected')).toBeTruthy();
+  });
+
+  it('should hide refund status for orders that are not cancelled', () => {
+    const fixture = setup('u1', [makeOrder()]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="order-refund-status"]')).toBeNull();
+  });
+
+  it('should hide refund status for a completed order even with historic refund fields', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.COMPLETED,
+        refund: {
+          status: RefundStatus.REFUNDED,
+          amount: 260,
+          requestedAt: null,
+          completedAt: Timestamp.fromMillis(1759900060000),
+        },
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="order-refund-status"]')).toBeNull();
+  });
+
+  it('should show a cancelled order with no recorded refund', () => {
+    const fixture = setup('u1', [
+      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PENDING }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+    const refundRow = element.querySelector('[data-testid="order-refund-status"]');
+
+    expect(refundRow).toBeTruthy();
+    expect(refundRow?.textContent).toContain('Refund not recorded');
+    expect(refundRow?.textContent).toContain('Order cancelled — refund not recorded yet.');
+    expect(element.querySelector('.refund-none')).toBeTruthy();
+    // Cancellation stays separate from payment status.
+    expect(element.querySelector('.st-cancelled')).toBeTruthy();
+    expect(element.querySelector('.pay-pending')).toBeTruthy();
+  });
+
+  it('should show a cancelled historic order without refund fields as not recorded', () => {
+    const fixture = setup('u1', [
+      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PAID }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+    const refundRow = element.querySelector('[data-testid="order-refund-status"]');
+
+    expect(refundRow?.textContent).toContain('Order cancelled — refund not recorded yet.');
+  });
+
+  it('should show a pending refund without claiming it completed', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentStatus: PaymentStatus.PAID,
+        refund: {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 260,
+          requestedAt: Timestamp.fromMillis(1759900000000),
+          completedAt: null,
+        },
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+    const refundRow = element.querySelector('[data-testid="order-refund-status"]');
+
+    expect(refundRow?.textContent).toContain('Refund pending');
+    expect(refundRow?.textContent).toContain(
+      'Refund pending — the refund has not been marked completed.'
+    );
+    expect(element.querySelector('.refund-pending')).toBeTruthy();
+    expect(element.querySelector('.refund-completed')).toBeNull();
+  });
+
+  it('should show a completed refund with amount and date', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentStatus: PaymentStatus.PAID,
+        refund: {
+          status: RefundStatus.REFUNDED,
+          amount: 260,
+          requestedAt: Timestamp.fromMillis(Date.UTC(2026, 9, 8, 12, 0)),
+          completedAt: Timestamp.fromMillis(Date.UTC(2026, 9, 9, 8, 30)),
+        },
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+    const refundRow = element.querySelector('[data-testid="order-refund-status"]');
+
+    expect(refundRow?.textContent).toContain('Refund completed');
+    expect(refundRow?.textContent).toContain('₱260.00');
+    expect(refundRow?.textContent).toContain('returned on');
+    expect(element.querySelector('.refund-completed')).toBeTruthy();
+  });
+
+  it('should preserve GCash method and payment status on a cancelled refunded order', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.GCASH,
+        paymentStatus: PaymentStatus.PAID,
+        refund: {
+          status: RefundStatus.REFUNDED,
+          amount: 260,
+          requestedAt: null,
+          completedAt: Timestamp.fromMillis(Date.UTC(2026, 9, 8, 12, 0)),
+        },
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    // My Orders keeps the GCash method label and the PAID payment badge intact.
+    expect(element.textContent).toContain('GCash');
+    expect(element.querySelector('.pay-paid')).toBeTruthy();
+    expect(element.textContent).toContain('Paid');
+    expect(element.querySelector('.st-cancelled')).toBeTruthy();
+    expect(element.querySelector('[data-testid="order-refund-status"]')).toBeTruthy();
+  });
+
+  it('should surface a refund status pushed in real time without a refresh', () => {
+    const fixture = setup('u1', [makeOrder({ orderStatus: OrderStatus.CANCELLED })]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="order-refund-status"]')?.textContent).toContain(
+      'Order cancelled — refund not recorded yet.'
+    );
+
+    orders$.next([
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentStatus: PaymentStatus.PAID,
+        refund: {
+          status: RefundStatus.REFUNDED,
+          amount: 260,
+          requestedAt: null,
+          completedAt: Timestamp.fromMillis(1759900060000),
+        },
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(element.querySelector('[data-testid="order-refund-status"]')?.textContent).toContain(
+      'Refund completed'
+    );
+    expect(element.querySelector('.refund-completed')).toBeTruthy();
+  });
+
   it('should show an error state when the realtime listener fails', () => {
     const fixture = setup('u1', [], () =>
       throwError(() => new Error('permission denied'))
@@ -153,5 +328,18 @@ describe('MyOrdersPage', () => {
     expect(fixture.componentInstance.status()).toBe('signed-out');
     expect(fixture.componentInstance.orders()).toEqual([]);
     expect(element.textContent).toContain('Please sign in to see your orders');
+  });
+
+  it('should re-subscribe to the order stream and close the spinner on pull-to-refresh', async () => {
+    const fixture = setup('u1', [makeOrder()]);
+    const complete = vi.fn(() => Promise.resolve());
+
+    await fixture.componentInstance.onRefresh({ target: { complete } });
+    fixture.detectChanges();
+
+    expect(watchedCustomers).toEqual(['u1', 'u1']);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.status()).toBe('ready');
+    expect(fixture.nativeElement.textContent).toContain('Order #order-1');
   });
 });

@@ -1,6 +1,6 @@
-import { Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   IonBackButton,
   IonButton,
@@ -15,6 +15,7 @@ import {
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe, receipt } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
+import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
 import {
   formatOrderDate,
   formatOrderPrice,
@@ -24,9 +25,17 @@ import {
   paymentStatusClass,
   paymentStatusLabel,
 } from '../../core/orders/order-display';
-import { Order } from '../../models/order.model';
+import { GCASH_MESSAGES, GCASH_QR_ASSET } from '../../core/payment/gcash';
+import { refundDisplay, RefundDisplay } from '../../core/orders/refund-display';
+import { Order, OrderStatus } from '../../models/order.model';
+import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
 import { OrdersService } from '../../services/orders.service';
+import { OrderApiError, OrdersApiService } from '../../services/orders-api.service';
+
+/** Shown when cancelling fails for a reason the customer cannot fix here. */
+export const CANCEL_FAILED_MESSAGE =
+  'We could not cancel your order. Please try again.';
 
 export type OrderDetailsStatus = 'loading' | 'ready' | 'missing' | 'error' | 'signed-out';
 
@@ -46,6 +55,7 @@ export type OrderDetailsStatus = 'loading' | 'ready' | 'missing' | 'error' | 'si
     IonTitle,
     IonToolbar,
     RouterLink,
+    GcashSubmissionFormComponent,
   ],
 })
 export class OrderDetailsPage implements OnInit {
@@ -53,10 +63,76 @@ export class OrderDetailsPage implements OnInit {
 
   readonly status = signal<OrderDetailsStatus>('loading');
   readonly order = signal<Order | null>(null);
+  readonly resubmitOpen = signal(false);
+  /** Whether the inline cancel confirmation is visible. */
+  readonly cancelOpen = signal(false);
+  /** Guards against duplicate cancel requests while one is in flight. */
+  readonly cancelling = signal(false);
+  readonly cancelError = signal<string | null>(null);
+
+  readonly gcashQrAsset = GCASH_QR_ASSET;
+  readonly gcashMessages = GCASH_MESSAGES;
 
   private readonly authService = inject(AuthService);
   private readonly ordersService = inject(OrdersService);
+  private readonly ordersApi = inject(OrdersApiService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * A customer may cancel only while the order is still awaiting
+   * confirmation; once an admin has taken over, only the shop can stop it.
+   */
+  readonly canCancel = computed(
+    () =>
+      this.status() === 'ready' &&
+      this.order()?.orderStatus === OrderStatus.PENDING
+  );
+  readonly cancelled = computed(
+    () => this.order()?.orderStatus === OrderStatus.CANCELLED
+  );
+
+  /**
+   * Refund facts for a cancelled order, straight from the backend's
+   * `refund.status`. Hidden for every other order status; never mutates
+   * cancellation or payment state.
+   */
+  readonly refund = computed<RefundDisplay>(() => refundDisplay(this.order()));
+
+  readonly isGcashOrder = computed(
+    () => this.order()?.paymentMethod === PaymentMethod.GCASH
+  );
+  readonly gcashPaymentStatus = computed<PaymentStatus | null>(() => {
+    const order = this.order();
+    return order ? ((order.paymentStatus as PaymentStatus) ?? null) : null;
+  });
+  /** Whether the details form should be visible for this order. */
+  readonly showGcashForm = computed(() => {
+    const order = this.order();
+    if (!order || order.paymentMethod !== PaymentMethod.GCASH) {
+      return false;
+    }
+    if (order.paymentStatus === PaymentStatus.REJECTED) {
+      return this.resubmitOpen();
+    }
+    return order.paymentStatus === PaymentStatus.PENDING;
+  });
+  /** Shown after a rejection so the customer understands what to do. */
+  readonly gcashRejected = computed(
+    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.REJECTED
+  );
+  readonly gcashVerifying = computed(
+    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.VERIFYING
+  );
+  readonly gcashPaid = computed(
+    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.PAID
+  );
+  readonly canResubmit = computed(
+    () =>
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.REJECTED &&
+      !this.resubmitOpen()
+  );
 
   constructor() {
     addIcons({ alertCircle, cafe, receipt });
@@ -100,8 +176,84 @@ export class OrderDetailsPage implements OnInit {
       });
   }
 
+  openResubmit(): void {
+    this.resubmitOpen.set(true);
+  }
+
+  /** Shows the inline confirmation before any request is sent. */
+  openCancelConfirm(): void {
+    if (this.canCancel() && !this.cancelling()) {
+      this.cancelOpen.set(true);
+      this.cancelError.set(null);
+    }
+  }
+
+  closeCancelConfirm(): void {
+    if (!this.cancelling()) {
+      this.cancelOpen.set(false);
+      this.cancelError.set(null);
+    }
+  }
+
+  /** Confirms the dialog and asks the backend to cancel the order. */
+  async confirmCancel(): Promise<void> {
+    const current = this.order();
+    if (
+      !this.cancelOpen() ||
+      !current ||
+      current.orderStatus !== OrderStatus.PENDING ||
+      this.cancelling()
+    ) {
+      return;
+    }
+
+    this.cancelling.set(true);
+    this.cancelError.set(null);
+    try {
+      const result = await this.ordersApi.cancelOrder(current.id);
+      // Reflect the new status right away; the realtime listener will also
+      // deliver the updated document from Firestore.
+      this.order.set({
+        ...current,
+        orderStatus: (result.orderStatus as OrderStatus) ?? OrderStatus.CANCELLED,
+      });
+      this.cancelOpen.set(false);
+    } catch (error) {
+      if (error instanceof OrderApiError && error.status === 401) {
+        this.cancelOpen.set(false);
+        await this.router.navigate(['/login'], {
+          queryParams: { redirect: `/my-orders/${current.id}`, reason: 'expired' },
+        });
+        return;
+      }
+      this.cancelError.set(
+        error instanceof OrderApiError && error.message
+          ? error.message
+          : CANCEL_FAILED_MESSAGE
+      );
+    } finally {
+      this.cancelling.set(false);
+    }
+  }
+
+  onGcashSubmitted(event: { paymentStatus: string }): void {
+    const current = this.order();
+    if (current) {
+      this.order.set({ ...current, paymentStatus: event.paymentStatus as PaymentStatus });
+    }
+  }
+
+  async onGcashSessionExpired(): Promise<void> {
+    await this.router.navigate(['/login'], {
+      queryParams: { redirect: `/my-orders/${this.id()}`, reason: 'expired' },
+    });
+  }
+
   shortId(orderId: string): string {
-    return orderId ? orderId.slice(0, 8) : '';
+    if (!orderId) {
+      return '';
+    }
+    return orderId.length > 16 ? `${orderId.slice(0, 16)}…` : orderId;
   }
 
   orderDate(order: Order): string {

@@ -1,5 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
-import { PaymentMethod, PaymentStatus } from './payment.model';
+import { GcashDetails, PaymentMethod, PaymentStatus } from './payment.model';
 import { ProductSize } from './product.model';
 
 export enum OrderStatus {
@@ -9,6 +9,34 @@ export enum OrderStatus {
   READY = 'READY',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+}
+
+/**
+ * Refund lifecycle for cancelled orders, mirroring the backend contract
+ * exactly (`refund.status` on the order document). Independent of
+ * `paymentStatus`, which stays PAID when money is returned.
+ *
+ * - `NOT_REFUNDED` — default; no refund recorded yet.
+ * - `REFUND_PENDING` — an admin opened a refund; the money has not been sent.
+ * - `REFUNDED` — an admin confirmed the money was actually returned.
+ */
+export enum RefundStatus {
+  NOT_REFUNDED = 'NOT_REFUNDED',
+  REFUND_PENDING = 'REFUND_PENDING',
+  REFUNDED = 'REFUNDED',
+}
+
+/**
+ * Customer-visible refund facts, matching the backend's `RefundInfoResponse`.
+ * Timestamps arrive as Firestore `Timestamp`s from the realtime listener (or
+ * ISO strings from API responses), so both are accepted.
+ */
+export interface OrderRefund {
+  status: RefundStatus;
+  /** PHP amount recorded for the refund; null until one was recorded. */
+  amount: number | null;
+  requestedAt: Timestamp | string | null;
+  completedAt: Timestamp | string | null;
 }
 
 export interface OrderItem {
@@ -50,6 +78,17 @@ export interface Order {
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
+  /**
+   * Customer-visible GCash details. Optional because historic orders (and COD
+   * orders) have no GCash fields at all.
+   */
+  gcashDetails?: GcashDetails;
+  /**
+   * Refund facts recorded by the backend for cancelled, paid orders.
+   * Optional/nullable because historic order documents (and non-refunded
+   * orders) predate the refund feature entirely.
+   */
+  refund?: OrderRefund | null;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }

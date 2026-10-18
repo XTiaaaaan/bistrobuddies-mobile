@@ -1,0 +1,78 @@
+$espresso: #3b2418;
+$gold: #a87c4f;
+$tan: #e8d9c5;
+$cream: #f5ede4;
+
+:host {
+  display: block;
+}
+
+.conversation {
+  h3 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #a08b76;
+    margin: 0;
+  }
+
+  /* The customer's original message and the admin's replies, oldest first,
+     in readable chat-style cards inside the white conversation block. */
+  .bubble {
+    border: 1px solid #efe2d3;
+    border-radius: 16px;
+    padding: 10px 12px;
+    margin-top: 10px;
+  }
+
+  .from-customer {
+    background: $cream;
+    border-top-right-radius: 4px;
+  }
+
+  .from-admin {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(59, 36, 24, 0.06);
+    border-top-left-radius: 4px;
+  }
+
+  .bubble-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .bubble-sender {
+    font-size: 12px;
+    font-weight: 700;
+    color: $gold;
+  }
+
+  .from-customer .bubble-sender {
+    color: #6b5540;
+  }
+
+  .bubble-date {
+    font-size: 12px;
+    color: #8b7355;
+    white-space: nowrap;
+  }
+
+  .bubble-text {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: $espresso;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .no-replies {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: #8b7355;
+    text-align: center;
+  }
+}

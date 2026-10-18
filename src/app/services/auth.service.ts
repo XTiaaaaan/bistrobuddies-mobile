@@ -137,6 +137,21 @@ export class AuthService {
     await updateProfile(user, { photoURL: url });
   }
 
+  /**
+   * Mirrors the customer's full name into Firebase Auth so surfaces that read
+   * `displayName` (e.g. the dashboard greeting) stay consistent with the
+   * Firestore `users/{uid}` copy, which is the source of truth. Called after
+   * the Firestore profile write succeeds; a failure here must not surface as
+   * a profile-save error.
+   */
+  async setDisplayName(name: string): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error('You must be signed in to update your profile.');
+    }
+    await updateProfile(user, { displayName: name });
+  }
+
   private async syncProfile(
     user: FirebaseUser,
     overrides?: { name?: string; phone?: string }

@@ -36,6 +36,28 @@ export interface CreateOrderResponse {
   total: number;
   orderStatus: string;
   paymentStatus: string;
+  /** Present on newer backend responses; absent on older ones. */
+  paymentMethod?: string;
+}
+
+/** Customer-entered GCash details submitted to the backend. */
+export interface GcashDetailsRequest {
+  accountName: string;
+  accountNumber: string;
+}
+
+/** Result of a GCash submission, reflecting the server's canonical state. */
+export interface GcashDetailsResponse {
+  id: string;
+  paymentStatus: string;
+  gcashDetails?: GcashDetailsRequest;
+}
+
+/** Response of POST /api/orders/:id/cancel — the full updated order. */
+export interface CancelOrderResponse {
+  id: string;
+  orderStatus: string;
+  paymentStatus: string;
 }
 
 /** Error raised for backend order API failures, with the backend status code. */
@@ -74,6 +96,63 @@ export class OrdersApiService {
         this.http.post<CreateOrderResponse>(`${this.baseUrl}/orders`, request, {
           headers: { Authorization: `Bearer ${token}` },
         })
+      );
+    } catch (error) {
+      throw toOrderApiError(error);
+    }
+  }
+
+  /**
+   * Submits the customer's GCash account details for an existing order.
+   *
+   * Prices, totals and payment status are deliberately NOT sent: the backend
+   * validates the payload, stores the details and moves the order to
+   * VERIFYING. The Bearer Firebase ID token identifies the customer.
+   */
+  async submitGcashDetails(
+    orderId: string,
+    details: GcashDetailsRequest
+  ): Promise<GcashDetailsResponse> {
+    const token = await this.auth.getIdToken();
+    if (!token) {
+      throw new OrderApiError('You must be signed in to submit payment details.', 401);
+    }
+
+    try {
+      return await firstValueFrom(
+        this.http.post<GcashDetailsResponse>(
+          `${this.baseUrl}/orders/${encodeURIComponent(orderId)}/gcash-details`,
+          details,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+    } catch (error) {
+      throw toOrderApiError(error);
+    }
+  }
+
+  /**
+   * Cancels one of the customer's own orders that is still awaiting
+   * confirmation.
+   *
+   * The backend only allows cancelling a `PENDING` order owned by the caller;
+   * it never deletes the order and leaves the payment status untouched, so a
+   * cancelled order stays in My Orders. The Bearer Firebase ID token
+   * identifies the customer.
+   */
+  async cancelOrder(orderId: string): Promise<CancelOrderResponse> {
+    const token = await this.auth.getIdToken();
+    if (!token) {
+      throw new OrderApiError('You must be signed in to cancel an order.', 401);
+    }
+
+    try {
+      return await firstValueFrom(
+        this.http.post<CancelOrderResponse>(
+          `${this.baseUrl}/orders/${encodeURIComponent(orderId)}/cancel`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
       );
     } catch (error) {
       throw toOrderApiError(error);

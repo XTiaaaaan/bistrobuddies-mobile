@@ -1,0 +1,58 @@
+$espresso: #3b2418;
+$tan: #e8d9c5;
+$cream: #f5ede4;
+
+.gcash-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .field-label {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #a08b76;
+    font-weight: 700;
+  }
+
+  .field-error {
+    font-size: 12px;
+    color: #b33a3a;
+  }
+
+  ion-input {
+    --background: #ffffff;
+    --border-color: #{$tan};
+    --border-radius: 12px;
+    --border-width: 1px;
+    --border-style: solid;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    font-size: 14px;
+    color: $espresso;
+  }
+}
+
+.error-banner {
+  background: rgba(179, 58, 58, 0.1);
+  border: 1px solid rgba(179, 58, 58, 0.4);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #b33a3a;
+}
+
+.submit-button {
+  --border-radius: 16px;
+  --background: #3b2418;
+  --background-activated: #2c1a11;
+  --color: #ffffff;
+  font-weight: 700;
+  height: 48px;
+}
