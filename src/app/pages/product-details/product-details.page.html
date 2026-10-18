@@ -4,14 +4,7 @@
       <ion-back-button defaultHref="/products" text="Buy Coffee"></ion-back-button>
     </ion-buttons>
     <ion-title>Product Details</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/cart" aria-label="Open cart" class="cart-anchor">
-        <ion-icon slot="icon-only" name="cart"></ion-icon>
-        @if (cartCount() > 0) {
-          <span class="cart-badge">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
-        }
-      </ion-button>
-    </ion-buttons>
+    <app-header-cart-button slot="end"></app-header-cart-button>
   </ion-toolbar>
 </ion-header>
 

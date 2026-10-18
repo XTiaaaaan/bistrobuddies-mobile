@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { AlertController } from '@ionic/angular';
 import { Timestamp } from 'firebase/firestore';
-import { Observable, Subject, of, throwError } from 'rxjs';
+import { Observable, Subject, defer, of, throwError } from 'rxjs';
 import { CartItemInput } from '../../models/cart.model';
 import { Product } from '../../models/product.model';
 import { CartService } from '../../services/cart.service';
@@ -41,18 +42,31 @@ function item(overrides: Partial<CartItemInput> = {}): CartItemInput {
 }
 
 describe('CartPage', () => {
-  beforeEach(() => localStorage.clear());
+  let alertCreate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    alertCreate = vi.fn(() =>
+      Promise.resolve({ present: vi.fn(() => Promise.resolve()) })
+    );
+  });
 
   function setup(
     items: CartItemInput[] = [],
     products: Product[] = [makeProduct()],
     products$?: Observable<Product[]>
-  ): { fixture: ComponentFixture<CartPage>; component: CartPage; cart: CartService } {
+  ): {
+    fixture: ComponentFixture<CartPage>;
+    component: CartPage;
+    cart: CartService;
+    alertCreate: ReturnType<typeof vi.fn>;
+  } {
     TestBed.configureTestingModule({
       imports: [CartPage],
       providers: [
         provideRouter([]),
         { provide: ProductsService, useValue: { watchProducts: () => products$ ?? of(products) } },
+        { provide: AlertController, useValue: { create: alertCreate } },
       ],
     });
 
@@ -62,7 +76,7 @@ describe('CartPage', () => {
     const fixture = TestBed.createComponent(CartPage);
     fixture.detectChanges();
 
-    return { fixture, component: fixture.componentInstance, cart };
+    return { fixture, component: fixture.componentInstance, cart, alertCreate };
   }
 
   afterEach(() => TestBed.resetTestingModule());
@@ -136,6 +150,34 @@ describe('CartPage', () => {
     expect(component.isEmpty()).toBe(true);
     expect(component.itemCount()).toBe(0);
     expect(component.subtotal()).toBe(0);
+  });
+
+  it('asks for confirmation before clearing the cart', async () => {
+    const { fixture, component, alertCreate } = setup([item({ quantity: 2 })]);
+
+    await component.confirmClear();
+
+    expect(alertCreate).toHaveBeenCalledTimes(1);
+    const options = alertCreate.mock.calls[0][0] as {
+      message: string;
+      buttons: { text: string; role?: string; handler?: () => void }[];
+    };
+    expect(options.message).toContain('2 items');
+    expect(component.isEmpty()).toBe(false);
+
+    options.buttons.find((button) => button.role === 'destructive')?.handler?.();
+    fixture.detectChanges();
+
+    expect(component.isEmpty()).toBe(true);
+  });
+
+  it('does not ask to clear an empty cart', async () => {
+    const { component, alertCreate } = setup();
+
+    await component.confirmClear();
+
+    expect(alertCreate).not.toHaveBeenCalled();
+    expect(component.isEmpty()).toBe(true);
   });
 
   it('should reprice an item when the size changes', () => {
@@ -255,5 +297,48 @@ describe('CartPage', () => {
     component.remove(component.items()[0]);
     expect(cart.items()).toEqual([]);
     expect(component.hasBlockedItems()).toBe(false);
+  });
+
+  it('re-checks the catalog on pull-to-refresh without leaving the cart', async () => {
+    let calls = 0;
+    const products$ = defer(() => {
+      calls += 1;
+      return of([makeProduct()]);
+    });
+    const { fixture, component } = setup([item()], undefined, products$);
+
+    expect(component.productsStatus()).toBe('ready');
+
+    const complete = vi.fn(() => Promise.resolve());
+    await component.onRefresh({ target: { complete } });
+    fixture.detectChanges();
+
+    expect(calls).toBe(2);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(component.productsStatus()).toBe('ready');
+    expect(component.isEmpty()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('House Latte');
+  });
+
+  it('shows the availability notice when a pull-to-refresh fails but keeps the cart', async () => {
+    let calls = 0;
+    const products$ = defer(() => {
+      calls += 1;
+      return calls === 1 ? of([makeProduct()]) : throwError(() => new Error('offline'));
+    });
+    const { fixture, component } = setup([item()], undefined, products$);
+
+    expect(component.productsStatus()).toBe('ready');
+
+    const complete = vi.fn(() => Promise.resolve());
+    await component.onRefresh({ target: { complete } });
+    fixture.detectChanges();
+
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(component.productsStatus()).toBe('error');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Could not verify availability'
+    );
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('House Latte');
   });
 });

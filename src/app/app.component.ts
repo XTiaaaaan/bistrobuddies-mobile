@@ -32,6 +32,8 @@ import {
   cartSharp,
   receiptOutline,
   receiptSharp,
+  mailOutline,
+  mailSharp,
   informationCircleOutline,
   informationCircleSharp,
   peopleOutline,
@@ -48,6 +50,8 @@ import {
   cafeSharp,
   callOutline,
   callSharp,
+  documentTextOutline,
+  documentTextSharp,
 } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
@@ -88,10 +92,12 @@ export class AppComponent implements OnInit {
     { title: 'Buy Coffee', url: '/products', icon: 'list' },
     { title: 'Cart', url: '/cart', icon: 'cart' },
     { title: 'My Orders', url: '/my-orders', icon: 'receipt' },
+    { title: 'My Messages', url: '/my-messages', icon: 'mail' },
     { title: 'Company History', url: '/company-history', icon: 'time' },
     { title: 'About Our Products', url: '/about-products', icon: 'cafe' },
     { title: 'About the App', url: '/about', icon: 'information-circle' },
     { title: 'Contact Us', url: '/contact-us', icon: 'call' },
+    { title: 'Terms of Service', url: '/terms', icon: 'document-text' },
     { title: 'Developers', url: '/developers', icon: 'people' },
   ];
 
@@ -119,6 +125,8 @@ export class AppComponent implements OnInit {
       cartSharp,
       receiptOutline,
       receiptSharp,
+      mailOutline,
+      mailSharp,
       informationCircleOutline,
       informationCircleSharp,
       peopleOutline,
@@ -135,6 +143,8 @@ export class AppComponent implements OnInit {
       cafeSharp,
       callOutline,
       callSharp,
+      documentTextOutline,
+      documentTextSharp,
     });
 
     // Keep the branded splash on screen for 2s, then reveal the app; the

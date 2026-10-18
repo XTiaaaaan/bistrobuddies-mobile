@@ -172,4 +172,70 @@ describe('ContactMessagesService', () => {
       message: CONTACT_MESSAGES.server,
     });
   });
+
+  it('lists the caller\'s own messages with the Bearer token', async () => {
+    const promise = service.listMine();
+    await flushMicrotasks();
+
+    const request = httpMock.expectOne(`${endpoint}/mine`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer id-token');
+    request.flush({
+      messages: [
+        {
+          id: 'msg-1',
+          subject: 'Order question',
+          message: 'Where is my order?',
+          status: 'NEW',
+          createdAt: '2026-10-09T12:00:00.000Z',
+          updatedAt: '2026-10-09T12:00:00.000Z',
+        },
+      ],
+    });
+
+    await expect(promise).resolves.toEqual([
+      {
+        id: 'msg-1',
+        subject: 'Order question',
+        message: 'Where is my order?',
+        status: 'NEW',
+        createdAt: '2026-10-09T12:00:00.000Z',
+        updatedAt: '2026-10-09T12:00:00.000Z',
+      },
+    ]);
+    expect(getIdToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an empty list when the backend sends none', async () => {
+    const promise = service.listMine();
+    await flushMicrotasks();
+
+    httpMock.expectOne(`${endpoint}/mine`).flush({ messages: [] });
+    await expect(promise).resolves.toEqual([]);
+  });
+
+  it('fails before any request when listing while signed out', async () => {
+    getIdToken.mockResolvedValue(null);
+
+    await expect(service.listMine()).rejects.toMatchObject({
+      name: 'ContactApiError',
+      status: 401,
+      message: CONTACT_MESSAGES.auth,
+    });
+    httpMock.expectNone(`${endpoint}/mine`);
+  });
+
+  it('maps a rejected list session to the sign-in message', async () => {
+    const promise = service.listMine();
+    await flushMicrotasks();
+
+    httpMock
+      .expectOne(`${endpoint}/mine`)
+      .flush({}, { status: 401, statusText: 'Unauthorized' });
+
+    await expect(promise).rejects.toMatchObject({
+      status: 401,
+      message: CONTACT_MESSAGES.auth,
+    });
+  });
 });

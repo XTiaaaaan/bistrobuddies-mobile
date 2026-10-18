@@ -8,6 +8,13 @@
 </ion-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingText="Pull to refresh"
+      refreshingText="Refreshing..."
+    ></ion-refresher-content>
+  </ion-refresher>
+
   <div class="cart-page">
     @if (isEmpty()) {
       <div class="state" role="status">
@@ -152,7 +159,7 @@
       }
 
       <div class="actions">
-        <ion-button class="clear-button" fill="outline" (click)="clear()">Clear Cart</ion-button>
+        <ion-button class="clear-button" fill="outline" (click)="confirmClear()">Clear Cart</ion-button>
         <ion-button class="shop-button" routerLink="/products">Continue Shopping</ion-button>
       </div>
     }

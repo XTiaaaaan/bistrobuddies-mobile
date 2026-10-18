@@ -168,6 +168,17 @@ describe('ProductDetailsPage', () => {
     expect(presentSpy).toHaveBeenCalled();
   });
 
+  it('should ignore repeated taps while an add is still in progress', async () => {
+    const component = setup(makeProduct()).componentInstance;
+
+    const first = component.addToCart();
+    const second = component.addToCart();
+    await Promise.all([first, second]);
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(component.adding()).toBe(false);
+  });
+
   it('should not allow adding an unavailable product', async () => {
     const fixture = setup(makeProduct({ available: false }));
     const component = fixture.componentInstance;

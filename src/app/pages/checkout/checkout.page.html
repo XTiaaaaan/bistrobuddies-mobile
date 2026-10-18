@@ -294,7 +294,7 @@
         class="place-button"
         expand="block"
         [disabled]="!canSubmit()"
-        (click)="placeOrder()"
+        (click)="confirmAndPlaceOrder()"
       >
         @if (submitting()) {
           <ion-spinner name="crescent"></ion-spinner>
@@ -303,6 +303,12 @@
           Place Order
         }
       </ion-button>
+
+      <p class="terms-notice" data-testid="checkout-terms-notice">
+        By placing your order you agree to the
+        <a routerLink="/terms">Terms of Service</a>, including the ordering and
+        payment terms that apply.
+      </p>
     }
   </div>
 </ion-content>

@@ -12,8 +12,10 @@ import { RouterLink } from '@angular/router';
 import { IonButton, IonIcon, IonSpinner, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe, closeCircle, search } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { formatPeso } from '../../core/format/price';
 import { Product, ProductSize } from '../../models/product.model';
+import { CartFlyService, resolveFlyImage } from '../../services/cart-fly.service';
 import { CartService } from '../../services/cart.service';
 import { ProductsService } from '../../services/products.service';
 
@@ -49,6 +51,8 @@ export class ProductGridComponent implements OnInit {
   /** Full list as loaded (sorted, availability and limit applied). */
   readonly catalog = signal<Product[]>([]);
   private readonly failedImages = signal<ReadonlySet<string>>(new Set());
+  /** Products whose add-to-cart (and flight animation) is still in progress. */
+  private readonly addingIds = signal<ReadonlySet<string>>(new Set());
 
   /** Visible grid: catalog narrowed by the active search / category tools. */
   readonly products = computed(() => this.applyFilter(this.catalog()));
@@ -72,6 +76,7 @@ export class ProductGridComponent implements OnInit {
 
   private readonly productsService = inject(ProductsService);
   private readonly cartService = inject(CartService);
+  private readonly cartFly = inject(CartFlyService);
   private readonly toastController = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -86,6 +91,21 @@ export class ProductGridComponent implements OnInit {
   retry() {
     this.status.set('loading');
     this.load();
+  }
+
+  /**
+   * Re-fetches the catalog for a pull-to-refresh. The grid stays on screen
+   * while it runs, and a failed refresh keeps the products already shown
+   * instead of replacing them with the error state.
+   */
+  async reload(): Promise<void> {
+    try {
+      this.applyCatalog(await firstValueFrom(this.productsService.watchProducts()));
+    } catch {
+      if (this.status() !== 'ready') {
+        this.status.set('error');
+      }
+    }
   }
 
   onQueryInput(event: Event): void {
@@ -168,38 +188,63 @@ export class ProductGridComponent implements OnInit {
     return (matched.length > 0 ? matched : configured)[0] ?? null;
   }
 
+  /** True while this product's add-to-cart flight is still running. */
+  isAdding(product: Product): boolean {
+    return this.addingIds().has(product.id);
+  }
+
   canQuickAdd(product: Product): boolean {
     return (
       this.isAvailable(product) &&
       this.defaultSize(product) !== null &&
-      this.defaultSugar(product) !== null
+      this.defaultSugar(product) !== null &&
+      !this.isAdding(product)
     );
   }
 
-  async quickAdd(product: Product): Promise<void> {
+  async quickAdd(product: Product, source?: Event | Element | null): Promise<void> {
     const size = this.defaultSize(product);
     const sugar = this.defaultSugar(product);
-    if (!this.isAvailable(product) || size === null || sugar === null) {
+    if (this.isAdding(product) || size === null || sugar === null || !this.isAvailable(product)) {
       return;
     }
 
-    this.cartService.add({
-      productId: product.id,
-      productName: product.name,
-      productImage: product.imageUrl ?? '',
-      size,
-      sugar,
-      quantity: 1,
-      unitPrice: this.priceFor(product, size) as number,
-    });
+    this.markAdding(product.id, true);
+    try {
+      this.cartService.add({
+        productId: product.id,
+        productName: product.name,
+        productImage: product.imageUrl ?? '',
+        size,
+        sugar,
+        quantity: 1,
+        unitPrice: this.priceFor(product, size) as number,
+      });
 
-    const toast = await this.toastController.create({
-      message: `${product.name} added to your cart.`,
-      duration: 2000,
-      position: 'bottom',
-      color: 'success',
+      await this.cartFly.flyToCart(resolveFlyImage(source ?? null));
+
+      const toast = await this.toastController.create({
+        message: `${product.name} added to your cart.`,
+        duration: 2000,
+        position: 'bottom',
+        color: 'success',
+      });
+      await toast.present();
+    } finally {
+      this.markAdding(product.id, false);
+    }
+  }
+
+  private markAdding(productId: string, adding: boolean): void {
+    this.addingIds.update((current) => {
+      const next = new Set(current);
+      if (adding) {
+        next.add(productId);
+      } else {
+        next.delete(productId);
+      }
+      return next;
     });
-    await toast.present();
   }
 
   private load() {
@@ -207,12 +252,14 @@ export class ProductGridComponent implements OnInit {
       .watchProducts()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (items) => {
-          this.catalog.set(this.prepare(items));
-          this.status.set('ready');
-        },
+        next: (items) => this.applyCatalog(items),
         error: () => this.status.set('error'),
       });
+  }
+
+  private applyCatalog(items: Product[]): void {
+    this.catalog.set(this.prepare(items));
+    this.status.set('ready');
   }
 
   private prepare(items: Product[]): Product[] {

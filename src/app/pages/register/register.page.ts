@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   IonButton,
+  IonCheckbox,
   IonContent,
   IonHeader,
   IonIcon,
@@ -27,6 +28,7 @@ import { AuthService } from '../../services/auth.service';
     FormsModule,
     RouterLink,
     IonButton,
+    IonCheckbox,
     IonContent,
     IonHeader,
     IonIcon,
@@ -43,6 +45,8 @@ export class RegisterPage {
   phone = '';
   password = '';
   confirmPassword = '';
+  /** Explicit Terms of Service acceptance; a link tap alone never sets this. */
+  agreedToTerms = false;
 
   readonly errorMessage = signal('');
   readonly status = signal('');
@@ -113,6 +117,12 @@ export class RegisterPage {
     }
     if (this.password !== this.confirmPassword) {
       this.errorMessage.set('Passwords do not match.');
+      return false;
+    }
+    if (!this.agreedToTerms) {
+      this.errorMessage.set(
+        'Please accept the Terms of Service to create an account.'
+      );
       return false;
     }
     return true;

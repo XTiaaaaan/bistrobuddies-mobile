@@ -4,18 +4,18 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
     <ion-title>Buy Coffee</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/cart" aria-label="Open cart" class="cart-anchor">
-        <ion-icon slot="icon-only" name="cart"></ion-icon>
-        @if (cartCount() > 0) {
-          <span class="cart-badge">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
-        }
-      </ion-button>
-    </ion-buttons>
+    <app-header-cart-button slot="end"></app-header-cart-button>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingText="Pull to refresh"
+      refreshingText="Refreshing..."
+    ></ion-refresher-content>
+  </ion-refresher>
+
   <div class="products-page">
     <div class="products-intro bb-rise">
       <div class="intro-text">

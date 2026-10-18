@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import {
+  AlertController,
   IonBackButton,
   IonButton,
   IonButtons,
@@ -97,6 +98,7 @@ export class CheckoutPage implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly usersService = inject(UsersService);
   private readonly router = inject(Router);
+  private readonly alertController = inject(AlertController);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly items = this.cartService.items;
@@ -312,6 +314,36 @@ export class CheckoutPage implements OnInit {
     await this.router.navigate(['/login'], {
       queryParams: { redirect: '/checkout', reason: 'expired' },
     });
+  }
+
+  /**
+   * Confirms the order summary with the customer, then places the order.
+   * Nothing is sent to the backend until they accept the dialog.
+   */
+  async confirmAndPlaceOrder(): Promise<void> {
+    this.submitted.set(true);
+    if (this.submitting() || !this.canSubmit()) {
+      return;
+    }
+
+    const count = this.items().reduce((sum, item) => sum + item.quantity, 0);
+    const method = this.paymentMethods.find((entry) => entry.value === this.paymentMethod());
+    const alert = await this.alertController.create({
+      header: 'Place your order?',
+      message:
+        `${count} item${count === 1 ? '' : 's'} — Total ${this.formatPrice(this.total())}. ` +
+        `Payment: ${method?.label ?? 'COD'} (${method?.hint ?? 'Pay cash on delivery.'})`,
+      buttons: [
+        { text: 'Go Back', role: 'cancel' },
+        {
+          text: 'Place Order',
+          handler: () => {
+            void this.placeOrder();
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   async placeOrder(): Promise<string | void> {

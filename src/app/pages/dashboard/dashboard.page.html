@@ -3,11 +3,19 @@
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
-    <ion-title>Dashboard</ion-title>
+    <ion-title>BistroBuddies</ion-title>
+    <app-header-cart-button slot="end"></app-header-cart-button>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingText="Pull to refresh"
+      refreshingText="Refreshing..."
+    ></ion-refresher-content>
+  </ion-refresher>
+
   <div class="home-page">
     <section class="brand-hero bb-rise">
       <img

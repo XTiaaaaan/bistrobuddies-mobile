@@ -18,10 +18,18 @@ describe('app routes', () => {
     expect(routeFor('developers')?.canMatch).toBeUndefined();
   });
 
+  it('serves the Terms of Service page to guests', () => {
+    const route = routeFor('terms');
+    expect(route).toBeTruthy();
+    expect(route?.canMatch).toBeUndefined();
+    expect(typeof route?.loadComponent).toBe('function');
+  });
+
   it('keeps checkout, orders and profile behind the auth guard', () => {
     expect(routeFor('checkout')?.canMatch).toEqual([authGuard]);
     expect(routeFor('my-orders')?.canMatch).toEqual([authGuard]);
     expect(routeFor('my-orders/:id')?.canMatch).toEqual([authGuard]);
+    expect(routeFor('my-messages')?.canMatch).toEqual([authGuard]);
     expect(routeFor('profile')?.canMatch).toEqual([authGuard]);
   });
 

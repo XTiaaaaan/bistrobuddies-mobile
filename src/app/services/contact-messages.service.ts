@@ -7,12 +7,18 @@ import {
   ContactFormValues,
   toContactRequest,
 } from '../core/contact/contact-form';
+import { ContactMessage } from '../models/contact-message.model';
 import { AuthService } from './auth.service';
 
 /** Confirmation returned by the backend once the message is stored. */
 export interface ContactMessageConfirmation {
   id: string;
   status: string;
+}
+
+/** Response shape of `GET /contact-messages/mine`. */
+interface ContactMessageListResponse {
+  messages: ContactMessage[];
 }
 
 /** Error raised for contact API failures, with the backend status code. */
@@ -62,6 +68,33 @@ export class ContactMessagesService {
           { headers: { Authorization: `Bearer ${token}` } }
         )
       );
+    } catch (error) {
+      throw toContactApiError(error);
+    }
+  }
+
+  /**
+   * Loads the signed-in customer's own contact messages, newest first.
+   *
+   * `GET {apiBaseUrl}/contact-messages/mine` carries the Firebase ID token;
+   * the backend scopes the query to the verified user, so the client never
+   * sends (and cannot influence) whose messages are returned. Rejects with a
+   * `ContactApiError` for the same failure modes as `submit`.
+   */
+  async listMine(): Promise<ContactMessage[]> {
+    const token = await this.auth.getIdToken();
+    if (!token) {
+      throw new ContactApiError(CONTACT_MESSAGES.auth, 401);
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.http.get<ContactMessageListResponse>(
+          `${this.baseUrl}/contact-messages/mine`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+      return response?.messages ?? [];
     } catch (error) {
       throw toContactApiError(error);
     }

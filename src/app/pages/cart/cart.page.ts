@@ -2,12 +2,15 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
+  AlertController,
   IonButton,
   IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
   IonMenuButton,
+  IonRefresher,
+  IonRefresherContent,
   IonSelect,
   IonSelectOption,
   IonTitle,
@@ -16,6 +19,7 @@ import {
 import { addIcons } from 'ionicons';
 import { alertCircle, cafe, cart, trash } from 'ionicons/icons';
 import { formatPeso } from '../../core/format/price';
+import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
 import { CartItem, CartItemKey } from '../../models/cart.model';
 import { Product, ProductSize } from '../../models/product.model';
 import { CartService, MAX_QUANTITY } from '../../services/cart.service';
@@ -43,6 +47,8 @@ export type CartItemStatus = 'checking' | 'ok' | 'missing' | 'unavailable' | 'un
     IonHeader,
     IonIcon,
     IonMenuButton,
+    IonRefresher,
+    IonRefresherContent,
     IonSelect,
     IonSelectOption,
     IonTitle,
@@ -53,6 +59,7 @@ export type CartItemStatus = 'checking' | 'ok' | 'missing' | 'unavailable' | 'un
 export class CartPage implements OnInit {
   private readonly cartService = inject(CartService);
   private readonly productsService = inject(ProductsService);
+  private readonly alertController = inject(AlertController);
   private readonly destroyRef = inject(DestroyRef);
   private readonly productsById = signal<Record<string, Product>>({});
 
@@ -87,7 +94,7 @@ export class CartPage implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadCatalog();
+    void this.loadCatalog();
   }
 
   itemKey(item: CartItemKey): string {
@@ -208,27 +215,72 @@ export class CartPage implements OnInit {
     this.cartService.clear();
   }
 
-  /** Re-checks the catalog after a network failure. */
-  retryCatalog(): void {
-    this.loadCatalog();
+  /** Asks before wiping the cart so a stray tap cannot lose the whole order. */
+  async confirmClear(): Promise<void> {
+    if (this.isEmpty()) {
+      return;
+    }
+
+    const count = this.itemCount();
+    const alert = await this.alertController.create({
+      header: 'Clear cart?',
+      message: `Remove all ${count} item${count === 1 ? '' : 's'} from your cart?`,
+      buttons: [
+        { text: 'Keep items', role: 'cancel' },
+        {
+          text: 'Clear Cart',
+          role: 'destructive',
+          handler: () => this.clear(),
+        },
+      ],
+    });
+    await alert.present();
   }
 
-  private loadCatalog(): void {
-    this.productsStatus.set('loading');
-    this.productsService
-      .watchProducts()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (products) => {
-          const map: Record<string, Product> = {};
-          for (const product of products) {
-            map[product.id] = product;
-          }
-          this.productsById.set(map);
-          this.productsStatus.set('ready');
-        },
-        error: () => this.productsStatus.set('error'),
-      });
+  /** Re-checks the catalog after a network failure. */
+  retryCatalog(): void {
+    void this.loadCatalog();
+  }
+
+  /** Pull-to-refresh: re-checks availability without leaving the cart. */
+  onRefresh(event: RefresherEvent): Promise<void> {
+    return withRefresh(event, () => this.loadCatalog({ silent: true }));
+  }
+
+  /**
+   * Loads the catalog behind the availability checks and resolves once it has
+   * landed. `silent` (pull-to-refresh) leaves the cart exactly as it is and
+   * only swaps in a failed attempt as the inline notice.
+   */
+  private loadCatalog(options: { silent?: boolean } = {}): Promise<void> {
+    if (!options.silent) {
+      this.productsStatus.set('loading');
+    }
+
+    return new Promise<void>((resolve) => {
+      this.productsService
+        .watchProducts()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (products) => {
+            this.applyCatalog(products);
+            resolve();
+          },
+          error: () => {
+            this.productsStatus.set('error');
+            resolve();
+          },
+        });
+    });
+  }
+
+  private applyCatalog(products: Product[]): void {
+    const map: Record<string, Product> = {};
+    for (const product of products) {
+      map[product.id] = product;
+    }
+    this.productsById.set(map);
+    this.productsStatus.set('ready');
   }
 
   formatPrice(value: number): string {

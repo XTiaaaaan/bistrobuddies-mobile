@@ -255,6 +255,28 @@ $cream: #f5ede4;
   height: 50px;
 }
 
+/* Short, unobtrusive notice under Place Order. It does not gate the button. */
+.terms-notice {
+  margin: 10px 4px 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8b7355;
+
+  a {
+    color: #a87c4f;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid #e8d9c5;
+
+    &:hover,
+    &:focus-visible {
+      color: #3b2418;
+      border-bottom-color: #3b2418;
+    }
+  }
+}
+
 .confirmation {
   align-items: center;
   text-align: center;

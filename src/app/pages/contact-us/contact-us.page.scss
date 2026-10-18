@@ -104,3 +104,10 @@
   font-weight: 600;
   height: 44px;
 }
+
+/* The success banner keeps its calm green palette instead of the shared
+   red-bordered notice button styling. */
+.notice-ok ion-button {
+  --border-color: #cbe0d1;
+  --color: #2f5c3e;
+}

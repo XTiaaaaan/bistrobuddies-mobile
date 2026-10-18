@@ -8,8 +8,11 @@ import { DashboardPage } from './dashboard.page';
 describe('DashboardPage', () => {
   let component: DashboardPage;
   let fixture: ComponentFixture<DashboardPage>;
+  let watchProducts: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
+    watchProducts = vi.fn(() => of([]));
+
     await TestBed.configureTestingModule({
       imports: [DashboardPage],
       providers: [
@@ -22,7 +25,7 @@ describe('DashboardPage', () => {
         },
         {
           provide: ProductsService,
-          useValue: { watchProducts: () => of([]) },
+          useValue: { watchProducts },
         },
       ],
     }).compileComponents();
@@ -38,5 +41,15 @@ describe('DashboardPage', () => {
 
   it('should welcome the signed-in customer by name', () => {
     expect(component.customerName()).toBe('Juan dela Cruz');
+  });
+
+  it('should reload the latest coffee and close the spinner on pull-to-refresh', async () => {
+    const complete = vi.fn(() => Promise.resolve());
+
+    await component.onRefresh({ target: { complete } });
+    fixture.detectChanges();
+
+    expect(watchProducts).toHaveBeenCalledTimes(2);
+    expect(complete).toHaveBeenCalledTimes(1);
   });
 });

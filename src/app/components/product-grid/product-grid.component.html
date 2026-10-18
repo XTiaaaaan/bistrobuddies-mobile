@@ -139,9 +139,9 @@
               size="small"
               [disabled]="!canQuickAdd(product)"
               [attr.aria-label]="'Add ' + product.name + ' to cart'"
-              (click)="quickAdd(product)"
+              (click)="quickAdd(product, $event)"
             >
-              {{ isAvailable(product) ? (canQuickAdd(product) ? 'Add to Cart' : 'Unavailable') : 'Sold Out' }}
+              {{ isAvailable(product) ? (isAdding(product) ? 'Adding…' : canQuickAdd(product) ? 'Add to Cart' : 'Unavailable') : 'Sold Out' }}
             </ion-button>
           </div>
         </div>

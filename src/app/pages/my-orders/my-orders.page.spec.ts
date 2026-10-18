@@ -329,4 +329,17 @@ describe('MyOrdersPage', () => {
     expect(fixture.componentInstance.orders()).toEqual([]);
     expect(element.textContent).toContain('Please sign in to see your orders');
   });
+
+  it('should re-subscribe to the order stream and close the spinner on pull-to-refresh', async () => {
+    const fixture = setup('u1', [makeOrder()]);
+    const complete = vi.fn(() => Promise.resolve());
+
+    await fixture.componentInstance.onRefresh({ target: { complete } });
+    fixture.detectChanges();
+
+    expect(watchedCustomers).toEqual(['u1', 'u1']);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.status()).toBe('ready');
+    expect(fixture.nativeElement.textContent).toContain('Order #order-1');
+  });
 });

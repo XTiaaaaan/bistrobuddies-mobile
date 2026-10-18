@@ -1,0 +1,67 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Terms of Service</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="info-page">
+    <div class="info-hero">
+      <ion-icon name="document-text" aria-hidden="true"></ion-icon>
+      <h1 class="terms-heading">Terms of Service</h1>
+      <p>The rules that apply when you use BistroBuddies.</p>
+    </div>
+
+    @for (section of sections; track section.id) {
+      <section
+        class="info-card"
+        [id]="section.id"
+        [attr.aria-labelledby]="section.id + '-heading'"
+      >
+        <h2 [id]="section.id + '-heading'" class="terms-section-title">
+          {{ section.title }}
+        </h2>
+
+        @for (paragraph of section.paragraphs; track paragraph) {
+          <p>{{ paragraph }}</p>
+        }
+
+        @if (section.bullets; as bullets) {
+          <ul>
+            @for (bullet of bullets; track bullet) {
+              <li>{{ bullet }}</li>
+            }
+          </ul>
+        }
+
+        @if (section.id === 'contact') {
+          <ul class="terms-contact">
+            <li>
+              <ion-icon name="location" aria-hidden="true"></ion-icon>
+              <span>{{ contact.location }}</span>
+            </li>
+            <li>
+              <ion-icon name="call" aria-hidden="true"></ion-icon>
+              <a [href]="'tel:' + contact.phone">{{ contact.phone }}</a>
+            </li>
+            <li>
+              <ion-icon name="mail" aria-hidden="true"></ion-icon>
+              <a [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+            </li>
+          </ul>
+        }
+      </section>
+    }
+
+    <section class="info-card terms-links-card">
+      <h2 class="terms-section-title">Related pages</h2>
+      <p>
+        Contact details and frequently asked questions are also available on the
+        Contact Us page in the side menu.
+      </p>
+    </section>
+  </div>
+</ion-content>

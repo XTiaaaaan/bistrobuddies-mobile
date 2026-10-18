@@ -373,6 +373,40 @@ ion-toast {
   animation: bb-pop 0.3s var(--bb-ease) both;
 }
 
+/* Bounce played when the add-to-cart flight lands on the cart button. */
+.cart-badge.is-bouncing {
+  animation: bb-badge-bounce 0.45s var(--bb-ease);
+}
+
+@keyframes bb-badge-bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.45);
+  }
+}
+
+/* Flying clone of the product image during the add-to-cart animation. */
+.bb-fly-clone {
+  position: fixed;
+  z-index: 10000;
+  margin: 0;
+  border-radius: 14px;
+  object-fit: cover;
+  pointer-events: none;
+  box-shadow: var(--bb-shadow-raised);
+  will-change: transform, opacity;
+}
+
+/* Solid stand-in flown when the product photo has not finished loading. */
+.bb-fly-placeholder {
+  background: var(--bb-caramel);
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+}
+
 /*
  * Motion is a nicety, never a requirement: anything animated collapses to a
  * single frame for customers who ask their device to reduce motion.

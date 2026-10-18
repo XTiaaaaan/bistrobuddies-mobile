@@ -250,7 +250,10 @@ export class OrderDetailsPage implements OnInit {
   }
 
   shortId(orderId: string): string {
-    return orderId ? orderId.slice(0, 8) : '';
+    if (!orderId) {
+      return '';
+    }
+    return orderId.length > 16 ? `${orderId.slice(0, 16)}…` : orderId;
   }
 
   orderDate(order: Order): string {

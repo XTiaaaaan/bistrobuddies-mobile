@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { ToastController } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { GCASH_QR_ASSET } from '../../core/payment/gcash';
 import { CartItemInput } from '../../models/cart.model';
@@ -46,7 +46,14 @@ function orderResponse(
 }
 
 describe('CheckoutPage', () => {
-  beforeEach(() => localStorage.clear());
+  let alertCreate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    alertCreate = vi.fn(() =>
+      Promise.resolve({ present: vi.fn(() => Promise.resolve()) })
+    );
+  });
 
   function setup(
     items: CartItemInput[] = [item()],
@@ -71,6 +78,7 @@ describe('CheckoutPage', () => {
     createOrder: ReturnType<typeof vi.fn>;
     submitGcashDetails: ReturnType<typeof vi.fn>;
     navigate: ReturnType<typeof vi.fn>;
+    alertCreate: ReturnType<typeof vi.fn>;
   } {
     TestBed.configureTestingModule({
       imports: [CheckoutPage],
@@ -88,6 +96,7 @@ describe('CheckoutPage', () => {
           provide: ToastController,
           useValue: { create: () => Promise.resolve({ present: () => Promise.resolve() }) },
         },
+        { provide: AlertController, useValue: { create: alertCreate } },
       ],
     });
 
@@ -108,6 +117,7 @@ describe('CheckoutPage', () => {
       createOrder,
       submitGcashDetails,
       navigate,
+      alertCreate,
     };
   }
 
@@ -204,6 +214,64 @@ describe('CheckoutPage', () => {
     expect(navigate).toHaveBeenCalledWith(['/my-orders']);
   });
 
+  it('confirms the order summary with the customer before placing it', async () => {
+    const { component, createOrder, alertCreate } = setup([
+      item({ quantity: 2, unitPrice: 100 }),
+    ]);
+
+    fillContact(component);
+    await component.confirmAndPlaceOrder();
+
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(alertCreate).toHaveBeenCalledTimes(1);
+
+    const options = alertCreate.mock.calls[0][0] as {
+      header: string;
+      message: string;
+      buttons: { text: string; role?: string; handler?: () => void }[];
+    };
+    expect(options.header).toBe('Place your order?');
+    expect(options.message).toContain('2 items');
+    expect(options.message).toContain('₱200.00');
+    expect(options.message).toContain('COD');
+
+    options.buttons.find((button) => button.text === 'Place Order')?.handler?.();
+    expect(createOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not place the order when the confirmation is cancelled', async () => {
+    const { component, createOrder, alertCreate } = setup();
+
+    fillContact(component);
+    await component.confirmAndPlaceOrder();
+
+    const options = alertCreate.mock.calls[0][0] as {
+      buttons: { text: string; role?: string; handler?: () => void }[];
+    };
+    const back = options.buttons.find((button) => button.role === 'cancel');
+    expect(back?.handler).toBeUndefined();
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('ignores a second placeOrder while one is already in flight', async () => {
+    let resolveOrder: (value: CreateOrderResponse) => void = () => {};
+    const pending = new Promise<CreateOrderResponse>((resolve) => {
+      resolveOrder = resolve;
+    });
+    const createOrder = vi.fn(() => pending);
+    const { component } = setup([item()], null, createOrder);
+
+    fillContact(component);
+    const first = component.placeOrder();
+    const second = component.placeOrder();
+
+    expect(createOrder).toHaveBeenCalledTimes(1);
+
+    resolveOrder(orderResponse());
+    await Promise.all([first, second]);
+    expect(createOrder).toHaveBeenCalledTimes(1);
+  });
+
   it('should show a confirmation with the order id and totals after ordering', async () => {
     const { fixture, component } = setup([item({ quantity: 2, unitPrice: 100 })]);
 
@@ -246,6 +314,21 @@ describe('CheckoutPage', () => {
     expect(element.textContent).toContain('GCash');
     expect(element.textContent).not.toContain('Online Payment');
     expect(component.paymentMethod()).toBe(PaymentMethod.COD);
+  });
+
+  it('shows a Terms of Service notice without gating Place Order', () => {
+    const { component, fixture } = setup();
+    const notice = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="checkout-terms-notice"]'
+    );
+
+    expect(notice).toBeTruthy();
+    expect(notice?.textContent).toContain('Terms of Service');
+    expect(notice?.querySelector('a')?.getAttribute('href')).toBe('/terms');
+
+    // The notice is informational only: it never changes canSubmit().
+    fillContact(component);
+    expect(component.canSubmit()).toBe(true);
   });
 
   it('should select the payment method when its row is clicked', () => {

@@ -1,4 +1,13 @@
-import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
@@ -14,9 +23,11 @@ import {
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircle, cafe, cart } from 'ionicons/icons';
+import { alertCircle, cafe } from 'ionicons/icons';
+import { HeaderCartButtonComponent } from '../../components/header-cart-button/header-cart-button.component';
 import { formatPeso } from '../../core/format/price';
 import { Product, ProductSize } from '../../models/product.model';
+import { CartFlyService } from '../../services/cart-fly.service';
 import { CartService } from '../../services/cart.service';
 import { ProductsService } from '../../services/products.service';
 
@@ -37,6 +48,7 @@ const MAX_QUANTITY = 99;
   styleUrls: ['./product-details.page.scss'],
   standalone: true,
   imports: [
+    HeaderCartButtonComponent,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -58,14 +70,15 @@ export class ProductDetailsPage implements OnInit {
   readonly sugar = signal<string>('Regular');
   readonly quantity = signal(1);
   readonly imageFailed = signal(false);
+  /** Locked while an add (and its flight animation) is in progress. */
+  readonly adding = signal(false);
 
   private readonly productsService = inject(ProductsService);
   private readonly cartService = inject(CartService);
+  private readonly cartFly = inject(CartFlyService);
   private readonly toastController = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
-
-  /** Live counter shown on the header cart button. */
-  readonly cartCount = computed(() => this.cartService.itemCount());
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
 
   readonly sizeOptions = computed<SizeOption[]>(() => {
     const product = this.product();
@@ -115,11 +128,12 @@ export class ProductDetailsPage implements OnInit {
       this.status() === 'ready' &&
       this.isAvailable() &&
       this.unitPrice() !== null &&
-      this.quantity() > 0
+      this.quantity() > 0 &&
+      !this.adding()
   );
 
   constructor() {
-    addIcons({ alertCircle, cafe, cart });
+    addIcons({ alertCircle, cafe });
   }
 
   ngOnInit(): void {
@@ -179,27 +193,35 @@ export class ProductDetailsPage implements OnInit {
   async addToCart(): Promise<void> {
     const product = this.product();
     const unitPrice = this.unitPrice();
-    if (!product || unitPrice === null || !this.isAvailable()) {
+    if (this.adding() || !product || unitPrice === null || !this.isAvailable()) {
       return;
     }
 
-    this.cartService.add({
-      productId: product.id,
-      productName: product.name,
-      productImage: product.imageUrl ?? '',
-      size: this.selectedSize(),
-      sugar: this.sugar(),
-      quantity: this.quantity(),
-      unitPrice,
-    });
+    this.adding.set(true);
+    try {
+      this.cartService.add({
+        productId: product.id,
+        productName: product.name,
+        productImage: product.imageUrl ?? '',
+        size: this.selectedSize(),
+        sugar: this.sugar(),
+        quantity: this.quantity(),
+        unitPrice,
+      });
 
-    const toast = await this.toastController.create({
-      message: `${product.name} (${this.sizeLabel()}) added to your cart.`,
-      duration: 2000,
-      position: 'bottom',
-      color: 'success',
-    });
-    await toast.present();
+      const image = this.elementRef.nativeElement.querySelector('.product-media img');
+      await this.cartFly.flyToCart(image);
+
+      const toast = await this.toastController.create({
+        message: `${product.name} (${this.sizeLabel()}) added to your cart.`,
+        duration: 2000,
+        position: 'bottom',
+        color: 'success',
+      });
+      await toast.present();
+    } finally {
+      this.adding.set(false);
+    }
   }
 
   private ensureSelection(): void {
