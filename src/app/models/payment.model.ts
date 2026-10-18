@@ -3,14 +3,13 @@ import type { Timestamp } from 'firebase/firestore';
 /**
  * Payment methods accepted by the backend.
  *
- * `COD` (cash on delivery) and `GCASH` are the live options. `ONLINE` is kept
- * for legacy orders that were created before GCash support existed so their
- * presentation still resolves; it is no longer offered at checkout.
+ * `COD` (cash on delivery) and `GCASH` are the live options. Historic orders
+ * may still store the removed legacy `ONLINE` value; presentation code falls
+ * back to a generic label for it and it is no longer offered at checkout.
  */
 export enum PaymentMethod {
   COD = 'COD',
   GCASH = 'GCASH',
-  ONLINE = 'ONLINE',
 }
 
 /**

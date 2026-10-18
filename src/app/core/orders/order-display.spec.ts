@@ -46,7 +46,7 @@ describe('order display helpers', () => {
   it('should label payment methods, keeping legacy ONLINE orders readable', () => {
     expect(paymentMethodLabel(PaymentMethod.COD)).toBe('COD');
     expect(paymentMethodLabel(PaymentMethod.GCASH)).toBe('GCash');
-    expect(paymentMethodLabel(PaymentMethod.ONLINE)).toBe('Online Payment');
+    expect(paymentMethodLabel('ONLINE')).toBe('Online');
   });
 
   it('should format a Firestore timestamp as a readable date', () => {

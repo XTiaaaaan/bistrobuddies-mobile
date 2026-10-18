@@ -24,7 +24,6 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   [PaymentMethod.COD]: 'COD',
   [PaymentMethod.GCASH]: 'GCash',
-  [PaymentMethod.ONLINE]: 'Online Payment',
 };
 
 export function orderStatusLabel(status: OrderStatus): string {
