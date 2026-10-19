@@ -21,6 +21,7 @@ import {
   IonMenu,
   IonMenuToggle,
   IonRouterOutlet,
+  MenuController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -58,6 +59,9 @@ import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
 import { UsersService } from './services/users.service';
+
+/** Auth screens hide the side menu so the branding stands alone. */
+const AUTH_ROUTES = ['/login', '/register', '/forgot-password'];
 
 /** Customer summary shown at the top of the side menu. */
 export interface MenuProfile {
@@ -103,6 +107,7 @@ export class AppComponent implements OnInit {
 
   protected readonly selectedIndex = signal(0);
   protected readonly signedIn = signal(false);
+  protected readonly showMenu = signal(true);
   /** Profile summary for the signed-in customer; null while signed out. */
   protected readonly profile = signal<MenuProfile | null>(null);
 
@@ -110,6 +115,7 @@ export class AppComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
   private readonly cartService = inject(CartService);
+  private readonly menuController = inject(MenuController);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Live cart counter shown next to the Cart entry in the side menu. */
@@ -219,9 +225,12 @@ export class AppComponent implements OnInit {
       url.startsWith(page.url)
     );
     this.selectedIndex.set(index >= 0 ? index : 0);
+    this.showMenu.set(!AUTH_ROUTES.some((route) => url.startsWith(route)));
   }
 
   async onLogout() {
+    await this.menuController.close();
+
     if (!this.signedIn()) {
       await this.router.navigate(['/login']);
       return;

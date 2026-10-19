@@ -1,4 +1,5 @@
 <ion-app>
+  @if (showMenu()) {
   <ion-menu contentId="main-content" type="overlay">
     <!-- Header Section -->
     <ion-header class="menu-header" [translucent]="false">
@@ -95,6 +96,7 @@
       </div>
     </ion-footer>
   </ion-menu>
+  }
 
   <ion-router-outlet id="main-content"></ion-router-outlet>
 </ion-app>
