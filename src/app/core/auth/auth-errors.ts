@@ -29,19 +29,102 @@ export class ProfileSyncError extends Error {
   }
 }
 
+/**
+ * Raised when the native Google flow finishes without the ID token needed to
+ * sign in to the Firebase JS SDK. The message is safe to show to the user.
+ */
+export class GoogleSignInError extends Error {
+  constructor(readonly userMessage: string) {
+    super(userMessage);
+    this.name = 'GoogleSignInError';
+  }
+}
+
+/** Extra context so native errors never fall back to popup troubleshooting. */
+export interface AuthErrorContext {
+  /** True when the failure came from the native Google flow (Android/iOS). */
+  nativeGoogle?: boolean;
+}
+
+const CANCELLED_CODES = new Set([
+  'auth/popup-closed-by-user',
+  'auth/cancelled-popup-request',
+  'auth/cancelled',
+  'auth/canceled',
+  'cancelled',
+  'canceled',
+]);
+
+const NATIVE_GOOGLE_MESSAGES = {
+  cancelled: 'Google sign-in was cancelled.',
+  noAccount:
+    'No Google account is available on this device. Add a Google account in Android settings and try again.',
+  notConfigured:
+    'Google sign-in is not set up correctly for this app. Please contact support.',
+  generic: 'Google sign-in could not be completed. Please try again.',
+};
+
 function errorCode(error: unknown): string {
   return typeof error === 'object' && error !== null && 'code' in error
     ? String((error as { code: unknown }).code)
     : '';
 }
 
-export function authErrorMessage(error: unknown): string {
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message ?? '');
+  }
+  return '';
+}
+
+function isCancellation(code: string, message: string): boolean {
+  return CANCELLED_CODES.has(code) || /cancel/i.test(message);
+}
+
+function nativeGoogleErrorMessage(code: string, message: string): string {
+  if (isCancellation(code, message)) {
+    return NATIVE_GOOGLE_MESSAGES.cancelled;
+  }
+  if (/no credentials?|no google account|no account/i.test(message)) {
+    return NATIVE_GOOGLE_MESSAGES.noAccount;
+  }
+  if (/network|connection|internet|timeout|unavailable/i.test(message)) {
+    return AUTH_ERROR_MESSAGES['auth/network-request-failed'];
+  }
+  if (
+    /configuration|not configured|developer error|api key|client id|provider/i.test(
+      message
+    )
+  ) {
+    return NATIVE_GOOGLE_MESSAGES.notConfigured;
+  }
+
+  return AUTH_ERROR_MESSAGES[code] ?? NATIVE_GOOGLE_MESSAGES.generic;
+}
+
+export function authErrorMessage(
+  error: unknown,
+  context: AuthErrorContext = {}
+): string {
+  if (error instanceof GoogleSignInError) {
+    return error.userMessage;
+  }
+
   if (error instanceof ProfileSyncError) {
     console.error('User profile sync failed', error.reason);
     return 'Your account exists, but your profile could not be saved. Please log in again and retry.';
   }
 
-  const message = AUTH_ERROR_MESSAGES[errorCode(error)];
+  const code = errorCode(error);
+
+  if (context.nativeGoogle) {
+    return nativeGoogleErrorMessage(code, errorMessage(error));
+  }
+
+  const message = AUTH_ERROR_MESSAGES[code];
   if (message) {
     return message;
   }
