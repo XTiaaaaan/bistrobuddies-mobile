@@ -1,6 +1,12 @@
 import { InjectionToken } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
 import { FirebaseApp, initializeApp } from 'firebase/app';
-import { Auth, getAuth } from 'firebase/auth';
+import {
+  Auth,
+  getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
+} from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
 
@@ -19,7 +25,22 @@ function createFirebaseApp(): FirebaseApp {
 }
 
 function createAuth(app: FirebaseApp): Auth {
-  return getAuth(app);
+  if (!Capacitor.isNativePlatform()) {
+    return getAuth(app);
+  }
+
+  // Native builds run the app from a WebView where the default persistence is
+  // in-memory, which would drop the session on every cold start. Persist to
+  // IndexedDB instead so the signed-in user survives restarts.
+  try {
+    return initializeAuth(app, {
+      persistence: indexedDBLocalPersistence,
+    });
+  } catch {
+    // `initializeAuth` throws if auth was already initialized for this app
+    // (for example during a hot reload); reuse the existing instance.
+    return getAuth(app);
+  }
 }
 
 function createFirestore(app: FirebaseApp): Firestore {

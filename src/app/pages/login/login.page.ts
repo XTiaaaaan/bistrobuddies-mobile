@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Capacitor } from '@capacitor/core';
 import {
   IonButton,
   IonContent,
@@ -114,7 +115,7 @@ export class LoginPage implements OnInit {
     this.googleHint.set('');
     this.status.set('Waiting for Google...');
     this.googleHintTimer = setTimeout(() => {
-      if (this.googleLoading()) {
+      if (this.googleLoading() && !Capacitor.isNativePlatform()) {
         this.googleHint.set(GOOGLE_TIMEOUT_HINT);
       }
     }, GOOGLE_TIMEOUT_HINT_MS);
@@ -123,7 +124,11 @@ export class LoginPage implements OnInit {
       await this.auth.loginWithGoogle((message) => this.status.set(message));
       await this.goToTarget();
     } catch (error) {
-      this.errorMessage.set(authErrorMessage(error));
+      this.errorMessage.set(
+        authErrorMessage(error, {
+          nativeGoogle: Capacitor.isNativePlatform(),
+        })
+      );
     } finally {
       this.clearGoogleHintTimer();
       this.googleLoading.set(false);
