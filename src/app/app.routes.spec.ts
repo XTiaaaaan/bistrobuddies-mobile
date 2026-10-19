@@ -10,7 +10,6 @@ describe('app routes', () => {
     expect(routeFor('dashboard')?.canMatch).toBeUndefined();
     expect(routeFor('products')?.canMatch).toBeUndefined();
     expect(routeFor('products/:id')?.canMatch).toBeUndefined();
-    expect(routeFor('cart')?.canMatch).toBeUndefined();
     expect(routeFor('about')?.canMatch).toBeUndefined();
     expect(routeFor('company-history')?.canMatch).toBeUndefined();
     expect(routeFor('about-products')?.canMatch).toBeUndefined();
@@ -25,7 +24,8 @@ describe('app routes', () => {
     expect(typeof route?.loadComponent).toBe('function');
   });
 
-  it('keeps checkout, orders and profile behind the auth guard', () => {
+  it('keeps ordering and account pages behind the auth guard', () => {
+    expect(routeFor('cart')?.canMatch).toEqual([authGuard]);
     expect(routeFor('checkout')?.canMatch).toEqual([authGuard]);
     expect(routeFor('my-orders')?.canMatch).toEqual([authGuard]);
     expect(routeFor('my-orders/:id')?.canMatch).toEqual([authGuard]);

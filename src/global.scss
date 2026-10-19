@@ -189,6 +189,115 @@ ion-toolbar ion-title {
   }
 }
 
+/*
+ * Reusable sign-in prompt shown when a guest reaches a protected feature.
+ * Styled to match the espresso/cream surfaces used across the app. Ionic
+ * injects its alert styles at runtime, so the `ion-alert.bb-signin-alert`
+ * prefix keeps these rules winning without `!important`.
+ */
+ion-alert.bb-signin-alert {
+  --background: #fdf7f0;
+  --backdrop-opacity: 0.6;
+  --max-width: 360px;
+  --min-width: 288px;
+  --ion-text-color: #3b2418;
+  --ion-color-step-550: #6b5544;
+
+  .alert-wrapper {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #e6d5c3;
+    border-radius: 24px;
+    background: #fdf7f0;
+    box-shadow: 0 22px 50px rgba(43, 26, 17, 0.45);
+  }
+
+  .alert-head {
+    padding: 24px 64px 6px 24px;
+  }
+
+  .alert-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    font-weight: 700;
+    color: #3b2418;
+    letter-spacing: 0.2px;
+  }
+
+  .alert-message {
+    padding: 6px 24px 20px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #6b5544;
+  }
+
+  .alert-button-group {
+    flex-wrap: nowrap;
+    justify-content: stretch;
+    gap: 10px;
+    padding: 0 18px 18px;
+  }
+
+  .alert-button {
+    min-height: 46px;
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: #efe2d3;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    text-transform: none;
+  }
+
+  .alert-button.bb-signin-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    flex: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: #3b2418;
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .alert-button.bb-signin-close:active {
+    background: #2c1a11;
+    transform: scale(0.94);
+  }
+
+  .alert-button.bb-signin-close .alert-button-inner {
+    color: #ffffff;
+    font-weight: 700;
+    justify-content: center;
+  }
+
+  .alert-button.bb-signin-action {
+    flex: 1 1 auto;
+    background: #3b2418;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(59, 36, 24, 0.28);
+    white-space: nowrap;
+  }
+
+  .alert-button.bb-signin-action:active {
+    background: #2c1a11;
+    transform: scale(0.98);
+  }
+
+  .alert-button.bb-signin-action .alert-button-inner {
+    color: #ffffff;
+    justify-content: center;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
  * Motion — small, purposeful and always optional. Every animation used by
  * the app comes from this block so `prefers-reduced-motion` can switch the

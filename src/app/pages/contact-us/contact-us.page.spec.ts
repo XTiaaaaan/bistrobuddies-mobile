@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { SignInPromptService } from '../../core/auth/sign-in-prompt.service';
 import { CONTACT_MESSAGES } from '../../core/contact/contact-form';
 import { AuthService } from '../../services/auth.service';
 import { ContactApiError, ContactMessagesService } from '../../services/contact-messages.service';
@@ -35,6 +36,7 @@ interface SetupOptions {
   user?: unknown;
   submit?: ReturnType<typeof vi.fn>;
   getUser?: () => Promise<typeof profileDoc | null>;
+  requireSignIn?: ReturnType<typeof vi.fn>;
 }
 
 describe('ContactUsPage', () => {
@@ -42,11 +44,14 @@ describe('ContactUsPage', () => {
     fixture: ComponentFixture<ContactUsPage>;
     component: ContactUsPage;
     submit: ReturnType<typeof vi.fn>;
+    requireSignIn: ReturnType<typeof vi.fn>;
   } {
     const user = 'user' in options ? options.user : signedInUser;
     const submit =
       options.submit ?? vi.fn(() => Promise.resolve({ id: 'msg-1', status: 'NEW' }));
     const getUser = options.getUser ?? (() => Promise.resolve(profileDoc));
+    const requireSignIn =
+      options.requireSignIn ?? vi.fn(() => Promise.resolve(user !== null));
 
     TestBed.configureTestingModule({
       imports: [ContactUsPage],
@@ -55,12 +60,13 @@ describe('ContactUsPage', () => {
         { provide: AuthService, useValue: { user$: of(user) } },
         { provide: UsersService, useValue: { getUser } },
         { provide: ContactMessagesService, useValue: { submit } },
+        { provide: SignInPromptService, useValue: { requireSignIn } },
       ],
     });
 
     const fixture = TestBed.createComponent(ContactUsPage);
     fixture.detectChanges();
-    return { fixture, component: fixture.componentInstance, submit };
+    return { fixture, component: fixture.componentInstance, submit, requireSignIn };
   }
 
   function fill(component: ContactUsPage, form: typeof validForm = validForm): void {
@@ -244,6 +250,7 @@ describe('ContactUsPage', () => {
 
     const first = component.submit();
     const second = component.submit();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(submit).toHaveBeenCalledTimes(1);
     expect(component.submitting()).toBe(true);
 
@@ -254,7 +261,7 @@ describe('ContactUsPage', () => {
   });
 
   it('asks guests to sign in and never posts a message for them', async () => {
-    const { fixture, component, submit } = setup({ user: null });
+    const { fixture, component, submit, requireSignIn } = setup({ user: null });
 
     expect(component.signedIn()).toBe(false);
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -263,6 +270,7 @@ describe('ContactUsPage', () => {
     fill(component);
     await component.submit();
 
+    expect(requireSignIn).toHaveBeenCalledWith('/contact-us');
     expect(submit).not.toHaveBeenCalled();
     expect(component.submitted()).toBe(false);
   });

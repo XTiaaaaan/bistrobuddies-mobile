@@ -13,6 +13,9 @@
       <ion-icon name="document-text" aria-hidden="true"></ion-icon>
       <h1 class="terms-heading">Terms of Service</h1>
       <p>The rules that apply when you use BistroBuddies.</p>
+      <p class="terms-updated" data-testid="terms-last-updated">
+        Last updated {{ lastUpdated }}
+      </p>
     </div>
 
     @for (section of sections; track section.id) {

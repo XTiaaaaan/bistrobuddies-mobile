@@ -21,6 +21,7 @@ import {
   IonMenu,
   IonMenuToggle,
   IonRouterOutlet,
+  MenuController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -55,12 +56,18 @@ import {
 } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
+import { SignInPromptService } from './core/auth/sign-in-prompt.service';
+import { resolveProductImageUrl } from './core/products/product-image';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
 import { UsersService } from './services/users.service';
 
+/** Auth screens hide the side menu so the branding stands alone. */
+const AUTH_ROUTES = ['/login', '/register', '/forgot-password'];
+
 /** Customer summary shown at the top of the side menu. */
 export interface MenuProfile {
+  uid: string;
   name: string;
   phone: string;
   photoUrl: string | null;
@@ -103,6 +110,7 @@ export class AppComponent implements OnInit {
 
   protected readonly selectedIndex = signal(0);
   protected readonly signedIn = signal(false);
+  protected readonly showMenu = signal(true);
   /** Profile summary for the signed-in customer; null while signed out. */
   protected readonly profile = signal<MenuProfile | null>(null);
 
@@ -110,6 +118,8 @@ export class AppComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
   private readonly cartService = inject(CartService);
+  private readonly menuController = inject(MenuController);
+  private readonly signInPrompt = inject(SignInPromptService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Live cart counter shown next to the Cart entry in the side menu. */
@@ -183,6 +193,28 @@ export class AppComponent implements OnInit {
       )
       .subscribe((profile) => this.profile.set(profile));
 
+    // Firestore snapshot listeners can lag behind a local write (or be
+    // unavailable offline), so apply successful profile writes directly. This
+    // is what makes an uploaded photo appear in the menu without a restart.
+    this.users.updates$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ uid, patch }) => {
+        this.profile.update((current) => {
+          if (!current || current.uid !== uid) {
+            return current;
+          }
+          return {
+            ...current,
+            name: patch.name?.trim() || current.name,
+            phone: patch.phone !== undefined ? patch.phone.trim() : current.phone,
+            photoUrl:
+              'photoUrl' in patch
+                ? resolveProductImageUrl(patch.photoUrl) || null
+                : current.photoUrl,
+          };
+        });
+      });
+
     this.updateSelected(this.router.url);
 
     this.router.events.subscribe((event) => {
@@ -205,13 +237,13 @@ export class AppComponent implements OnInit {
       .join('');
   }
 
-  /** Opens the private profile page, or the login screen for guests. */
-  openProfile(): void {
-    if (this.signedIn()) {
-      void this.router.navigate(['/profile']);
+  /** Opens the private profile page, prompting guests to sign in first. */
+  async openProfile(): Promise<void> {
+    await this.menuController.close();
+    if (!(await this.signInPrompt.requireSignIn('/profile'))) {
       return;
     }
-    void this.router.navigate(['/login'], { queryParams: { redirect: '/profile' } });
+    await this.router.navigate(['/profile']);
   }
 
   private updateSelected(url: string) {
@@ -219,9 +251,12 @@ export class AppComponent implements OnInit {
       url.startsWith(page.url)
     );
     this.selectedIndex.set(index >= 0 ? index : 0);
+    this.showMenu.set(!AUTH_ROUTES.some((route) => url.startsWith(route)));
   }
 
   async onLogout() {
+    await this.menuController.close();
+
     if (!this.signedIn()) {
       await this.router.navigate(['/login']);
       return;
@@ -237,13 +272,27 @@ export class AppComponent implements OnInit {
 }
 
 function toMenuProfile(
-  user: { displayName?: string | null; email?: string | null; photoURL?: string | null },
-  doc: { name?: string; phone?: string } | null
+  user: {
+    uid: string;
+    displayName?: string | null;
+    email?: string | null;
+    photoURL?: string | null;
+  },
+  doc: { name?: string; phone?: string; photoUrl?: string | null } | null
 ): MenuProfile {
   const name = (doc?.name ?? user.displayName ?? user.email?.split('@')[0] ?? '').trim();
+  // Firestore is the source of truth: `watchUser` re-emits as soon as the
+  // profile page saves a new photo, so the menu updates without a reload.
+  // A stored `photoUrl` (including an explicit null after removal) wins; Auth's
+  // `photoURL` is only a fallback for older docs that never had the field.
+  const hasStoredPhoto = doc !== null && 'photoUrl' in doc;
+  const photoUrl = hasStoredPhoto
+    ? resolveProductImageUrl(doc.photoUrl) || null
+    : resolveProductImageUrl(user.photoURL) || null;
   return {
+    uid: user.uid,
     name: name || 'Your account',
     phone: doc?.phone?.trim() ?? '',
-    photoUrl: user.photoURL ?? null,
+    photoUrl,
   };
 }

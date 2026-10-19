@@ -3,17 +3,25 @@ import { Observable, map } from 'rxjs';
 import {
   Auth,
   User as FirebaseUser,
-  GoogleAuthProvider,
+  UserCredential,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut,
   updateProfile,
 } from 'firebase/auth';
 import { FIREBASE_AUTH } from '../core/firebase/firebase';
-import { ProfileSyncError } from '../core/auth/auth-errors';
+import {
+  GOOGLE_CREDENTIAL_SIGN_IN,
+  GOOGLE_POPUP_SIGN_IN,
+  IS_NATIVE_PLATFORM,
+  NATIVE_GOOGLE_SIGN_IN,
+} from '../core/auth/google-sign-in';
+import {
+  GoogleSignInError,
+  ProfileSyncError,
+} from '../core/auth/auth-errors';
 import { User } from '../models/user.model';
 import { UsersService } from './users.service';
 
@@ -31,6 +39,10 @@ export type AuthProgress = (message: string) => void;
 export class AuthService {
   private readonly auth = inject(FIREBASE_AUTH);
   private readonly users = inject(UsersService);
+  private readonly isNativePlatform = inject(IS_NATIVE_PLATFORM);
+  private readonly nativeGoogleSignIn = inject(NATIVE_GOOGLE_SIGN_IN);
+  private readonly popupGoogleSignIn = inject(GOOGLE_POPUP_SIGN_IN);
+  private readonly credentialGoogleSignIn = inject(GOOGLE_CREDENTIAL_SIGN_IN);
 
   /** Firebase auth state. Emits once the saved session has been restored. */
   readonly user$: Observable<FirebaseUser | null> = new Observable(
@@ -106,13 +118,34 @@ export class AuthService {
 
   async loginWithGoogle(onProgress?: AuthProgress): Promise<FirebaseUser> {
     onProgress?.('Waiting for Google...');
-    const credential = await signInWithPopup(
-      this.auth,
-      new GoogleAuthProvider()
-    );
+    const credential = await this.signInWithGoogleCredential();
     onProgress?.('Saving your profile...');
     await this.syncProfile(credential.user);
     return credential.user;
+  }
+
+  /**
+   * Picks the Google flow for the current platform. Browsers keep the popup
+   * flow; native builds use the Capacitor plugin to show the Google account
+   * picker, then hand the ID token to the Firebase JS SDK so the web and
+   * native sessions share the same Firebase user.
+   */
+  private signInWithGoogleCredential(): Promise<UserCredential> {
+    if (this.isNativePlatform()) {
+      return this.signInWithGoogleNative();
+    }
+    return this.popupGoogleSignIn(this.auth);
+  }
+
+  private async signInWithGoogleNative(): Promise<UserCredential> {
+    const result = await this.nativeGoogleSignIn({ skipNativeAuth: true });
+    const idToken = result.credential?.idToken;
+    if (!idToken) {
+      throw new GoogleSignInError(
+        'Google sign-in did not return an ID token. Please try again.'
+      );
+    }
+    return this.credentialGoogleSignIn(this.auth, idToken);
   }
 
   logout(): Promise<void> {

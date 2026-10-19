@@ -1,22 +1,33 @@
 import { inject } from '@angular/core';
 import { CanMatchFn, Router } from '@angular/router';
-import { catchError, firstValueFrom, of } from 'rxjs';
-import { AuthService } from '../../services/auth.service';
+import { SignInPromptService } from './sign-in-prompt.service';
 
-export const authGuard: CanMatchFn = async (_route, segments, _snapshot) => {
-  const auth = inject(AuthService);
+/**
+ * Keeps private routes private without dead-ending guests: they see the
+ * reusable sign-in prompt, and dismissing it leaves them on the current page.
+ */
+export const authGuard: CanMatchFn = async (_route, segments) => {
   const router = inject(Router);
+  const prompt = inject(SignInPromptService);
 
-  const user = await firstValueFrom(
-    auth.user$.pipe(catchError(() => of(null)))
-  );
-
-  if (user) {
+  const result = await prompt.state();
+  if (result === 'signed-in') {
     return true;
   }
 
-  const url = '/' + segments.map((segment) => segment.path).join('/');
-  return router.createUrlTree(['/login'], {
-    queryParams: { redirect: url },
-  });
+  const target = '/' + segments.map((segment) => segment.path).join('/');
+
+  if (result === 'sign-in') {
+    return router.createUrlTree(['/login'], {
+      queryParams: { redirect: target },
+    });
+  }
+
+  // A guest dismissed the prompt: never leave the router with an unmatched
+  // URL. On a cold start there is no page behind the prompt, so fall back to
+  // the public dashboard instead.
+  const current = router.url;
+  return current && current !== '/'
+    ? router.parseUrl(current)
+    : router.createUrlTree(['/dashboard']);
 };
