@@ -1,8 +1,7 @@
 import { EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Route, Router, UrlSegment, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { AuthService } from '../../services/auth.service';
+import { SignInPromptResult, SignInPromptService } from './sign-in-prompt.service';
 import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
@@ -14,28 +13,43 @@ describe('authGuard', () => {
       authGuard(route, segments, {} as never)
     );
 
-  const configure = (user: unknown) => {
+  const configure = (result: SignInPromptResult) => {
+    const state = vi.fn(() => Promise.resolve(result));
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { user$: of(user) } },
+        { provide: SignInPromptService, useValue: { state } },
       ],
     });
+    return state;
   };
 
-  it('should allow signed-in customers', async () => {
-    configure({ uid: 'customer-1' });
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('should allow signed-in customers without showing the prompt', async () => {
+    const state = configure('signed-in');
 
     await expect(runGuard()).resolves.toBe(true);
+    expect(state).toHaveBeenCalledTimes(1);
   });
 
-  it('should redirect anonymous visitors to the login page', async () => {
-    configure(null);
+  it('should send guests who choose Sign In to login with a redirect', async () => {
+    configure('sign-in');
 
     const result = await runGuard();
     const router = TestBed.inject(Router);
 
     expect(router.serializeUrl(result as never)).toContain('/login');
     expect(router.serializeUrl(result as never)).toContain('dashboard');
+  });
+
+  it('should keep guests on the storefront when they dismiss the prompt', async () => {
+    configure('dismissed');
+
+    const result = await runGuard();
+    const router = TestBed.inject(Router);
+
+    expect(router.serializeUrl(result as never)).toBe('/dashboard');
+    expect(router.serializeUrl(result as never)).not.toContain('/login');
   });
 });

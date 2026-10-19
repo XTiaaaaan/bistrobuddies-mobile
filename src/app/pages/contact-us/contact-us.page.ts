@@ -17,6 +17,7 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, call, checkmarkCircle, location, mail } from 'ionicons/icons';
+import { SignInPromptService } from '../../core/auth/sign-in-prompt.service';
 import {
   CONTACT_EMAIL_MAX,
   CONTACT_MESSAGES,
@@ -106,12 +107,13 @@ export class ContactUsPage implements OnInit {
   readonly subjectError = computed(() => (this.showErrors() ? this.fieldErrors().subject ?? null : null));
   readonly messageError = computed(() => (this.showErrors() ? this.fieldErrors().message ?? null : null));
 
-  /** The submit button stays usable so validation feedback can be requested. */
-  readonly canSubmit = computed(() => this.signedIn() && !this.submitting());
+  /** The submit button stays usable so guests can be prompted to sign in. */
+  readonly canSubmit = computed(() => !this.submitting());
 
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
   private readonly contactApi = inject(ContactMessagesService);
+  private readonly signInPrompt = inject(SignInPromptService);
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
@@ -158,19 +160,24 @@ export class ContactUsPage implements OnInit {
     if (this.submitting()) {
       return;
     }
-    this.showErrors.set(true);
+
+    this.submitting.set(true);
     this.formError.set(null);
     this.authError.set(false);
 
-    if (!this.signedIn()) {
-      return;
-    }
-    if (hasContactFormErrors(this.fieldErrors())) {
-      return;
-    }
-
-    this.submitting.set(true);
     try {
+      // Guests are offered the shared sign-in prompt before any validation or
+      // network call happens.
+      if (!(await this.signInPrompt.requireSignIn('/contact-us'))) {
+        return;
+      }
+
+      this.showErrors.set(true);
+
+      if (hasContactFormErrors(this.fieldErrors())) {
+        return;
+      }
+
       // Success is only reported once the backend confirms the store (201).
       await this.contactApi.submit({
         name: this.name().trim(),

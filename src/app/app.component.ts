@@ -56,6 +56,7 @@ import {
 } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
+import { SignInPromptService } from './core/auth/sign-in-prompt.service';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
 import { UsersService } from './services/users.service';
@@ -116,6 +117,7 @@ export class AppComponent implements OnInit {
   private readonly users = inject(UsersService);
   private readonly cartService = inject(CartService);
   private readonly menuController = inject(MenuController);
+  private readonly signInPrompt = inject(SignInPromptService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Live cart counter shown next to the Cart entry in the side menu. */
@@ -211,13 +213,13 @@ export class AppComponent implements OnInit {
       .join('');
   }
 
-  /** Opens the private profile page, or the login screen for guests. */
-  openProfile(): void {
-    if (this.signedIn()) {
-      void this.router.navigate(['/profile']);
+  /** Opens the private profile page, prompting guests to sign in first. */
+  async openProfile(): Promise<void> {
+    await this.menuController.close();
+    if (!(await this.signInPrompt.requireSignIn('/profile'))) {
       return;
     }
-    void this.router.navigate(['/login'], { queryParams: { redirect: '/profile' } });
+    await this.router.navigate(['/profile']);
   }
 
   private updateSelected(url: string) {

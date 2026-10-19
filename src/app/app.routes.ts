@@ -42,9 +42,10 @@ export const routes: Routes = [
         (m) => m.ProductDetailsPage
       ),
   },
-  // The cart is browsable by guests; checkout itself requires an account.
+  // Ordering requires an account, so the cart itself is private too.
   {
     path: 'cart',
+    canMatch: [authGuard],
     loadComponent: () =>
       import('./pages/cart/cart.page').then((m) => m.CartPage),
   },
