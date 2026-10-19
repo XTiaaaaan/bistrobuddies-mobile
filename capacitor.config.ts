@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appId: 'com.bistrobuddies.app',
   appName: 'BistroBuddies',
   webDir: 'www',
+  android: {
+    backgroundColor: '#3B2418',
+  },
   plugins: {
     FirebaseAuthentication: {
       skipNativeAuth: true,

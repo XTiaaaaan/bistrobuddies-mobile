@@ -16,7 +16,12 @@
     </style>
 
 
+    <!-- Keep the native launch window plain so the HTML splash in
+         src/index.html is the only branded splash the user sees. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@color/splash_background</item>
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
     </style>
 </resources>
