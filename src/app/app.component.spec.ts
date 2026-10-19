@@ -17,7 +17,7 @@ import {
   IonRouterOutlet,
   provideIonicAngular,
 } from '@ionic/angular';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 import { AppComponent } from './app.component';
 import { AuthService } from './services/auth.service';
@@ -26,10 +26,13 @@ import { UsersService } from './services/users.service';
 describe('AppComponent', () => {
   const authState$ = new BehaviorSubject(false);
   const userState$ = new BehaviorSubject<{ uid: string } | null>(null);
+  const userDoc$ = new BehaviorSubject<Record<string, unknown> | null>(null);
+  const userUpdates$ = new Subject<{ uid: string; patch: Record<string, unknown> }>();
 
   beforeEach(async () => {
     authState$.next(false);
     userState$.next(null);
+    userDoc$.next({ name: 'Juan dela Cruz', phone: '09171234567' });
     await TestBed.configureTestingModule({
       imports: [
         AppComponent,
@@ -57,7 +60,13 @@ describe('AppComponent', () => {
             logout: vi.fn().mockResolvedValue(undefined),
           },
         },
-        { provide: UsersService, useValue: { watchUser: () => of({ name: 'Juan dela Cruz', phone: '09171234567' }) } },
+        {
+          provide: UsersService,
+          useValue: {
+            watchUser: () => userDoc$.asObservable(),
+            updates$: userUpdates$.asObservable(),
+          },
+        },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -107,6 +116,52 @@ describe('AppComponent', () => {
     const card = fixture.nativeElement.querySelector('.profile-card');
     expect(card.textContent).toContain('Juan dela Cruz');
     expect(card.textContent).toContain('09171234567');
+  });
+
+  it('should update the side menu photo as soon as the profile photo is saved', async () => {
+    userState$.next({ uid: 'u1' });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.profile-card img')).toBeNull();
+
+    userDoc$.next({
+      name: 'Juan dela Cruz',
+      phone: '09171234567',
+      photoUrl: 'http://localhost:3001/uploads/pic.png',
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const avatar = fixture.nativeElement.querySelector('.profile-card img') as HTMLImageElement;
+    expect(avatar).not.toBeNull();
+    expect(avatar.getAttribute('src')).toBe('http://localhost:3001/uploads/pic.png');
+  });
+
+  it('should update the side menu photo from a local profile write without a listener refresh', async () => {
+    userState$.next({ uid: 'u1' });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.profile-card img')).toBeNull();
+
+    userUpdates$.next({
+      uid: 'u1',
+      patch: { photoUrl: 'http://localhost:3001/uploads/pic.png' },
+    });
+    fixture.detectChanges();
+
+    const avatar = fixture.nativeElement.querySelector('.profile-card img') as HTMLImageElement;
+    expect(avatar).not.toBeNull();
+    expect(avatar.getAttribute('src')).toBe('http://localhost:3001/uploads/pic.png');
+
+    userUpdates$.next({ uid: 'u1', patch: { photoUrl: null } });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.profile-card img')).toBeNull();
   });
 
   it('should show the log in action when the customer is signed out', () => {

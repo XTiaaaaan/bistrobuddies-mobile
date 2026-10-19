@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import {
   DocumentReference,
   doc,
@@ -12,9 +12,23 @@ import { FIREBASE_FIRESTORE } from '../core/firebase/firebase';
 import { docData$ } from '../core/firebase/firestore.helpers';
 import { User, UserInput } from '../models/user.model';
 
+/** A successful `updateUser` call, replayed to in-app listeners immediately. */
+export interface UserUpdateEvent {
+  uid: string;
+  patch: Partial<User>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UsersService {
   private readonly db = inject(FIREBASE_FIRESTORE);
+  private readonly updates = new Subject<UserUpdateEvent>();
+
+  /**
+   * Emits after every successful profile write. Surfaces such as the side menu
+   * listen to this as well as `watchUser` so they update even when Firestore's
+   * snapshot listener is slow to report the local write.
+   */
+  readonly updates$ = this.updates.asObservable();
 
   private userRef(uid: string): DocumentReference {
     return doc(this.db, 'users', uid);
@@ -39,10 +53,11 @@ export class UsersService {
     });
   }
 
-  updateUser(uid: string, patch: Partial<User>): Promise<void> {
-    return updateDoc(this.userRef(uid), {
+  async updateUser(uid: string, patch: Partial<User>): Promise<void> {
+    await updateDoc(this.userRef(uid), {
       ...patch,
       updatedAt: serverTimestamp(),
     });
+    this.updates.next({ uid, patch });
   }
 }
