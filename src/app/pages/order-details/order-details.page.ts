@@ -16,6 +16,7 @@ import { addIcons } from 'ionicons';
 import { alertCircle, cafe, receipt } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
+import { PaymentProofUploadComponent } from '../../components/payment-proof-upload/payment-proof-upload.component';
 import {
   formatOrderDate,
   formatOrderPrice,
@@ -26,6 +27,7 @@ import {
   paymentStatusLabel,
 } from '../../core/orders/order-display';
 import { GCASH_MESSAGES, GCASH_QR_ASSET } from '../../core/payment/gcash';
+import { PAYMENT_PROOF_MESSAGES } from '../../core/payment/payment-proof';
 import { refundDisplay, RefundDisplay } from '../../core/orders/refund-display';
 import { Order, OrderStatus } from '../../models/order.model';
 import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
@@ -56,6 +58,7 @@ export type OrderDetailsStatus = 'loading' | 'ready' | 'missing' | 'error' | 'si
     IonToolbar,
     RouterLink,
     GcashSubmissionFormComponent,
+    PaymentProofUploadComponent,
   ],
 })
 export class OrderDetailsPage implements OnInit {
@@ -69,6 +72,10 @@ export class OrderDetailsPage implements OnInit {
   /** Guards against duplicate cancel requests while one is in flight. */
   readonly cancelling = signal(false);
   readonly cancelError = signal<string | null>(null);
+  readonly proofFile = signal<File | null>(null);
+  readonly proofUploading = signal(false);
+  readonly proofUploadOpen = signal(false);
+  readonly proofError = signal<string | null>(null);
 
   readonly gcashQrAsset = GCASH_QR_ASSET;
   readonly gcashMessages = GCASH_MESSAGES;
@@ -132,6 +139,19 @@ export class OrderDetailsPage implements OnInit {
       this.isGcashOrder() &&
       this.gcashPaymentStatus() === PaymentStatus.REJECTED &&
       !this.resubmitOpen()
+  );
+  readonly canUploadProof = computed(() => {
+    const order = this.order();
+    return (
+      order?.paymentMethod === PaymentMethod.GCASH &&
+      order.paymentStatus !== PaymentStatus.PAID &&
+      order.orderStatus !== OrderStatus.CANCELLED
+    );
+  });
+  readonly showProofPicker = computed(
+    () =>
+      this.canUploadProof() &&
+      (!this.order()?.paymentProof || this.proofUploadOpen())
   );
 
   constructor() {
@@ -240,6 +260,58 @@ export class OrderDetailsPage implements OnInit {
     const current = this.order();
     if (current) {
       this.order.set({ ...current, paymentStatus: event.paymentStatus as PaymentStatus });
+    }
+  }
+
+  onProofSelected(file: File | null): void {
+    this.proofFile.set(file);
+    this.proofError.set(null);
+  }
+
+  openProofUpload(): void {
+    this.proofUploadOpen.set(true);
+    this.proofError.set(null);
+  }
+
+  async uploadProof(): Promise<void> {
+    const current = this.order();
+    const file = this.proofFile();
+    if (
+      !current ||
+      !file ||
+      this.proofUploading() ||
+      !this.canUploadProof()
+    ) {
+      return;
+    }
+
+    this.proofUploading.set(true);
+    this.proofError.set(null);
+    try {
+      const result = await this.ordersApi.uploadPaymentProof(current.id, file);
+      this.order.set({
+        ...current,
+        paymentStatus: result.paymentStatus as PaymentStatus,
+        paymentProof: result.paymentProof,
+        gcashProof: result.paymentProof,
+        paymentProofUrl: result.paymentProof.url,
+      });
+      this.proofFile.set(null);
+      this.proofUploadOpen.set(false);
+    } catch (error) {
+      if (error instanceof OrderApiError && error.status === 401) {
+        await this.router.navigate(['/login'], {
+          queryParams: { redirect: `/my-orders/${current.id}`, reason: 'expired' },
+        });
+        return;
+      }
+      this.proofError.set(
+        error instanceof OrderApiError && error.message
+          ? error.message
+          : PAYMENT_PROOF_MESSAGES.failed
+      );
+    } finally {
+      this.proofUploading.set(false);
     }
   }
 

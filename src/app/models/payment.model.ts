@@ -34,6 +34,15 @@ export interface GcashDetails {
   accountNumber: string;
 }
 
+export interface PaymentProof {
+  url: string;
+  publicId?: string;
+  mimeType?: string;
+  size?: number;
+  submittedBy?: string;
+  submittedAt?: Timestamp | string | null;
+}
+
 export interface Payment {
   id: string;
   orderId: string;

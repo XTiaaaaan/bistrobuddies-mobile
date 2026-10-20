@@ -30,7 +30,13 @@ import {
   isValidGcashAccountName,
   isValidGcashNumber,
 } from '../../core/payment/gcash';
+import {
+  PAYMENT_PROOF_MESSAGES,
+  isPaymentProofFile,
+  validatePaymentProof,
+} from '../../core/payment/payment-proof';
 import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
+import { PaymentProofUploadComponent } from '../../components/payment-proof-upload/payment-proof-upload.component';
 import { CartItem } from '../../models/cart.model';
 import { OrderStatus } from '../../models/order.model';
 import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
@@ -42,6 +48,7 @@ import {
   CreateOrderResponse,
   OrderApiError,
   OrdersApiService,
+  PaymentProofUploadResponse,
 } from '../../services/orders-api.service';
 import { UsersService } from '../../services/users.service';
 
@@ -90,6 +97,7 @@ export function orderErrorMessage(error: unknown): string {
     IonToolbar,
     RouterLink,
     GcashSubmissionFormComponent,
+    PaymentProofUploadComponent,
   ],
 })
 export class CheckoutPage implements OnInit {
@@ -137,6 +145,11 @@ export class CheckoutPage implements OnInit {
   readonly gcashDetailsSubmitted = signal(false);
   /** Set when the details POST failed after the order was created (retry). */
   readonly gcashDetailsFailed = signal(false);
+  readonly gcashProof = signal<File | null>(null);
+  readonly gcashProofUploaded = signal(false);
+  readonly gcashProofUploading = signal(false);
+  readonly gcashProofFailed = signal(false);
+  readonly gcashProofError = signal<string | null>(null);
 
   readonly isEmpty = computed(() => this.items().length === 0);
   readonly missingName = computed(() => this.name().trim() === '');
@@ -157,6 +170,10 @@ export class CheckoutPage implements OnInit {
     () =>
       isValidGcashAccountName(this.gcashName()) &&
       isValidGcashNumber(this.gcashNumber())
+  );
+  readonly gcashProofReady = computed(() => isPaymentProofFile(this.gcashProof()));
+  readonly gcashPaymentComplete = computed(
+    () => this.gcashDetailsSubmitted() && this.gcashProofUploaded()
   );
   /** Session expired / signed out while the checkout page was open. */
   readonly signedOut = computed(() => this.authChecked() && this.uid() === null);
@@ -186,11 +203,11 @@ export class CheckoutPage implements OnInit {
     if (!order || !this.isGcashOrder()) {
       return false;
     }
-    if (this.gcashDetailsSubmitted()) {
+    const status = (order.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING;
+    if (status === PaymentStatus.PAID || status === PaymentStatus.REJECTED) {
       return false;
     }
-    const status = (order.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING;
-    return status === PaymentStatus.PENDING || status === PaymentStatus.REJECTED;
+    return !this.gcashPaymentComplete();
   });
   /** Customer-facing message about the GCash payment state during checkout. */
   readonly gcashNotice = computed(() => {
@@ -202,7 +219,7 @@ export class CheckoutPage implements OnInit {
     if (status === PaymentStatus.REJECTED) {
       return GCASH_MESSAGES.rejected;
     }
-    if (this.gcashDetailsSubmitted() || status === PaymentStatus.VERIFYING) {
+    if (this.gcashPaymentComplete()) {
       return GCASH_MESSAGES.submitted;
     }
     return null;
@@ -217,7 +234,8 @@ export class CheckoutPage implements OnInit {
       !this.invalidPhone() &&
       !this.missingAddress() &&
       this.uid() !== null &&
-      (!this.gcashSelected() || this.gcashDetailsValid())
+      (!this.gcashSelected() ||
+        (this.gcashDetailsValid() && this.gcashProofReady()))
   );
 
   constructor() {
@@ -299,6 +317,12 @@ export class CheckoutPage implements OnInit {
     this.gcashNumber.set(event.accountNumber);
   }
 
+  onGcashProofSelected(file: File | null): void {
+    this.gcashProof.set(file);
+    this.gcashProofFailed.set(false);
+    this.gcashProofError.set(file ? validatePaymentProof(file) : null);
+  }
+
   /** Called when the GCash submission form reports success. */
   onGcashSubmitted(event: { paymentStatus: string }): void {
     this.gcashDetailsSubmitted.set(true);
@@ -306,6 +330,23 @@ export class CheckoutPage implements OnInit {
     const current = this.placedOrder();
     if (current) {
       this.placedOrder.set({ ...current, paymentStatus: event.paymentStatus });
+    }
+  }
+
+  async retryGcashSubmission(): Promise<void> {
+    const order = this.placedOrder();
+    if (!order || !this.isGcashOrder() || this.gcashPaymentComplete()) {
+      return;
+    }
+    if (this.submitting() || this.gcashProofUploading()) {
+      return;
+    }
+
+    this.submitting.set(true);
+    try {
+      await this.submitGcashPaymentFor(order);
+    } finally {
+      this.submitting.set(false);
     }
   }
 
@@ -375,7 +416,7 @@ export class CheckoutPage implements OnInit {
       // My Orders.
       const method = response.paymentMethod ?? request.paymentMethod;
       if (method === PaymentMethod.GCASH) {
-        await this.submitGcashDetailsFor(response);
+        await this.submitGcashPaymentFor(response);
       } else {
         await this.router.navigate(['/my-orders']);
       }
@@ -394,9 +435,19 @@ export class CheckoutPage implements OnInit {
     }
   }
 
+  private async submitGcashPaymentFor(order: CreateOrderResponse): Promise<void> {
+    const details = this.gcashDetailsSubmitted()
+      ? Promise.resolve()
+      : this.submitGcashDetailsFor(order);
+    const proof = this.gcashProofUploaded()
+      ? Promise.resolve()
+      : this.uploadGcashProofFor(order);
+    await Promise.all([details, proof]);
+  }
+
   /**
    * Submits the GCash details collected during checkout for the freshly
-   * created order. On failure the order stays in `PENDING` — the confirmation
+   * created order. On failure the order stays retrievable — the confirmation
    * view keeps showing the QR code and a prefilled form so the customer can
    * retry here or later from Order Details.
    */
@@ -413,6 +464,50 @@ export class CheckoutPage implements OnInit {
         return;
       }
       this.gcashDetailsFailed.set(true);
+    }
+  }
+
+  private async uploadGcashProofFor(order: CreateOrderResponse): Promise<void> {
+    const file = this.gcashProof();
+    const issue = validatePaymentProof(file);
+    if (issue || !file) {
+      this.gcashProofFailed.set(true);
+      this.gcashProofError.set(issue ?? PAYMENT_PROOF_MESSAGES.required);
+      return;
+    }
+
+    this.gcashProofUploading.set(true);
+    this.gcashProofError.set(null);
+    try {
+      const result = await this.ordersApi.uploadPaymentProof(order.id, file);
+      this.applyPaymentProof(result);
+    } catch (error) {
+      if (error instanceof OrderApiError && error.status === 401) {
+        await this.onGcashSessionExpired();
+        return;
+      }
+      this.gcashProofFailed.set(true);
+      this.gcashProofError.set(
+        error instanceof OrderApiError && error.message
+          ? error.message
+          : PAYMENT_PROOF_MESSAGES.failed
+      );
+    } finally {
+      this.gcashProofUploading.set(false);
+    }
+  }
+
+  private applyPaymentProof(result: PaymentProofUploadResponse): void {
+    this.gcashProofUploaded.set(true);
+    this.gcashProofFailed.set(false);
+    this.gcashProofError.set(null);
+    const current = this.placedOrder();
+    if (current) {
+      this.placedOrder.set({
+        ...current,
+        paymentStatus: result.paymentStatus,
+        paymentProof: result.paymentProof,
+      });
     }
   }
 

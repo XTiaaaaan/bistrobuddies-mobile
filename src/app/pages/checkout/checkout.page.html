@@ -39,11 +39,17 @@
                 {{ gcashMessages.submissionFailed }}
               </div>
             }
+            @if (gcashProofFailed()) {
+              <div class="gcash-notice" role="alert" data-testid="gcash-proof-submit-error">
+                {{ gcashProofError() || gcashMessages.proofFailed }}
+              </div>
+            }
             <h4 class="gcash-title">Pay with GCash</h4>
             <ol class="gcash-steps">
               <li>{{ gcashMessages.scanning }}</li>
               <li>{{ gcashMessages.exactAmount }}</li>
               <li>Enter the account name and number you paid from below.</li>
+              <li>Upload a screenshot or photo showing the GCash reference number.</li>
             </ol>
 
             <figure class="gcash-qr">
@@ -56,13 +62,44 @@
               <strong data-testid="gcash-amount">{{ formatPrice(order.total) }}</strong>
             </div>
 
-            <app-gcash-submission-form
-              [orderId]="order.id"
-              [initialName]="gcashName()"
-              [initialNumber]="gcashNumber()"
-              (submitted)="onGcashSubmitted($event)"
-              (sessionExpired)="onGcashSessionExpired()"
-            ></app-gcash-submission-form>
+            @if (!gcashDetailsSubmitted()) {
+              <app-gcash-submission-form
+                [orderId]="order.id"
+                [initialName]="gcashName()"
+                [initialNumber]="gcashNumber()"
+                (submitted)="onGcashSubmitted($event)"
+                (sessionExpired)="onGcashSessionExpired()"
+              ></app-gcash-submission-form>
+            } @else {
+              <p class="gcash-status-note" data-testid="gcash-details-submitted">
+                GCash account details submitted.
+              </p>
+            }
+
+            @if (!gcashProofUploaded()) {
+              <app-payment-proof-upload
+                (fileSelected)="onGcashProofSelected($event)"
+              ></app-payment-proof-upload>
+
+              <ion-button
+                class="place-button"
+                expand="block"
+                data-testid="retry-gcash-submission"
+                [disabled]="!gcashProofReady() || gcashProofUploading() || submitting()"
+                (click)="retryGcashSubmission()"
+              >
+                @if (gcashProofUploading()) {
+                  <ion-spinner name="crescent"></ion-spinner>
+                  Uploading proof...
+                } @else {
+                  Retry payment submission
+                }
+              </ion-button>
+            } @else {
+              <p class="gcash-status-note" data-testid="gcash-proof-uploaded">
+                Payment proof uploaded.
+              </p>
+            }
           </div>
         }
 
@@ -230,6 +267,7 @@
               <li>{{ gcashMessages.scanning }}</li>
               <li>{{ gcashMessages.exactAmount }}</li>
               <li>Pay now, then enter the account name and number you paid from.</li>
+              <li>Upload a screenshot or photo showing the GCash reference number.</li>
             </ol>
 
             <figure class="gcash-qr">
@@ -246,9 +284,19 @@
               (valueChange)="onGcashCollect($event)"
             ></app-gcash-submission-form>
 
-            @if (!gcashDetailsValid()) {
+            <app-payment-proof-upload
+              (fileSelected)="onGcashProofSelected($event)"
+            ></app-payment-proof-upload>
+
+            @if (!gcashDetailsValid() || !gcashProofReady()) {
               <p class="gcash-required-hint" data-testid="gcash-required-hint">
-                Enter your GCash account name and mobile number above to place this order.
+                @if (!gcashDetailsValid()) {
+                  Enter your GCash account name and mobile number above.
+                }
+                @if (!gcashProofReady()) {
+                  Upload a GCash payment proof image showing the reference number.
+                }
+                Both are required to place this order.
               </p>
             }
           </div>

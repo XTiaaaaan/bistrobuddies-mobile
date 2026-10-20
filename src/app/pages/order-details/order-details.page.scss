@@ -419,6 +419,28 @@ $cream: #f5ede4;
   }
 }
 
+.gcash-proof {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+
+  img {
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid $tan;
+  }
+
+  figcaption {
+    font-size: 12px;
+    color: #8b7355;
+  }
+}
+
 .gcash-steps {
   margin: 0;
   padding-left: 18px;

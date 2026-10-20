@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { PaymentMethod } from '../models/payment.model';
+import { validatePaymentProof } from '../core/payment/payment-proof';
+import { PaymentMethod, PaymentProof } from '../models/payment.model';
 import { ProductSize } from '../models/product.model';
 import { AuthService } from './auth.service';
 
@@ -38,6 +39,7 @@ export interface CreateOrderResponse {
   paymentStatus: string;
   /** Present on newer backend responses; absent on older ones. */
   paymentMethod?: string;
+  paymentProof?: PaymentProof;
 }
 
 /** Customer-entered GCash details submitted to the backend. */
@@ -51,6 +53,19 @@ export interface GcashDetailsResponse {
   id: string;
   paymentStatus: string;
   gcashDetails?: GcashDetailsRequest;
+}
+
+export interface PaymentProofUploadResponse {
+  id: string;
+  paymentStatus: string;
+  paymentProof: {
+    url: string;
+    publicId: string;
+    mimeType: string;
+    size: number;
+    submittedBy: string;
+    submittedAt: string;
+  };
 }
 
 /** Response of POST /api/orders/:id/cancel — the full updated order. */
@@ -123,6 +138,39 @@ export class OrdersApiService {
         this.http.post<GcashDetailsResponse>(
           `${this.baseUrl}/orders/${encodeURIComponent(orderId)}/gcash-details`,
           details,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+    } catch (error) {
+      throw toOrderApiError(error);
+    }
+  }
+
+  async uploadPaymentProof(
+    orderId: string,
+    file: File
+  ): Promise<PaymentProofUploadResponse> {
+    const issue = validatePaymentProof(file);
+    if (issue) {
+      throw new OrderApiError(issue, 0);
+    }
+
+    const token = await this.auth.getIdToken();
+    if (!token) {
+      throw new OrderApiError(
+        'You must be signed in to upload payment proof.',
+        401
+      );
+    }
+
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    try {
+      return await firstValueFrom(
+        this.http.post<PaymentProofUploadResponse>(
+          `${this.baseUrl}/orders/${encodeURIComponent(orderId)}/payment-proof`,
+          form,
           { headers: { Authorization: `Bearer ${token}` } }
         )
       );

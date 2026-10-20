@@ -45,6 +45,25 @@ function orderResponse(
   };
 }
 
+function proofFile(type = 'image/png'): File {
+  return new File([new Uint8Array(16)], 'gcash-proof.png', { type });
+}
+
+function proofResponse(id = 'order-1', paymentStatus = 'VERIFYING') {
+  return {
+    id,
+    paymentStatus,
+    paymentProof: {
+      url: 'https://res.cloudinary.com/test-cloud/image/upload/proof.png',
+      publicId: 'bistrobuddies/proof',
+      mimeType: 'image/png',
+      size: 16,
+      submittedBy: 'u1',
+      submittedAt: '2026-10-20T00:00:00.000Z',
+    },
+  };
+}
+
 describe('CheckoutPage', () => {
   let alertCreate: ReturnType<typeof vi.fn>;
 
@@ -70,6 +89,9 @@ describe('CheckoutPage', () => {
           accountNumber: '09171234567',
         },
       })
+    ),
+    uploadPaymentProof: ReturnType<typeof vi.fn> = vi.fn(() =>
+      Promise.resolve(proofResponse())
     )
   ): {
     fixture: ComponentFixture<CheckoutPage>;
@@ -77,6 +99,7 @@ describe('CheckoutPage', () => {
     cart: CartService;
     createOrder: ReturnType<typeof vi.fn>;
     submitGcashDetails: ReturnType<typeof vi.fn>;
+    uploadPaymentProof: ReturnType<typeof vi.fn>;
     navigate: ReturnType<typeof vi.fn>;
     alertCreate: ReturnType<typeof vi.fn>;
   } {
@@ -91,7 +114,10 @@ describe('CheckoutPage', () => {
           },
         },
         { provide: UsersService, useValue: { getUser: () => Promise.resolve(profile) } },
-        { provide: OrdersApiService, useValue: { createOrder, submitGcashDetails } },
+        {
+          provide: OrdersApiService,
+          useValue: { createOrder, submitGcashDetails, uploadPaymentProof },
+        },
         {
           provide: ToastController,
           useValue: { create: () => Promise.resolve({ present: () => Promise.resolve() }) },
@@ -116,6 +142,7 @@ describe('CheckoutPage', () => {
       cart,
       createOrder,
       submitGcashDetails,
+      uploadPaymentProof,
       navigate,
       alertCreate,
     };
@@ -132,6 +159,10 @@ describe('CheckoutPage', () => {
       accountName: 'Juan dela Cruz',
       accountNumber: '09171234567',
     });
+  }
+
+  function selectProof(component: CheckoutPage, file = proofFile()): void {
+    component.onGcashProofSelected(file);
   }
 
   function selectGcash(component: CheckoutPage): void {
@@ -360,7 +391,7 @@ describe('CheckoutPage', () => {
     expect(component.paymentMethod()).toBe(PaymentMethod.COD);
   });
 
-  it('should show the GCash QR panel and require details before placing the order', () => {
+  it('should require GCash details and a payment proof before placing the order', () => {
     const { fixture, component } = setup();
 
     fillContact(component);
@@ -368,19 +399,23 @@ describe('CheckoutPage', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    // GCash collects the account details up front: no details, no order.
     expect(component.gcashSelected()).toBe(true);
     expect(component.canSubmit()).toBe(false);
     expect(element.querySelector('[data-testid="gcash-collect-panel"]')).toBeTruthy();
     expect(element.querySelector('[data-testid="gcash-required-hint"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="payment-proof-upload"]')).toBeTruthy();
 
     fillGcash(component);
     expect(component.gcashDetailsValid()).toBe(true);
+    expect(component.gcashProofReady()).toBe(false);
+    expect(component.canSubmit()).toBe(false);
+
+    selectProof(component);
+    expect(component.gcashProofReady()).toBe(true);
     expect(component.canSubmit()).toBe(true);
     fixture.detectChanges();
     expect(element.querySelector('[data-testid="gcash-required-hint"]')).toBeNull();
 
-    // COD keeps working without the extra details.
     component.setPaymentMethod({ detail: { value: PaymentMethod.COD } });
     fixture.detectChanges();
     expect(component.canSubmit()).toBe(true);
@@ -406,33 +441,36 @@ describe('CheckoutPage', () => {
     expect(element.querySelector('.gcash-form .submit-button')).toBeNull();
   });
 
-  it('should block Place Order while GCash details are incomplete and ask via the API only once valid', async () => {
+  it('should block Place Order until GCash details and proof are complete, then upload both', async () => {
     const validResponse = orderResponse('order-2', {
       paymentMethod: PaymentMethod.GCASH,
     });
-    const { component, cart, createOrder, submitGcashDetails, navigate } = setup(
-      [item()],
-      null,
-      vi.fn(() => Promise.resolve(validResponse))
-    );
+    const { component, cart, createOrder, submitGcashDetails, uploadPaymentProof, navigate } =
+      setup([item()], null, vi.fn(() => Promise.resolve(validResponse)));
 
     fillContact(component);
     selectGcash(component);
     await component.placeOrder();
 
-    // Incomplete details keep the order from being created at all.
     expect(createOrder).not.toHaveBeenCalled();
     expect(submitGcashDetails).not.toHaveBeenCalled();
+    expect(uploadPaymentProof).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
 
     fillGcash(component);
+    await component.placeOrder();
+
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(uploadPaymentProof).not.toHaveBeenCalled();
+
+    const file = proofFile();
+    selectProof(component, file);
     await component.placeOrder();
 
     expect(createOrder).toHaveBeenCalledTimes(1);
     const request = createOrder.mock.calls[0][0] as CreateOrderRequest;
     expect(request.paymentMethod).toBe(PaymentMethod.GCASH);
 
-    // The collected details are submitted for the fresh order id.
     expect(submitGcashDetails).toHaveBeenCalledTimes(1);
     const [orderId, details] = submitGcashDetails.mock.calls[0] as [
       string,
@@ -443,11 +481,57 @@ describe('CheckoutPage', () => {
       accountName: 'Juan dela Cruz',
       accountNumber: '09171234567',
     });
+
+    expect(uploadPaymentProof).toHaveBeenCalledTimes(1);
+    expect(uploadPaymentProof.mock.calls[0][0]).toBe('order-2');
+    expect(uploadPaymentProof.mock.calls[0][1]).toBe(file);
+
     expect(navigate).not.toHaveBeenCalled();
     expect(cart.items()).toEqual([]);
-
     expect(component.isGcashOrder()).toBe(true);
     expect(component.gcashDetailsSubmitted()).toBe(true);
+    expect(component.gcashProofUploaded()).toBe(true);
+    expect(component.showGcashPaymentPanel()).toBe(false);
+  });
+
+  it('retries a failed proof upload on the same order without creating a duplicate', async () => {
+    const uploadPaymentProof = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new OrderApiError('The server rejected the request (500).', 500)
+      )
+      .mockResolvedValue(proofResponse('order-2'));
+    const { component, cart, createOrder } = setup(
+      [item()],
+      null,
+      vi.fn(() =>
+        Promise.resolve(orderResponse('order-2', { paymentMethod: PaymentMethod.GCASH }))
+      ),
+      undefined,
+      uploadPaymentProof
+    );
+
+    fillContact(component);
+    selectGcash(component);
+    fillGcash(component);
+    selectProof(component);
+    await component.placeOrder();
+
+    expect(createOrder).toHaveBeenCalledTimes(1);
+    expect(uploadPaymentProof).toHaveBeenCalledTimes(1);
+    expect(component.placedOrder()?.id).toBe('order-2');
+    expect(component.gcashProofFailed()).toBe(true);
+    expect(component.gcashProofUploaded()).toBe(false);
+    expect(component.showGcashPaymentPanel()).toBe(true);
+    expect(cart.items()).toEqual([]);
+
+    await component.retryGcashSubmission();
+
+    expect(createOrder).toHaveBeenCalledTimes(1);
+    expect(uploadPaymentProof).toHaveBeenCalledTimes(2);
+    expect(uploadPaymentProof.mock.calls[1][0]).toBe('order-2');
+    expect(component.gcashProofUploaded()).toBe(true);
+    expect(component.gcashProofFailed()).toBe(false);
     expect(component.showGcashPaymentPanel()).toBe(false);
   });
 
@@ -457,6 +541,7 @@ describe('CheckoutPage', () => {
     fillContact(component);
     selectGcash(component);
     fillGcash(component);
+    selectProof(component);
     await component.placeOrder();
     fixture.detectChanges();
 
@@ -485,6 +570,7 @@ describe('CheckoutPage', () => {
     fillContact(component);
     selectGcash(component);
     fillGcash(component);
+    selectProof(component);
     await component.placeOrder();
     fixture.detectChanges();
 
@@ -492,12 +578,11 @@ describe('CheckoutPage', () => {
     expect(cart.items()).toEqual([]);
 
     const element = fixture.nativeElement as HTMLElement;
-    // The order exists and stays PENDING; the panel still offers the form.
     expect(component.showGcashPaymentPanel()).toBe(true);
     expect(element.querySelector('[data-testid="gcash-payment-panel"]')).toBeTruthy();
     expect(element.querySelector('[data-testid="gcash-submit-error"]')).toBeTruthy();
     expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
-      'Pending'
+      'Verifying'
     );
   });
 
@@ -517,6 +602,7 @@ describe('CheckoutPage', () => {
     fillContact(component);
     selectGcash(component);
     fillGcash(component);
+    selectProof(component);
     await component.placeOrder();
 
     expect(navigate).toHaveBeenCalledWith(['/login'], {
@@ -531,12 +617,14 @@ describe('CheckoutPage', () => {
       vi.fn(() =>
         Promise.resolve(orderResponse('order-3', { paymentMethod: PaymentMethod.GCASH }))
       ),
-      vi.fn(() => Promise.resolve({ id: 'order-3', paymentStatus: 'REJECTED' }))
+      vi.fn(() => Promise.resolve({ id: 'order-3', paymentStatus: 'REJECTED' })),
+      vi.fn(() => Promise.resolve(proofResponse('order-3', 'REJECTED')))
     );
 
     fillContact(component);
     selectGcash(component);
     fillGcash(component);
+    selectProof(component);
     await component.placeOrder();
     fixture.detectChanges();
 
