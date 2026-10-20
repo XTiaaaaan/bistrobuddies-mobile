@@ -16,6 +16,7 @@ import { addIcons } from 'ionicons';
 import { alertCircle, cafe, receipt } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
+import { OrderProgressTrackerComponent } from '../../components/order-progress-tracker/order-progress-tracker.component';
 import { PaymentProofUploadComponent } from '../../components/payment-proof-upload/payment-proof-upload.component';
 import {
   formatOrderDate,
@@ -58,6 +59,7 @@ export type OrderDetailsStatus = 'loading' | 'ready' | 'missing' | 'error' | 'si
     IonToolbar,
     RouterLink,
     GcashSubmissionFormComponent,
+    OrderProgressTrackerComponent,
     PaymentProofUploadComponent,
   ],
 })

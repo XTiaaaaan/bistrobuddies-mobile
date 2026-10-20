@@ -21,6 +21,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 
 import { AppComponent } from './app.component';
 import { AuthService } from './services/auth.service';
+import { PushNotificationsService } from './services/push-notifications.service';
 import { UsersService } from './services/users.service';
 
 describe('AppComponent', () => {
@@ -65,6 +66,13 @@ describe('AppComponent', () => {
           useValue: {
             watchUser: () => userDoc$.asObservable(),
             updates$: userUpdates$.asObservable(),
+          },
+        },
+        {
+          provide: PushNotificationsService,
+          useValue: {
+            initialize: vi.fn(),
+            unregisterCurrentDevice: vi.fn().mockResolvedValue(undefined),
           },
         },
       ],

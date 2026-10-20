@@ -8,6 +8,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.CONFIRMED]: 'Confirmed',
   [OrderStatus.PREPARING]: 'Preparing',
   [OrderStatus.READY]: 'Ready',
+  [OrderStatus.OUT_FOR_DELIVERY]: 'On the Way',
   [OrderStatus.COMPLETED]: 'Completed',
   [OrderStatus.CANCELLED]: 'Cancelled',
 };
@@ -31,7 +32,7 @@ export function orderStatusLabel(status: OrderStatus): string {
 }
 
 export function orderStatusClass(status: OrderStatus): string {
-  return `badge st-${String(status).toLowerCase()}`;
+  return `badge st-${String(status).toLowerCase().replace(/_/g, '-')}`;
 }
 
 /**

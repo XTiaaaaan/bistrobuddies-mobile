@@ -1,0 +1,48 @@
+<section
+  class="card progress-card"
+  data-testid="order-progress"
+  [attr.data-fulfillment]="progress().fulfillmentType"
+>
+  <div class="progress-head">
+    <h3 class="card-title">Order progress</h3>
+    <span class="mode">
+      {{ progress().fulfillmentType === 'DELIVERY' ? 'Delivery' : 'Pickup' }}
+    </span>
+  </div>
+
+  @if (progress().cancelled) {
+    <p class="notice cancelled" role="status" data-testid="order-progress-cancelled">
+      This order was cancelled, so there is no progress to track.
+    </p>
+  } @else if (progress().unknown) {
+    <p class="notice" role="status" data-testid="order-progress-unknown">
+      We could not recognise the latest order status. Please check again
+      shortly.
+    </p>
+  } @else {
+    <ol class="progress-list">
+      @for (stage of progress().stages; track stage.status) {
+        <li
+          class="progress-step"
+          [class.is-complete]="stage.state === 'complete'"
+          [class.is-current]="stage.state === 'current'"
+          [attr.data-status]="stage.status"
+          [attr.data-state]="stage.state"
+          [attr.aria-current]="stage.state === 'current' ? 'step' : null"
+        >
+          <span class="marker" aria-hidden="true"></span>
+          <span class="label">{{ stage.label }}</span>
+          @if (stage.state === 'current') {
+            <span class="current-tag">Current</span>
+          }
+        </li>
+      }
+    </ol>
+
+    @if (progress().pending) {
+      <p class="notice" role="status" data-testid="order-progress-pending">
+        Waiting for the shop to confirm your order.
+      </p>
+    }
+  }
+</section>

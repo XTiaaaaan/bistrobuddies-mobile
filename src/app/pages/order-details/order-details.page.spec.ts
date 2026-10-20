@@ -167,6 +167,27 @@ describe('OrderDetailsPage', () => {
     expect(element.querySelector('.st-pending')).toBeNull();
   });
 
+  it('should show On the Way in the live order progress tracker', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({ orderStatus: OrderStatus.OUT_FOR_DELIVERY })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(
+      element.querySelector('[data-testid="order-progress"]')
+    ).toBeTruthy();
+    expect(element.textContent).toContain('On the Way');
+    expect(element.querySelector('.st-out-for-delivery')?.textContent).toContain(
+      'On the Way'
+    );
+    expect(
+      element
+        .querySelector('[data-status="OUT_FOR_DELIVERY"]')
+        ?.getAttribute('data-state')
+    ).toBe('current');
+  });
+
   it('should show a missing state when the order does not exist', () => {
     const fixture = setup('u1', null);
     const element = fixture.nativeElement as HTMLElement;

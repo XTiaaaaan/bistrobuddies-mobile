@@ -60,6 +60,7 @@ import { SignInPromptService } from './core/auth/sign-in-prompt.service';
 import { resolveProductImageUrl } from './core/products/product-image';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
+import { PushNotificationsService } from './services/push-notifications.service';
 import { UsersService } from './services/users.service';
 
 /** Auth screens hide the side menu so the branding stands alone. */
@@ -118,6 +119,7 @@ export class AppComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
   private readonly cartService = inject(CartService);
+  private readonly pushNotifications = inject(PushNotificationsService);
   private readonly menuController = inject(MenuController);
   private readonly signInPrompt = inject(SignInPromptService);
   private readonly destroyRef = inject(DestroyRef);
@@ -263,6 +265,9 @@ export class AppComponent implements OnInit {
     }
 
     try {
+      // Remove the FCM token while the Firebase session can still authorize
+      // the request; sign-out clears the ID token.
+      await this.pushNotifications.unregisterCurrentDevice();
       await this.auth.logout();
     } catch (error) {
       console.error('Logout failed', error);

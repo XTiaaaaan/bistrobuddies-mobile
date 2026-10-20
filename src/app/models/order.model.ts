@@ -12,6 +12,7 @@ export enum OrderStatus {
   CONFIRMED = 'CONFIRMED',
   PREPARING = 'PREPARING',
   READY = 'READY',
+  OUT_FOR_DELIVERY = 'OUT_FOR_DELIVERY',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
@@ -74,6 +75,12 @@ export interface Order {
   id: string;
   customerId: string;
   customerSnapshot: CustomerSnapshot;
+  /**
+   * Optional because older order documents predate an explicit fulfilment
+   * field. The current checkout is delivery-only, so a missing value falls
+   * back to the presence of a delivery address.
+   */
+  fulfillmentType?: string | null;
   addressSnapshot: AddressSnapshot;
   items: OrderItem[];
   subtotal: number;

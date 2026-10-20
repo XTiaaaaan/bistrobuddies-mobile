@@ -52,6 +52,8 @@
         </div>
       </section>
 
+      <app-order-progress-tracker [order]="order"></app-order-progress-tracker>
+
       @if (canCancel()) {
         <section class="card bb-rise" data-testid="cancel-order-section">
           @if (cancelError(); as cancelMsg) {

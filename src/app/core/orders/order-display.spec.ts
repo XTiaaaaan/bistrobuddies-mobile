@@ -17,10 +17,14 @@ describe('order display helpers', () => {
     expect(orderStatusLabel(OrderStatus.CONFIRMED)).toBe('Confirmed');
     expect(orderStatusLabel(OrderStatus.PREPARING)).toBe('Preparing');
     expect(orderStatusLabel(OrderStatus.READY)).toBe('Ready');
+    expect(orderStatusLabel(OrderStatus.OUT_FOR_DELIVERY)).toBe('On the Way');
     expect(orderStatusLabel(OrderStatus.COMPLETED)).toBe('Completed');
     expect(orderStatusLabel(OrderStatus.CANCELLED)).toBe('Cancelled');
 
     expect(orderStatusClass(OrderStatus.PREPARING)).toBe('badge st-preparing');
+    expect(orderStatusClass(OrderStatus.OUT_FOR_DELIVERY)).toBe(
+      'badge st-out-for-delivery'
+    );
     expect(orderStatusClass(OrderStatus.CANCELLED)).toBe('badge st-cancelled');
   });
 
