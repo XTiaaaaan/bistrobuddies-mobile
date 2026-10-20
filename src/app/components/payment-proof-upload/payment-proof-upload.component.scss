@@ -1,0 +1,100 @@
+$espresso: #3b2418;
+$gold: #a87c4f;
+$tan: #e8d9c5;
+
+.proof-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #a08b76;
+  font-weight: 700;
+
+  em {
+    font-style: normal;
+    color: #b33a3a;
+  }
+}
+
+.proof-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8b7355;
+}
+
+.proof-picker {
+  display: none;
+}
+
+.proof-choose {
+  --border-radius: 14px;
+  --border-color: #{$tan};
+  --box-shadow: none;
+  --color: #{$espresso};
+  font-weight: 700;
+  height: 46px;
+}
+
+.proof-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+
+  img {
+    width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid $tan;
+  }
+
+  figcaption {
+    font-size: 12px;
+    color: #8b7355;
+    word-break: break-all;
+  }
+}
+
+.proof-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: $gold;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 16px;
+  }
+}
+
+.link-button-danger {
+  color: #b3555f;
+}
+
+.proof-error {
+  background: rgba(179, 58, 58, 0.1);
+  border: 1px solid rgba(179, 58, 58, 0.4);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: #b33a3a;
+}

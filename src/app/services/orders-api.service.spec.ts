@@ -112,6 +112,99 @@ describe('OrdersApiService', () => {
     await promise;
   });
 
+  it('uploads payment proof as multipart form data with the Bearer token', async () => {
+    const file = new File([new Uint8Array(16)], 'gcash-proof.png', {
+      type: 'image/png',
+    });
+    const promise = service.uploadPaymentProof('order-1', file);
+    await flushMicrotasks();
+
+    const request = httpMock.expectOne(`${baseUrl}/orders/order-1/payment-proof`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer id-token');
+    expect(request.request.body).toBeInstanceOf(FormData);
+    const uploaded = (request.request.body as FormData).get('file') as File;
+    expect(uploaded.name).toBe(file.name);
+    expect(uploaded.type).toBe(file.type);
+    expect(uploaded.size).toBe(file.size);
+    request.flush({
+      id: 'order-1',
+      paymentStatus: 'VERIFYING',
+      paymentProof: {
+        url: 'https://res.cloudinary.com/test-cloud/image/upload/proof.png',
+        publicId: 'bistrobuddies/proof',
+        mimeType: 'image/png',
+        size: 16,
+        submittedBy: 'u1',
+        submittedAt: '2026-10-20T00:00:00.000Z',
+      },
+    });
+
+    await expect(promise).resolves.toMatchObject({
+      id: 'order-1',
+      paymentStatus: 'VERIFYING',
+      paymentProof: {
+        url: 'https://res.cloudinary.com/test-cloud/image/upload/proof.png',
+        mimeType: 'image/png',
+      },
+    });
+  });
+
+  it('encodes the order id in the payment proof endpoint path', async () => {
+    const file = new File([new Uint8Array(16)], 'proof.png', { type: 'image/png' });
+    const promise = service.uploadPaymentProof('order/with space', file);
+    await flushMicrotasks();
+
+    const request = httpMock.expectOne(
+      `${baseUrl}/orders/${encodeURIComponent('order/with space')}/payment-proof`
+    );
+    request.flush({
+      id: 'order/with space',
+      paymentStatus: 'VERIFYING',
+      paymentProof: { url: 'https://example.com/proof.png' },
+    });
+    await promise;
+  });
+
+  it('validates payment proof before making any request', async () => {
+    const empty = new File([], 'empty.png', { type: 'image/png' });
+    await expect(service.uploadPaymentProof('order-1', empty)).rejects.toMatchObject({
+      name: 'OrderApiError',
+      message: 'The selected image file is empty.',
+    });
+    httpMock.expectNone(`${baseUrl}/orders/order-1/payment-proof`);
+  });
+
+  it('fails proof upload before any request when the customer is signed out', async () => {
+    getIdToken.mockResolvedValue(null);
+    const file = new File([new Uint8Array(16)], 'proof.png', { type: 'image/png' });
+
+    await expect(service.uploadPaymentProof('order-1', file)).rejects.toMatchObject({
+      name: 'OrderApiError',
+      status: 401,
+    });
+    httpMock.expectNone(`${baseUrl}/orders/order-1/payment-proof`);
+  });
+
+  it('surfaces the backend message when payment proof is rejected', async () => {
+    const file = new File([new Uint8Array(16)], 'proof.png', { type: 'image/png' });
+    const promise = service.uploadPaymentProof('order-1', file);
+    await flushMicrotasks();
+
+    httpMock
+      .expectOne(`${baseUrl}/orders/order-1/payment-proof`)
+      .flush(
+        { error: { message: 'Invalid image file.' } },
+        { status: 400, statusText: 'Bad Request' }
+      );
+
+    await expect(promise).rejects.toMatchObject({
+      name: 'OrderApiError',
+      status: 400,
+      message: 'Invalid image file.',
+    });
+  });
+
   it('fails before any request when the customer is signed out', async () => {
     getIdToken.mockResolvedValue(null);
 

@@ -1,5 +1,10 @@
 import type { Timestamp } from 'firebase/firestore';
-import { GcashDetails, PaymentMethod, PaymentStatus } from './payment.model';
+import {
+  GcashDetails,
+  PaymentMethod,
+  PaymentProof,
+  PaymentStatus,
+} from './payment.model';
 import { ProductSize } from './product.model';
 
 export enum OrderStatus {
@@ -83,6 +88,11 @@ export interface Order {
    * orders) have no GCash fields at all.
    */
   gcashDetails?: GcashDetails;
+  paymentProof?: PaymentProof | null;
+  gcashProof?: PaymentProof | null;
+  paymentProofUrl?: string | null;
+  proofUrl?: string | null;
+  gcashProofUrl?: string | null;
   /**
    * Refund facts recorded by the backend for cancelled, paid orders.
    * Optional/nullable because historic order documents (and non-refunded

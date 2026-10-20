@@ -238,6 +238,7 @@
                 <li>{{ gcashMessages.scanning }}</li>
                 <li>{{ gcashMessages.exactAmount }}</li>
                 <li>Enter the account name and number you paid from below.</li>
+                <li>Upload a screenshot or photo showing the GCash reference number.</li>
               </ol>
 
               <figure class="gcash-qr">
@@ -259,6 +260,56 @@
                 (sessionExpired)="onGcashSessionExpired()"
               ></app-gcash-submission-form>
             </div>
+          }
+
+          @if (order.paymentProof; as proof) {
+            <figure class="gcash-proof" data-testid="gcash-proof-preview">
+              <a [href]="proof.url" target="_blank" rel="noopener">
+                <img [src]="proof.url" alt="GCash payment proof" />
+              </a>
+              <figcaption>Payment proof submitted</figcaption>
+            </figure>
+          } @else if (canUploadProof()) {
+            <p class="gcash-status-note" data-testid="gcash-proof-required-note">
+              {{ gcashMessages.proofRequired }}
+            </p>
+          }
+
+          @if (canUploadProof()) {
+            @if (showProofPicker()) {
+              <app-payment-proof-upload
+                (fileSelected)="onProofSelected($event)"
+              ></app-payment-proof-upload>
+
+              @if (proofError(); as message) {
+                <p class="gcash-rejected-note" role="alert" data-testid="gcash-proof-error">
+                  {{ message }}
+                </p>
+              }
+
+              <ion-button
+                expand="block"
+                data-testid="upload-proof-button"
+                [disabled]="!proofFile() || proofUploading()"
+                (click)="uploadProof()"
+              >
+                @if (proofUploading()) {
+                  <ion-spinner name="crescent"></ion-spinner>
+                  Uploading proof...
+                } @else {
+                  Upload payment proof
+                }
+              </ion-button>
+            } @else if (order.paymentProof) {
+              <ion-button
+                fill="outline"
+                expand="block"
+                data-testid="replace-proof-button"
+                (click)="openProofUpload()"
+              >
+                Replace payment proof
+              </ion-button>
+            }
           }
         </section>
       }

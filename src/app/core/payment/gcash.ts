@@ -21,6 +21,10 @@ export const GCASH_MESSAGES = {
     'Your payment could not be verified. Please check your GCash payment and submit your details again.',
   submitted: 'Details submitted. We are verifying your payment.',
   submissionFailed: 'We could not submit your GCash details. Please try again.',
+  proofRequired:
+    'Upload a screenshot or photo showing the GCash transaction/reference number.',
+  proofFailed: 'We could not upload your payment proof. Please try again.',
+  proofSubmitted: 'Payment proof uploaded. We are verifying your payment.',
 } as const;
 
 /** Shown when the backend rejects the Bearer token during GCash submission. */

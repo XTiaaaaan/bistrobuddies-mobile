@@ -1,0 +1,55 @@
+<div class="proof-upload" data-testid="payment-proof-upload">
+  <span class="field-label">
+    GCash payment proof <em>(required)</em>
+  </span>
+  <p class="proof-hint">
+    Upload a screenshot or photo showing the GCash transaction/reference number.
+    JPEG, PNG, or WebP up to 5 MB.
+  </p>
+
+  <input
+    #proofPicker
+    class="proof-picker"
+    type="file"
+    [accept]="accept"
+    (change)="onFileSelected($event)"
+  />
+
+  @if (previewUrl(); as preview) {
+    <figure class="proof-preview" data-testid="payment-proof-preview">
+      <img [src]="preview" [alt]="fileName()" />
+      <figcaption>{{ fileName() }}</figcaption>
+    </figure>
+    <div class="proof-actions">
+      <button type="button" class="link-button" (click)="choose(proofPicker)">
+        Replace image
+      </button>
+      <button
+        type="button"
+        class="link-button link-button-danger"
+        data-testid="remove-payment-proof"
+        (click)="remove()"
+      >
+        <ion-icon name="close-circle" aria-hidden="true"></ion-icon>
+        Remove
+      </button>
+    </div>
+  } @else {
+    <ion-button
+      class="proof-choose"
+      fill="outline"
+      expand="block"
+      data-testid="choose-payment-proof"
+      (click)="choose(proofPicker)"
+    >
+      <ion-icon name="cloud-upload" slot="start"></ion-icon>
+      Choose payment proof image
+    </ion-button>
+  }
+
+  @if (errorMessage(); as error) {
+    <div class="proof-error" role="alert" data-testid="payment-proof-error">
+      {{ error }}
+    </div>
+  }
+</div>

@@ -9,6 +9,25 @@ import { OrderApiError, OrdersApiService } from '../../services/orders-api.servi
 import { OrdersService } from '../../services/orders.service';
 import { OrderDetailsPage } from './order-details.page';
 
+function proofResponse(id = 'order-1', paymentStatus = 'VERIFYING') {
+  return {
+    id,
+    paymentStatus,
+    paymentProof: {
+      url: 'https://res.cloudinary.com/test-cloud/image/upload/proof.png',
+      publicId: 'bistrobuddies/proof',
+      mimeType: 'image/png',
+      size: 16,
+      submittedBy: 'u1',
+      submittedAt: '2026-10-20T00:00:00.000Z',
+    },
+  };
+}
+
+function proofFile(): File {
+  return new File([new Uint8Array(16)], 'proof.png', { type: 'image/png' });
+}
+
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: 'order-1',
@@ -55,6 +74,7 @@ describe('OrderDetailsPage', () => {
 
   let submitGcashDetails: ReturnType<typeof vi.fn>;
   let cancelOrder: ReturnType<typeof vi.fn>;
+  let uploadPaymentProof: ReturnType<typeof vi.fn>;
 
   function setup(
     uid: string | null = 'u1',
@@ -69,12 +89,14 @@ describe('OrderDetailsPage', () => {
         orderStatus: 'CANCELLED',
         paymentStatus: 'PENDING',
       })
-    )
+    ),
+    proofUpload: ReturnType<typeof vi.fn> = vi.fn(() => Promise.resolve(proofResponse()))
   ): ComponentFixture<OrderDetailsPage> {
     order$ = new BehaviorSubject<Order | null>(initialOrder);
     watchSpy = vi.fn(() => watchFactory ? watchFactory() : (order$ as Observable<Order | null>));
     submitGcashDetails = gcashSubmit;
     cancelOrder = cancelApi;
+    uploadPaymentProof = proofUpload;
 
     TestBed.configureTestingModule({
       imports: [OrderDetailsPage],
@@ -82,7 +104,10 @@ describe('OrderDetailsPage', () => {
         provideRouter([]),
         { provide: AuthService, useValue: { uid$: of(uid) } },
         { provide: OrdersService, useValue: { watchOrder: watchSpy } },
-        { provide: OrdersApiService, useValue: { submitGcashDetails, cancelOrder } },
+        {
+          provide: OrdersApiService,
+          useValue: { submitGcashDetails, cancelOrder, uploadPaymentProof },
+        },
       ],
     });
 
@@ -209,6 +234,136 @@ describe('OrderDetailsPage', () => {
     expect(element.querySelector('app-gcash-submission-form')).toBeNull();
   });
 
+  it('should require and upload a payment proof for a pending GCash order', async () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({ paymentMethod: PaymentMethod.GCASH, paymentStatus: PaymentStatus.PENDING })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance;
+
+    expect(component.canUploadProof()).toBe(true);
+    expect(component.showProofPicker()).toBe(true);
+    expect(element.querySelector('[data-testid="gcash-proof-required-note"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="payment-proof-upload"]')).toBeTruthy();
+    expect(
+      (
+        element.querySelector(
+          '[data-testid="upload-proof-button"]'
+        ) as HTMLElement & { disabled: boolean }
+      ).disabled
+    ).toBe(true);
+
+    const file = proofFile();
+    component.onProofSelected(file);
+    fixture.detectChanges();
+
+    const upload = element.querySelector(
+      '[data-testid="upload-proof-button"]'
+    ) as HTMLElement & { disabled: boolean };
+    expect(upload.disabled).toBe(false);
+
+    await component.uploadProof();
+    fixture.detectChanges();
+
+    expect(uploadPaymentProof).toHaveBeenCalledWith('order-1', file);
+    expect(component.order()?.paymentStatus).toBe(PaymentStatus.VERIFYING);
+    expect(component.order()?.paymentProof?.url).toContain('proof.png');
+    expect(component.proofFile()).toBeNull();
+    expect(element.querySelector('[data-testid="gcash-proof-preview"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="payment-proof-upload"]')).toBeNull();
+  });
+
+  it('should replace an existing GCash payment proof', async () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        paymentMethod: PaymentMethod.GCASH,
+        paymentStatus: PaymentStatus.REJECTED,
+        paymentProof: {
+          url: 'https://example.com/old-proof.png',
+          mimeType: 'image/png',
+          submittedAt: null,
+        },
+      })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance;
+
+    expect(component.showProofPicker()).toBe(false);
+    expect(element.querySelector('[data-testid="replace-proof-button"]')).toBeTruthy();
+    expect(
+      (element.querySelector('[data-testid="gcash-proof-preview"] img') as HTMLImageElement)
+        .getAttribute('src')
+    ).toBe('https://example.com/old-proof.png');
+
+    component.openProofUpload();
+    fixture.detectChanges();
+    expect(element.querySelector('[data-testid="payment-proof-upload"]')).toBeTruthy();
+
+    component.onProofSelected(proofFile());
+    await component.uploadProof();
+    fixture.detectChanges();
+
+    expect(uploadPaymentProof).toHaveBeenCalledTimes(1);
+    expect(component.order()?.paymentStatus).toBe(PaymentStatus.VERIFYING);
+    expect(
+      (element.querySelector('[data-testid="gcash-proof-preview"] img') as HTMLImageElement)
+        .getAttribute('src')
+    ).toContain('proof.png');
+    expect(component.proofUploadOpen()).toBe(false);
+  });
+
+  it('should show an error and keep the selected file when proof upload fails', async () => {
+    const failing = vi.fn(() =>
+      Promise.reject(new OrderApiError('The server rejected the request (500).', 500))
+    );
+    const fixture = setup(
+      'u1',
+      makeOrder({ paymentMethod: PaymentMethod.GCASH, paymentStatus: PaymentStatus.PENDING }),
+      undefined,
+      undefined,
+      undefined,
+      failing
+    );
+    const element = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance;
+
+    const file = proofFile();
+    component.onProofSelected(file);
+    await component.uploadProof();
+    fixture.detectChanges();
+
+    expect(component.proofError()).toBe('The server rejected the request (500).');
+    expect(component.proofFile()).toBe(file);
+    expect(element.querySelector('[data-testid="gcash-proof-error"]')).toBeTruthy();
+  });
+
+  it('should send the customer back to login when proof upload expires the session', async () => {
+    const expired = vi.fn(() =>
+      Promise.reject(new OrderApiError('Authentication is required.', 401))
+    );
+    const fixture = setup(
+      'u1',
+      makeOrder({ paymentMethod: PaymentMethod.GCASH, paymentStatus: PaymentStatus.PENDING }),
+      undefined,
+      undefined,
+      undefined,
+      expired
+    );
+    const router = TestBed.inject(Router);
+    const navigate = vi.fn(() => Promise.resolve(true));
+    vi.spyOn(router, 'navigate').mockImplementation(navigate);
+    const component = fixture.componentInstance;
+
+    component.onProofSelected(proofFile());
+    await component.uploadProof();
+
+    expect(navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { redirect: '/my-orders/order-1', reason: 'expired' },
+    });
+  });
+
   it('should show a paid note and no form for a paid GCash order', () => {
     const fixture = setup(
       'u1',
@@ -261,7 +416,10 @@ describe('OrderDetailsPage', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(fixture.componentInstance.isGcashOrder()).toBe(false);
+    expect(fixture.componentInstance.canUploadProof()).toBe(false);
     expect(element.querySelector('[data-testid="gcash-payment-section"]')).toBeNull();
+    expect(element.querySelector('[data-testid="payment-proof-upload"]')).toBeNull();
+    expect(element.querySelector('[data-testid="gcash-proof-preview"]')).toBeNull();
     expect(element.textContent).toContain('COD');
   });
 
