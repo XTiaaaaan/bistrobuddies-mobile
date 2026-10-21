@@ -26,6 +26,7 @@ import {
   paymentMethodLabel,
   paymentStatusClass,
   paymentStatusLabel,
+  showPaymentStatus as isPaymentStatusVisible,
 } from '../../core/orders/order-display';
 import { GCASH_MESSAGES, GCASH_QR_ASSET } from '../../core/payment/gcash';
 import { PAYMENT_PROOF_MESSAGES } from '../../core/payment/payment-proof';
@@ -128,13 +129,22 @@ export class OrderDetailsPage implements OnInit {
   });
   /** Shown after a rejection so the customer understands what to do. */
   readonly gcashRejected = computed(
-    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.REJECTED
+    () =>
+      !this.cancelled() &&
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.REJECTED
   );
   readonly gcashVerifying = computed(
-    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.VERIFYING
+    () =>
+      !this.cancelled() &&
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.VERIFYING
   );
   readonly gcashPaid = computed(
-    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.PAID
+    () =>
+      !this.cancelled() &&
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.PAID
   );
   readonly canResubmit = computed(
     () =>
@@ -352,6 +362,11 @@ export class OrderDetailsPage implements OnInit {
 
   paymentMethod(order: Order): string {
     return paymentMethodLabel(order.paymentMethod);
+  }
+
+  /** Payment status badges are hidden for cancelled orders. */
+  showPaymentStatus(order: Order): boolean {
+    return isPaymentStatusVisible(order);
   }
 
   itemCount(order: Order): number {

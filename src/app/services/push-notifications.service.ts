@@ -17,6 +17,7 @@ import {
   ORDER_NOTIFICATION_CHANNEL_ID,
   OrderNotificationData,
   orderNotificationChannel,
+  orderNotificationFallbackTitle,
   orderNotificationId,
   parseOrderNotificationData,
 } from '../core/notifications/notifications';
@@ -260,7 +261,9 @@ export class PushNotificationsService {
         notifications: [
           {
             id: orderNotificationId(data),
-            title: notification.title?.trim() || fallbackTitle(data),
+            title:
+              notification.title?.trim() ||
+              orderNotificationFallbackTitle(data),
             body:
               notification.body?.trim() ||
               'Your BistroBuddies order was updated.',
@@ -318,15 +321,6 @@ export class PushNotificationsService {
       ? platform
       : 'unknown';
   }
-}
-
-function fallbackTitle(data: OrderNotificationData): string {
-  if (data.type === 'PAYMENT_DECISION') {
-    return data.paymentStatus === 'PAID'
-      ? 'Payment approved'
-      : 'Payment rejected';
-  }
-  return data.orderStatusLabel || 'Order updated';
 }
 
 function readStoredToken(): StoredDeviceToken | null {

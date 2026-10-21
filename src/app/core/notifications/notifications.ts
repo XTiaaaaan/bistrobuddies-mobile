@@ -1,5 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
+import { orderStatusLabel } from '../orders/order-display';
 import {
   Channel,
   LocalNotifications,
@@ -86,6 +87,26 @@ export function orderNotificationChannel(): Channel {
     sound: 'default',
     vibration: true,
   };
+}
+
+/**
+ * Fallback title when the push payload has no title. Raw order statuses are
+ * mapped through the same customer-facing labels as the rest of the app, so
+ * COMPLETED reads as Delivered rather than the raw backend token.
+ */
+export function orderNotificationFallbackTitle(
+  data: OrderNotificationData
+): string {
+  if (data.type === 'PAYMENT_DECISION') {
+    return data.paymentStatus === 'PAID'
+      ? 'Payment approved'
+      : 'Payment rejected';
+  }
+  return (
+    orderStatusLabel(data.orderStatus) ||
+    data.orderStatusLabel ||
+    'Order updated'
+  );
 }
 
 /** Stable, positive 31-bit id so repeated updates replace the previous tray entry. */

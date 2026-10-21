@@ -5,9 +5,6 @@
 >
   <div class="progress-head">
     <h3 class="card-title">Order progress</h3>
-    <span class="mode">
-      {{ progress().fulfillmentType === 'DELIVERY' ? 'Delivery' : 'Pickup' }}
-    </span>
   </div>
 
   @if (progress().cancelled) {

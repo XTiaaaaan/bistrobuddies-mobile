@@ -28,17 +28,6 @@ $tan: #e8d9c5;
   margin: 0;
 }
 
-.mode {
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: rgba(168, 124, 79, 0.14);
-  color: #8a6234;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
 .progress-list {
   list-style: none;
   margin: 0;
@@ -130,6 +119,19 @@ $tan: #e8d9c5;
     .marker {
       border-color: $gold;
       box-shadow: 0 0 0 4px rgba(168, 124, 79, 0.16);
+
+      /* The stage the order has reached is checked, in the current-stage gold. */
+      &::after {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 2px;
+        width: 5px;
+        height: 10px;
+        border: solid $gold;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
     }
   }
 }

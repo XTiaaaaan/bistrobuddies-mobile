@@ -1,13 +1,7 @@
 import { Order, OrderStatus } from '../../models/order.model';
-import {
-  buildOrderProgress,
-  resolveFulfillmentType,
-} from './order-progress';
+import { buildOrderProgress } from './order-progress';
 
-type ProgressOrder = Pick<
-  Order,
-  'orderStatus' | 'fulfillmentType' | 'addressSnapshot'
->;
+type ProgressOrder = Pick<Order, 'orderStatus'>;
 
 function makeOrder(
   orderStatus: OrderStatus,
@@ -15,12 +9,6 @@ function makeOrder(
 ): ProgressOrder {
   return {
     orderStatus,
-    fulfillmentType: null,
-    addressSnapshot: {
-      recipientName: 'Juan dela Cruz',
-      phone: '09171234567',
-      address: '123 Rizal St, Manila',
-    },
     ...overrides,
   };
 }
@@ -39,7 +27,13 @@ describe('buildOrderProgress', () => {
       OrderStatus.OUT_FOR_DELIVERY,
       OrderStatus.COMPLETED,
     ]);
-    expect(progress.stages.map((stage) => stage.label)).toContain('On the Way');
+    expect(progress.stages.map((stage) => stage.label)).toEqual([
+      'Confirmed',
+      'Preparing',
+      'Ready',
+      'On the Way',
+      'Delivered',
+    ]);
     expect(progress.current).toBe(OrderStatus.OUT_FOR_DELIVERY);
     expect(progress.stages.map((stage) => stage.state)).toEqual([
       'complete',
@@ -70,40 +64,22 @@ describe('buildOrderProgress', () => {
     ).toBe(true);
   });
 
-  it('marks every stage complete for a completed delivery order', () => {
+  it('never treats READY as a delivered order', () => {
+    const progress = buildOrderProgress(makeOrder(OrderStatus.READY));
+
+    expect(progress.current).toBe(OrderStatus.READY);
+    expect(progress.stages[2]?.label).toBe('Ready');
+    expect(progress.stages[2]?.state).toBe('current');
+    expect(progress.stages[3]?.state).toBe('upcoming');
+    expect(progress.stages[4]?.state).toBe('upcoming');
+    expect(progress.stages[4]?.label).toBe('Delivered');
+  });
+
+  it('marks every stage complete and labels the last stage Delivered for a completed order', () => {
     const progress = buildOrderProgress(makeOrder(OrderStatus.COMPLETED));
 
     expect(progress.current).toBe(OrderStatus.COMPLETED);
-    expect(progress.stages.every((stage) => stage.state === 'complete')).toBe(
-      true
-    );
-  });
-
-  it('skips On the Way for pickup orders', () => {
-    const progress = buildOrderProgress(
-      makeOrder(OrderStatus.READY, { fulfillmentType: 'PICKUP' })
-    );
-
-    expect(progress.fulfillmentType).toBe('PICKUP');
-    expect(progress.stages.map((stage) => stage.status)).toEqual([
-      OrderStatus.CONFIRMED,
-      OrderStatus.PREPARING,
-      OrderStatus.READY,
-      OrderStatus.COMPLETED,
-    ]);
-    expect(progress.stages.map((stage) => stage.status)).not.toContain(
-      OrderStatus.OUT_FOR_DELIVERY
-    );
-    expect(progress.current).toBe(OrderStatus.READY);
-    expect(progress.stages[2]?.state).toBe('current');
-  });
-
-  it('never shows On the Way for a pickup status sequence', () => {
-    const progress = buildOrderProgress(
-      makeOrder(OrderStatus.COMPLETED, { fulfillmentType: 'PICKUP' })
-    );
-
-    expect(progress.stages).toHaveLength(4);
+    expect(progress.stages[4]?.label).toBe('Delivered');
     expect(progress.stages.every((stage) => stage.state === 'complete')).toBe(
       true
     );
@@ -138,53 +114,5 @@ describe('buildOrderProgress', () => {
     expect(progress.stages.every((stage) => stage.state === 'upcoming')).toBe(
       true
     );
-  });
-
-  it('treats On the Way as delivery even without an address snapshot', () => {
-    const progress = buildOrderProgress(
-      makeOrder(OrderStatus.OUT_FOR_DELIVERY, {
-        addressSnapshot: {
-          recipientName: '',
-          phone: '',
-          address: '',
-        },
-      })
-    );
-
-    expect(progress.fulfillmentType).toBe('DELIVERY');
-    expect(progress.stages.map((stage) => stage.status)).toContain(
-      OrderStatus.OUT_FOR_DELIVERY
-    );
-  });
-});
-
-describe('resolveFulfillmentType', () => {
-  it('prefers an explicit fulfilment type over the address fallback', () => {
-    expect(
-      resolveFulfillmentType(
-        makeOrder(OrderStatus.CONFIRMED, { fulfillmentType: 'pickup' })
-      )
-    ).toBe('PICKUP');
-    expect(
-      resolveFulfillmentType(
-        makeOrder(OrderStatus.CONFIRMED, { fulfillmentType: 'self-collect' })
-      )
-    ).toBe('PICKUP');
-  });
-
-  it('falls back to delivery for historic orders with an address', () => {
-    expect(resolveFulfillmentType(makeOrder(OrderStatus.CONFIRMED))).toBe(
-      'DELIVERY'
-    );
-  });
-
-  it('falls back to pickup when there is no address', () => {
-    expect(
-      resolveFulfillmentType(
-        makeOrder(OrderStatus.CONFIRMED, {
-          addressSnapshot: { recipientName: '', phone: '', address: '  ' },
-        })
-      )
-    ).toBe('PICKUP');
   });
 });

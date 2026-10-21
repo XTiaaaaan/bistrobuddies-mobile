@@ -1,6 +1,7 @@
 import {
   ORDER_NOTIFICATION_CHANNEL_ID,
   orderNotificationChannel,
+  orderNotificationFallbackTitle,
   orderNotificationId,
   parseOrderNotificationData,
 } from './notifications';
@@ -50,6 +51,37 @@ describe('notification payload helpers', () => {
     expect(channel.id).toBe(ORDER_NOTIFICATION_CHANNEL_ID);
     expect(channel.importance).toBe(5);
     expect(channel.sound).toBe('default');
+  });
+
+  it('uses the customer-facing status label in notification titles', () => {
+    expect(
+      orderNotificationFallbackTitle({
+        type: 'ORDER_STATUS',
+        orderId: 'order-1',
+        orderStatus: 'COMPLETED',
+      })
+    ).toBe('Delivered');
+    expect(
+      orderNotificationFallbackTitle({
+        type: 'ORDER_STATUS',
+        orderId: 'order-1',
+        orderStatus: 'OUT_FOR_DELIVERY',
+      })
+    ).toBe('On the Way');
+    expect(
+      orderNotificationFallbackTitle({
+        type: 'ORDER_STATUS',
+        orderId: 'order-1',
+        orderStatus: 'READY',
+      })
+    ).toBe('Ready');
+    expect(
+      orderNotificationFallbackTitle({
+        type: 'ORDER_STATUS',
+        orderId: 'order-1',
+        orderStatusLabel: 'Legacy title',
+      })
+    ).toBe('Legacy title');
   });
 
   it('assigns a stable positive id per status update', () => {

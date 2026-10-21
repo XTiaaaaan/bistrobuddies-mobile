@@ -135,6 +135,73 @@ describe('MyOrdersPage', () => {
     expect(element.querySelector('.st-pending')).toBeNull();
   });
 
+  it('should render the customer-facing labels for every order status', () => {
+    const fixture = setup('u1', [
+      makeOrder({ id: 'confirmed', orderStatus: OrderStatus.CONFIRMED }),
+      makeOrder({ id: 'preparing', orderStatus: OrderStatus.PREPARING }),
+      makeOrder({ id: 'ready', orderStatus: OrderStatus.READY }),
+      makeOrder({ id: 'on-the-way', orderStatus: OrderStatus.OUT_FOR_DELIVERY }),
+      makeOrder({ id: 'delivered', orderStatus: OrderStatus.COMPLETED }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Confirmed');
+    expect(element.textContent).toContain('Preparing');
+    expect(element.textContent).toContain('Ready');
+    expect(element.textContent).toContain('On the Way');
+    expect(element.textContent).toContain('Delivered');
+    expect(element.textContent).not.toContain('Completed');
+  });
+
+  it('should not render a redundant Delivery tag on order cards', () => {
+    const fixture = setup('u1', [makeOrder()]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).not.toContain('Delivery');
+  });
+
+  it('should show the backend PAID status for a delivered COD order without changing it', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.COMPLETED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PAID,
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Delivered');
+    expect(element.textContent).toContain('Paid');
+    expect(element.querySelector('.pay-paid')).toBeTruthy();
+  });
+
+  it('should leave a delivered GCash order unpaid until the backend verifies it', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.COMPLETED,
+        paymentMethod: PaymentMethod.GCASH,
+        paymentStatus: PaymentStatus.PENDING,
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Delivered');
+    expect(element.textContent).toContain('Pending');
+    expect(element.querySelector('.pay-pending')).toBeTruthy();
+    expect(element.querySelector('.pay-paid')).toBeNull();
+  });
+
+  it('should handle a legacy order with missing payment status safely', () => {
+    const fixture = setup('u1', [
+      makeOrder({ paymentStatus: undefined as unknown as PaymentStatus }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(fixture.componentInstance.status()).toBe('ready');
+    expect(element.querySelector('.pay-pending')).toBeTruthy();
+    expect(element.textContent).toContain('Pending');
+  });
+
   it('should render a GCash verifying payment status with an understandable label', () => {
     const fixture = setup('u1', [
       makeOrder({
@@ -197,9 +264,11 @@ describe('MyOrdersPage', () => {
     expect(refundRow?.textContent).toContain('Refund not recorded');
     expect(refundRow?.textContent).toContain('Order cancelled — refund not recorded yet.');
     expect(element.querySelector('.refund-none')).toBeTruthy();
-    // Cancellation stays separate from payment status.
     expect(element.querySelector('.st-cancelled')).toBeTruthy();
-    expect(element.querySelector('.pay-pending')).toBeTruthy();
+    // Payment status badges are hidden for cancelled orders.
+    expect(element.querySelector('.pay-pending')).toBeNull();
+    expect(element.querySelector('.pay-paid')).toBeNull();
+    expect(element.querySelector('.pay-verifying')).toBeNull();
   });
 
   it('should show a cancelled historic order without refund fields as not recorded', () => {
@@ -258,7 +327,7 @@ describe('MyOrdersPage', () => {
     expect(element.querySelector('.refund-completed')).toBeTruthy();
   });
 
-  it('should preserve GCash method and payment status on a cancelled refunded order', () => {
+  it('should keep the GCash method but hide payment status on a cancelled refunded order', () => {
     const fixture = setup('u1', [
       makeOrder({
         orderStatus: OrderStatus.CANCELLED,
@@ -274,10 +343,10 @@ describe('MyOrdersPage', () => {
     ]);
     const element = fixture.nativeElement as HTMLElement;
 
-    // My Orders keeps the GCash method label and the PAID payment badge intact.
+    // The payment method stays useful, but the stored payment status is hidden.
     expect(element.textContent).toContain('GCash');
-    expect(element.querySelector('.pay-paid')).toBeTruthy();
-    expect(element.textContent).toContain('Paid');
+    expect(element.querySelector('.pay-paid')).toBeNull();
+    expect(element.textContent).not.toContain('Paid');
     expect(element.querySelector('.st-cancelled')).toBeTruthy();
     expect(element.querySelector('[data-testid="order-refund-status"]')).toBeTruthy();
   });

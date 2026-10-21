@@ -2,15 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Order, OrderStatus } from '../../models/order.model';
 import { OrderProgressTrackerComponent } from './order-progress-tracker.component';
 
-type ProgressOrder = Pick<
-  Order,
-  'orderStatus' | 'fulfillmentType' | 'addressSnapshot'
->;
-
-function makeOrder(
-  orderStatus: OrderStatus,
-  overrides: Partial<ProgressOrder> = {}
-): Order {
+function makeOrder(orderStatus: OrderStatus): Order {
   return {
     orderStatus,
     fulfillmentType: null,
@@ -19,7 +11,6 @@ function makeOrder(
       phone: '09171234567',
       address: '123 Rizal St, Manila',
     },
-    ...overrides,
   } as Order;
 }
 
@@ -54,20 +45,34 @@ describe('OrderProgressTrackerComponent', () => {
     expect(element.textContent).toContain('Current');
   });
 
-  it('renders four stages for pickup and omits On the Way', () => {
-    const fixture = setup(
-      makeOrder(OrderStatus.READY, { fulfillmentType: 'PICKUP' })
-    );
+  it('does not render a separate Delivery tag and never treats Ready as Delivered', () => {
+    const fixture = setup(makeOrder(OrderStatus.READY));
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(
-      element.querySelectorAll('[data-testid="order-progress"] li')
-    ).toHaveLength(4);
-    expect(element.textContent).not.toContain('On the Way');
-    expect(element.textContent).toContain('Pickup');
+    expect(element.querySelector('.mode')).toBeNull();
+    expect(element.textContent).not.toContain('Delivery');
+    expect(element.textContent).toContain('Ready');
     expect(
       element.querySelector('[data-status="READY"]')?.getAttribute('data-state')
     ).toBe('current');
+    expect(
+      element
+        .querySelector('[data-status="COMPLETED"]')
+        ?.getAttribute('data-state')
+    ).toBe('upcoming');
+  });
+
+  it('labels the final stage Delivered', () => {
+    const fixture = setup(makeOrder(OrderStatus.COMPLETED));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Delivered');
+    expect(element.textContent).not.toContain('Completed');
+    expect(
+      element
+        .querySelector('[data-status="COMPLETED"]')
+        ?.getAttribute('data-state')
+    ).toBe('complete');
   });
 
   it('shows a cancellation notice instead of stages', () => {

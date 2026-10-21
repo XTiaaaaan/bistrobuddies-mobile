@@ -9,6 +9,7 @@ import {
   paymentMethodLabel,
   paymentStatusClass,
   paymentStatusLabel,
+  showPaymentStatus,
 } from './order-display';
 
 describe('order display helpers', () => {
@@ -18,7 +19,7 @@ describe('order display helpers', () => {
     expect(orderStatusLabel(OrderStatus.PREPARING)).toBe('Preparing');
     expect(orderStatusLabel(OrderStatus.READY)).toBe('Ready');
     expect(orderStatusLabel(OrderStatus.OUT_FOR_DELIVERY)).toBe('On the Way');
-    expect(orderStatusLabel(OrderStatus.COMPLETED)).toBe('Completed');
+    expect(orderStatusLabel(OrderStatus.COMPLETED)).toBe('Delivered');
     expect(orderStatusLabel(OrderStatus.CANCELLED)).toBe('Cancelled');
 
     expect(orderStatusClass(OrderStatus.PREPARING)).toBe('badge st-preparing');
@@ -45,6 +46,19 @@ describe('order display helpers', () => {
   it('should fall back to a readable label for unknown statuses', () => {
     expect(paymentStatusLabel('SOMETHING_NEW')).toBe('Something new');
     expect(paymentStatusLabel(undefined)).toBe('Pending');
+    expect(orderStatusLabel('WAITING_FOR_COURIER')).toBe(
+      'Waiting for courier'
+    );
+    expect(orderStatusLabel(undefined)).toBe('');
+    expect(orderStatusLabel('COMPLETED')).toBe('Delivered');
+  });
+
+  it('should hide payment status only for cancelled orders', () => {
+    expect(showPaymentStatus({ orderStatus: OrderStatus.CONFIRMED })).toBe(true);
+    expect(showPaymentStatus({ orderStatus: OrderStatus.COMPLETED })).toBe(true);
+    expect(showPaymentStatus({ orderStatus: OrderStatus.CANCELLED })).toBe(false);
+    expect(showPaymentStatus(null)).toBe(false);
+    expect(showPaymentStatus(undefined)).toBe(false);
   });
 
   it('should label payment methods, keeping legacy ONLINE orders readable', () => {
