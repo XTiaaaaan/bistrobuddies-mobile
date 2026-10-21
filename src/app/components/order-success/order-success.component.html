@@ -1,0 +1,144 @@
+<section
+  class="order-success bb-pop"
+  role="status"
+  aria-live="polite"
+  data-testid="order-success"
+>
+  <header class="success-hero">
+    <div class="success-illustration" aria-hidden="true">
+      <span class="success-steam"><span></span><span></span><span></span></span>
+      <span class="success-cup">
+        <ion-icon name="cafe"></ion-icon>
+      </span>
+      <span class="success-check">
+        <ion-icon name="checkmark"></ion-icon>
+      </span>
+    </div>
+
+    <p class="success-kicker">Freshly brewed for you</p>
+    <h2 class="success-title">Your Order Is Confirmed!</h2>
+    <p class="success-message">
+      Thank you for ordering from BistroBuddies. We have received your coffee
+      order and our team will take care of the rest.
+    </p>
+
+    <div class="success-ref">
+      <span class="ref-label">Order ID</span>
+      <span class="ref-value" data-testid="order-id">{{ order().id }}</span>
+    </div>
+  </header>
+
+  <div class="success-body">
+    <section class="success-block" data-testid="order-summary">
+      <div class="success-block-head">
+        <h3 class="success-block-title">Your Coffee</h3>
+        <span class="success-block-meta">
+          {{ itemCount() }} item{{ itemCount() === 1 ? '' : 's' }}
+        </span>
+      </div>
+
+      @if (items().length > 0) {
+        <div class="success-items">
+          @for (item of items(); track item.productId + item.size + item.sugar) {
+            <div class="success-item" data-testid="order-item">
+              @if (item.productImage) {
+                <img [src]="item.productImage" [alt]="item.productName" />
+              } @else {
+                <span class="image-fallback">
+                  <ion-icon name="cafe"></ion-icon>
+                </span>
+              }
+              <div class="success-item-info">
+                <p class="success-item-name">{{ item.productName }}</p>
+                <p class="success-item-meta">{{ itemMeta(item) }}</p>
+              </div>
+              <span class="success-item-price">{{ formatPrice(item.itemSubtotal) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="success-empty-items">
+          Your order items are available in My Orders.
+        </p>
+      }
+    </section>
+
+    <section class="success-block">
+      <h3 class="success-block-title">Payment Summary</h3>
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span>{{ formatPrice(order().subtotal) }}</span>
+      </div>
+      @if (order().deliveryFee > 0) {
+        <div class="summary-row">
+          <span>Delivery fee</span>
+          <span>{{ formatPrice(order().deliveryFee) }}</span>
+        </div>
+      }
+      @if (discount() > 0) {
+        <div class="summary-row discount" data-testid="order-discount">
+          <span>Discount</span>
+          <span>-{{ formatPrice(discount()) }}</span>
+        </div>
+      }
+      <div class="summary-row total">
+        <span>Total</span>
+        <span data-testid="order-total">{{ formatPrice(order().total) }}</span>
+      </div>
+    </section>
+
+    <section class="success-block">
+      <h3 class="success-block-title">Payment</h3>
+      <div class="success-detail-row">
+        <span class="success-detail-label">Method</span>
+        <span class="success-detail-value" data-testid="payment-method">
+          {{ paymentMethodLabel() }}
+        </span>
+      </div>
+      <div class="success-detail-row">
+        <span class="success-detail-label">Payment status</span>
+        <span class="success-status-pill" data-testid="payment-status">
+          {{ paymentStatusLabel() }}
+        </span>
+      </div>
+      <div class="success-detail-row">
+        <span class="success-detail-label">Order status</span>
+        <span class="success-detail-value" data-testid="order-status">
+          {{ orderStatusLabel() }}
+        </span>
+      </div>
+
+      @if (statusMessage(); as statusMessage) {
+        <p class="success-status-note">{{ statusMessage }}</p>
+      }
+      @if (!isGcash()) {
+        <p class="success-status-note" data-testid="cod-status-note">
+          Please prepare the exact amount and pay in cash when your order
+          arrives.
+        </p>
+      }
+    </section>
+
+    <ng-content select="[order-success-extra]"></ng-content>
+
+    <div class="success-actions">
+      <ion-button
+        class="track-button"
+        expand="block"
+        data-testid="track-order-button"
+        (click)="track.emit()"
+      >
+        Track My Order
+      </ion-button>
+      <ion-button
+        class="continue-button"
+        fill="outline"
+        expand="block"
+        data-testid="continue-shopping-button"
+        (click)="continueShopping.emit()"
+      >
+        Continue Shopping
+      </ion-button>
+    </div>
+  </div>
+</section>

@@ -242,7 +242,8 @@ describe('CheckoutPage', () => {
 
     expect(cart.items()).toEqual([]);
     expect(component.placedOrder()?.id).toBe('order-1');
-    expect(navigate).toHaveBeenCalledWith(['/my-orders']);
+    expect(component.confirmation()?.id).toBe('order-1');
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('confirms the order summary with the customer before placing it', async () => {
@@ -258,16 +259,42 @@ describe('CheckoutPage', () => {
 
     const options = alertCreate.mock.calls[0][0] as {
       header: string;
+      subHeader: string;
       message: string;
-      buttons: { text: string; role?: string; handler?: () => void }[];
+      cssClass: string;
+      buttons: { text: string; role?: string; cssClass?: string; handler?: () => void }[];
     };
     expect(options.header).toBe('Place your order?');
-    expect(options.message).toContain('2 items');
-    expect(options.message).toContain('₱200.00');
-    expect(options.message).toContain('COD');
+    expect(options.subHeader).toContain('2 items');
+    expect(options.subHeader).toContain('₱200.00');
+    expect(options.message).toContain('Payment: COD');
+    expect(options.cssClass).toBe('bb-order-alert');
+    expect(options.buttons.map((button) => button.text)).toEqual(['Go Back', 'Place Order']);
+    expect(options.buttons[0]).toEqual(
+      expect.objectContaining({ role: 'cancel', cssClass: 'bb-order-cancel' })
+    );
+    expect(options.buttons[1].cssClass).toBe('bb-order-confirm');
 
     options.buttons.find((button) => button.text === 'Place Order')?.handler?.();
     expect(createOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the GCash method in the redesigned order confirmation', async () => {
+    const { component, alertCreate } = setup();
+
+    fillContact(component);
+    selectGcash(component);
+    fillGcash(component);
+    selectProof(component);
+    await component.confirmAndPlaceOrder();
+
+    const options = alertCreate.mock.calls[0][0] as {
+      subHeader: string;
+      message: string;
+    };
+    expect(options.subHeader).toContain('Total ₱200.00');
+    expect(options.message).toContain('Payment: GCash');
+    expect(options.message).toContain('scanning the QR code');
   });
 
   it('does not place the order when the confirmation is cancelled', async () => {
@@ -303,7 +330,7 @@ describe('CheckoutPage', () => {
     expect(createOrder).toHaveBeenCalledTimes(1);
   });
 
-  it('should show a confirmation with the order id and totals after ordering', async () => {
+  it('should show the success screen with the order id and totals after ordering', async () => {
     const { fixture, component } = setup([item({ quantity: 2, unitPrice: 100 })]);
 
     fillContact(component);
@@ -311,12 +338,86 @@ describe('CheckoutPage', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.textContent).toContain('Order placed!');
+    expect(element.querySelector('[data-testid="order-success"]')).toBeTruthy();
+    expect(element.textContent).toContain('Your Order Is Confirmed!');
     expect(element.querySelector('[data-testid="order-id"]')?.textContent).toContain('order-1');
     expect(element.textContent).toContain('₱200.00');
     expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
       'Pending'
     );
+  });
+
+  it('shows the item summary, total and COD method on the success screen', async () => {
+    const { fixture, component } = setup(
+      [
+        item({ quantity: 2, unitPrice: 100 }),
+        item({
+          productId: 'p2',
+          productName: 'Iced Mocha',
+          size: 'large',
+          sugar: 'No Sugar',
+          quantity: 1,
+          unitPrice: 150,
+        }),
+      ],
+      null,
+      vi.fn(() =>
+        Promise.resolve(orderResponse('order-1', { subtotal: 350, total: 350 }))
+      )
+    );
+
+    fillContact(component);
+    await component.placeOrder();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const summary = element.querySelector('[data-testid="order-summary"]');
+    const items = element.querySelectorAll('[data-testid="order-item"]');
+
+    expect(items).toHaveLength(2);
+    expect(summary?.textContent).toContain('House Latte');
+    expect(summary?.textContent).toContain('small · Regular · x2');
+    expect(summary?.textContent).toContain('Iced Mocha');
+    expect(summary?.textContent).toContain('large · No Sugar · x1');
+    expect(summary?.textContent).toContain('₱200.00');
+    expect(summary?.textContent).toContain('₱150.00');
+
+    expect(element.querySelector('[data-testid="payment-method"]')?.textContent).toContain(
+      'Cash on Delivery (COD)'
+    );
+    expect(element.querySelector('[data-testid="cod-status-note"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="order-total"]')?.textContent).toContain(
+      '₱350.00'
+    );
+  });
+
+  it('navigates to tracking and continue shopping from the success screen', async () => {
+    const { fixture, component, navigate } = setup();
+
+    fillContact(component);
+    await component.placeOrder();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[data-testid="track-order-button"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="continue-shopping-button"]')).toBeTruthy();
+
+    component.trackOrder();
+    expect(navigate).toHaveBeenCalledWith(['/my-orders', 'order-1']);
+
+    component.continueShopping();
+    expect(navigate).toHaveBeenCalledWith(['/products']);
+  });
+
+  it('does not create another order when Place Order is pressed again after success', async () => {
+    const { component, createOrder } = setup();
+
+    fillContact(component);
+    await component.placeOrder();
+    expect(createOrder).toHaveBeenCalledTimes(1);
+
+    await component.placeOrder();
+    expect(createOrder).toHaveBeenCalledTimes(1);
   });
 
   it('should reject an obviously invalid phone number before ordering', async () => {
@@ -546,11 +647,20 @@ describe('CheckoutPage', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[data-testid="order-success"]')).toBeTruthy();
+    expect(element.textContent).toContain('Your Order Is Confirmed!');
+    expect(element.querySelector('[data-testid="payment-method"]')?.textContent).toContain(
+      'GCash'
+    );
     expect(element.querySelector('[data-testid="gcash-notice"]')).toBeTruthy();
     expect(element.querySelector('[data-testid="gcash-payment-panel"]')).toBeNull();
     expect(element.textContent).toContain('verify');
     expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
       'Verifying'
+    );
+    // The order was placed, but the payment is not marked as complete.
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).not.toContain(
+      'Paid'
     );
   });
 
@@ -663,13 +773,17 @@ describe('CheckoutPage', () => {
 
   it('should keep the cart and show an error when order creation fails', async () => {
     const failing = vi.fn(() => Promise.reject(new Error('permission denied')));
-    const { component, cart, navigate } = setup([item()], null, failing);
+    const { fixture, component, cart, navigate } = setup([item()], null, failing);
 
     fillContact(component);
     await component.placeOrder();
+    fixture.detectChanges();
 
+    const element = fixture.nativeElement as HTMLElement;
     expect(failing).toHaveBeenCalledTimes(1);
     expect(cart.items().length).toBe(1);
+    expect(component.placedOrder()).toBeNull();
+    expect(element.querySelector('[data-testid="order-success"]')).toBeNull();
     expect(component.errorMessage()).toContain('could not place your order');
     expect(component.submitting()).toBe(false);
     expect(navigate).not.toHaveBeenCalled();

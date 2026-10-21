@@ -1,139 +1,107 @@
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/cart" text="Cart"></ion-back-button>
+      @if (!confirmation()) {
+        <ion-back-button defaultHref="/cart" text="Cart"></ion-back-button>
+      }
     </ion-buttons>
-    <ion-title>Checkout</ion-title>
+    <ion-title>{{ confirmation() ? 'Order Confirmed' : 'Checkout' }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
   <div class="checkout-page">
     @if (confirmation(); as order) {
-      <section class="card confirmation bb-pop" role="status">
-        <span class="confirmation-mark" aria-hidden="true">
-          <ion-icon name="checkmark"></ion-icon>
-        </span>
-        <h3 class="confirmation-title">Order placed!</h3>
-        @if (isGcashOrder()) {
-          <p class="confirmation-hint" data-testid="gcash-payment-hint">
-            Scan the QR code below to pay with GCash, then submit your details.
-          </p>
-        } @else {
-          <p class="confirmation-hint">
-            Please pay cash when your order is delivered.
-          </p>
-        }
-
-        <div class="confirmation-ref">
-          <span class="ref-label">Order ID</span>
-          <span class="ref-value" data-testid="order-id">{{ order.id }}</span>
-        </div>
-
-        @if (gcashNotice(); as notice) {
-          <div class="gcash-notice" role="status" data-testid="gcash-notice">{{ notice }}</div>
-        } @else if (showGcashPaymentPanel()) {
-          <div class="gcash-panel" data-testid="gcash-payment-panel">
-            @if (gcashDetailsFailed()) {
-              <div class="gcash-notice" role="alert" data-testid="gcash-submit-error">
-                {{ gcashMessages.submissionFailed }}
-              </div>
-            }
-            @if (gcashProofFailed()) {
-              <div class="gcash-notice" role="alert" data-testid="gcash-proof-submit-error">
-                {{ gcashProofError() || gcashMessages.proofFailed }}
-              </div>
-            }
-            <h4 class="gcash-title">Pay with GCash</h4>
-            <ol class="gcash-steps">
-              <li>{{ gcashMessages.scanning }}</li>
-              <li>{{ gcashMessages.exactAmount }}</li>
-              <li>Enter the account name and number you paid from below.</li>
-              <li>Upload a screenshot or photo showing the GCash reference number.</li>
-            </ol>
-
-            <figure class="gcash-qr">
-              <img [src]="gcashQrAsset" alt="GCash payment QR code" />
-              <figcaption>Official BistroBuddies GCash QR code</figcaption>
-            </figure>
-
-            <div class="gcash-amount">
-              <span>Amount to pay</span>
-              <strong data-testid="gcash-amount">{{ formatPrice(order.total) }}</strong>
-            </div>
-
-            @if (!gcashDetailsSubmitted()) {
-              <app-gcash-submission-form
-                [orderId]="order.id"
-                [initialName]="gcashName()"
-                [initialNumber]="gcashNumber()"
-                (submitted)="onGcashSubmitted($event)"
-                (sessionExpired)="onGcashSessionExpired()"
-              ></app-gcash-submission-form>
-            } @else {
-              <p class="gcash-status-note" data-testid="gcash-details-submitted">
-                GCash account details submitted.
-              </p>
-            }
-
-            @if (!gcashProofUploaded()) {
-              <app-payment-proof-upload
-                (fileSelected)="onGcashProofSelected($event)"
-              ></app-payment-proof-upload>
-
-              <ion-button
-                class="place-button"
-                expand="block"
-                data-testid="retry-gcash-submission"
-                [disabled]="!gcashProofReady() || gcashProofUploading() || submitting()"
-                (click)="retryGcashSubmission()"
-              >
-                @if (gcashProofUploading()) {
-                  <ion-spinner name="crescent"></ion-spinner>
-                  Uploading proof...
-                } @else {
-                  Retry payment submission
+      <app-order-success
+        [order]="order"
+        [items]="placedItems()"
+        [itemCount]="placedItemCount()"
+        [paymentMethodLabel]="placedPaymentMethodLabel()"
+        [paymentStatusLabel]="paymentStatusText(order.paymentStatus)"
+        [orderStatusLabel]="orderStatusText(order.orderStatus)"
+        [statusMessage]="orderStatusMessage()"
+        [isGcash]="isGcashOrder()"
+        [discount]="placedDiscount()"
+        (track)="trackOrder()"
+        (continueShopping)="continueShopping()"
+      >
+        @if (gcashNotice() || showGcashPaymentPanel()) {
+          <div order-success-extra class="success-extra">
+            @if (gcashNotice(); as notice) {
+              <div class="gcash-notice" role="status" data-testid="gcash-notice">{{ notice }}</div>
+            } @else if (showGcashPaymentPanel()) {
+              <div class="gcash-panel" data-testid="gcash-payment-panel">
+                @if (gcashDetailsFailed()) {
+                  <div class="gcash-notice" role="alert" data-testid="gcash-submit-error">
+                    {{ gcashMessages.submissionFailed }}
+                  </div>
                 }
-              </ion-button>
-            } @else {
-              <p class="gcash-status-note" data-testid="gcash-proof-uploaded">
-                Payment proof uploaded.
-              </p>
+                @if (gcashProofFailed()) {
+                  <div class="gcash-notice" role="alert" data-testid="gcash-proof-submit-error">
+                    {{ gcashProofError() || gcashMessages.proofFailed }}
+                  </div>
+                }
+                <h4 class="gcash-title">Pay with GCash</h4>
+                <ol class="gcash-steps">
+                  <li>{{ gcashMessages.scanning }}</li>
+                  <li>{{ gcashMessages.exactAmount }}</li>
+                  <li>Enter the account name and number you paid from below.</li>
+                  <li>Upload a screenshot or photo showing the GCash reference number.</li>
+                </ol>
+
+                <figure class="gcash-qr">
+                  <img [src]="gcashQrAsset" alt="GCash payment QR code" />
+                  <figcaption>Official BistroBuddies GCash QR code</figcaption>
+                </figure>
+
+                <div class="gcash-amount">
+                  <span>Amount to pay</span>
+                  <strong data-testid="gcash-amount">{{ formatPrice(order.total) }}</strong>
+                </div>
+
+                @if (!gcashDetailsSubmitted()) {
+                  <app-gcash-submission-form
+                    [orderId]="order.id"
+                    [initialName]="gcashName()"
+                    [initialNumber]="gcashNumber()"
+                    (submitted)="onGcashSubmitted($event)"
+                    (sessionExpired)="onGcashSessionExpired()"
+                  ></app-gcash-submission-form>
+                } @else {
+                  <p class="gcash-status-note" data-testid="gcash-details-submitted">
+                    GCash account details submitted.
+                  </p>
+                }
+
+                @if (!gcashProofUploaded()) {
+                  <app-payment-proof-upload
+                    (fileSelected)="onGcashProofSelected($event)"
+                  ></app-payment-proof-upload>
+
+                  <ion-button
+                    class="place-button"
+                    expand="block"
+                    data-testid="retry-gcash-submission"
+                    [disabled]="!gcashProofReady() || gcashProofUploading() || submitting()"
+                    (click)="retryGcashSubmission()"
+                  >
+                    @if (gcashProofUploading()) {
+                      <ion-spinner name="crescent"></ion-spinner>
+                      Uploading proof...
+                    } @else {
+                      Retry payment submission
+                    }
+                  </ion-button>
+                } @else {
+                  <p class="gcash-status-note" data-testid="gcash-proof-uploaded">
+                    Payment proof uploaded.
+                  </p>
+                }
+              </div>
             }
           </div>
         }
-
-        <div class="summary-row">
-          <span>Subtotal</span>
-          <span>{{ formatPrice(order.subtotal) }}</span>
-        </div>
-        @if (order.deliveryFee > 0) {
-          <div class="summary-row">
-            <span>Delivery fee</span>
-            <span>{{ formatPrice(order.deliveryFee) }}</span>
-          </div>
-        }
-        <div class="summary-row total">
-          <span>Total</span>
-          <span>{{ formatPrice(order.total) }}</span>
-        </div>
-
-        <div class="summary-row">
-          <span>Order status</span>
-          <span>{{ orderStatusText(order.orderStatus) }}</span>
-        </div>
-        <div class="summary-row">
-          <span>Payment status</span>
-          <span data-testid="payment-status">{{ paymentStatusText(order.paymentStatus) }}</span>
-        </div>
-
-        <ion-button class="place-button" expand="block" routerLink="/my-orders">
-          View My Orders
-        </ion-button>
-        <ion-button fill="outline" expand="block" routerLink="/products">
-          Continue Shopping
-        </ion-button>
-      </section>
+      </app-order-success>
     } @else if (isEmpty()) {
       <div class="state" role="status">
         <ion-icon name="cart"></ion-icon>
