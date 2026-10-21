@@ -103,9 +103,10 @@ export class OrderDetailsPage implements OnInit {
   );
 
   /**
-   * Refund facts for a cancelled order, straight from the backend's
-   * `refund.status`. Hidden for every other order status; never mutates
-   * cancellation or payment state.
+   * Refund facts for a cancelled order with collected-payment evidence,
+   * straight from the backend's `refund.status`. Hidden for every other order
+   * status and for unpaid cancelled COD orders; never mutates cancellation or
+   * payment state.
    */
   readonly refund = computed<RefundDisplay>(() => refundDisplay(this.order()));
 

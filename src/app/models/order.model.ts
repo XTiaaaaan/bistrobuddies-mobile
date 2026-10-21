@@ -45,6 +45,19 @@ export interface OrderRefund {
   completedAt: Timestamp | string | null;
 }
 
+/**
+ * One entry of the order's append-only payment audit trail, persisted on the
+ * same `orders/{id}` document as the order. The mobile app reads it from the
+ * Firestore order snapshot only to decide whether a payment was ever
+ * collected; it is never displayed or written.
+ */
+export interface PaymentAuditEntry {
+  from?: string;
+  to?: string;
+  actorUid?: string;
+  actorRole?: string;
+}
+
 export interface OrderItem {
   productId: string;
   productName: string;
@@ -100,6 +113,12 @@ export interface Order {
   paymentProofUrl?: string | null;
   proofUrl?: string | null;
   gcashProofUrl?: string | null;
+  /**
+   * Append-only payment history written by the backend. Optional because
+   * historic orders predate it and customer API responses omit admin-only
+   * metadata; when the Firestore snapshot carries it, it is read-only evidence.
+   */
+  paymentAudit?: PaymentAuditEntry[];
   /**
    * Refund facts recorded by the backend for cancelled, paid orders.
    * Optional/nullable because historic order documents (and non-refunded

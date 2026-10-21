@@ -160,7 +160,10 @@ export class MyOrdersPage implements OnInit {
     return isPaymentStatusVisible(order);
   }
 
-  /** Refund facts for a cancelled order; hidden for all other statuses. */
+  /**
+   * Refund facts for a cancelled order with collected-payment evidence;
+   * hidden for all other statuses and for unpaid cancelled COD orders.
+   */
   refund(order: Order): RefundDisplay {
     return refundDisplay(order);
   }

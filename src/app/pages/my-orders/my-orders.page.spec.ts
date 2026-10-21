@@ -253,22 +253,60 @@ describe('MyOrdersPage', () => {
     expect(element.querySelector('[data-testid="order-refund-status"]')).toBeNull();
   });
 
-  it('should show a cancelled order with no recorded refund', () => {
+  it('should show a cancelled paid order with no recorded refund', () => {
     const fixture = setup('u1', [
-      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PENDING }),
+      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PAID }),
     ]);
     const element = fixture.nativeElement as HTMLElement;
     const refundRow = element.querySelector('[data-testid="order-refund-status"]');
 
     expect(refundRow).toBeTruthy();
     expect(refundRow?.textContent).toContain('Refund not recorded');
-    expect(refundRow?.textContent).toContain('Order cancelled — refund not recorded yet.');
+    expect(refundRow?.textContent).toContain('refund not recorded yet.');
     expect(element.querySelector('.refund-none')).toBeTruthy();
     expect(element.querySelector('.st-cancelled')).toBeTruthy();
     // Payment status badges are hidden for cancelled orders.
     expect(element.querySelector('.pay-pending')).toBeNull();
     expect(element.querySelector('.pay-paid')).toBeNull();
     expect(element.querySelector('.pay-verifying')).toBeNull();
+  });
+
+  it('should hide the refund row for a cancelled unpaid COD order with a legacy refund', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+        refund: {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 260,
+          requestedAt: Timestamp.fromMillis(1759900000000),
+          completedAt: null,
+        },
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="order-refund-status"]')).toBeNull();
+    expect(element.querySelector('.refund-pending')).toBeNull();
+    expect(element.querySelector('.refund-completed')).toBeNull();
+    expect(element.querySelector('.refund-none')).toBeNull();
+    expect(element.textContent).not.toContain('Refund pending');
+    expect(element.querySelector('.st-cancelled')).toBeTruthy();
+  });
+
+  it('should hide the refund row for a cancelled COD order with no payment evidence', () => {
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+      }),
+    ]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="order-refund-status"]')).toBeNull();
+    expect(element.textContent).not.toContain('Refund not recorded');
   });
 
   it('should show a cancelled historic order without refund fields as not recorded', () => {
@@ -352,7 +390,12 @@ describe('MyOrdersPage', () => {
   });
 
   it('should surface a refund status pushed in real time without a refresh', () => {
-    const fixture = setup('u1', [makeOrder({ orderStatus: OrderStatus.CANCELLED })]);
+    const fixture = setup('u1', [
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentStatus: PaymentStatus.PAID,
+      }),
+    ]);
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.querySelector('[data-testid="order-refund-status"]')?.textContent).toContain(

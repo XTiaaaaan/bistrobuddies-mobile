@@ -741,10 +741,10 @@ describe('OrderDetailsPage', () => {
     expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
   });
 
-  it('should describe a cancelled order with no recorded refund', () => {
+  it('should describe a cancelled paid order with no recorded refund', () => {
     const fixture = setup(
       'u1',
-      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PENDING })
+      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PAID })
     );
     const element = fixture.nativeElement as HTMLElement;
     const refundSection = element.querySelector('[data-testid="refund-status"]');
@@ -752,7 +752,7 @@ describe('OrderDetailsPage', () => {
     expect(refundSection).toBeTruthy();
     expect(refundSection?.textContent).toContain('Refund not recorded');
     expect(refundSection?.textContent).toContain(
-      'Order cancelled — refund not recorded yet.'
+      'refund not recorded yet.'
     );
     expect(element.querySelector('[data-testid="refund-amount"]')).toBeNull();
     expect(element.querySelector('[data-testid="refund-completed-date"]')).toBeNull();
@@ -761,6 +761,46 @@ describe('OrderDetailsPage', () => {
     expect(element.querySelector('.pay-pending')).toBeNull();
     expect(element.querySelector('[data-testid="payment-status"]')).toBeNull();
     expect(element.textContent).not.toContain('Payment status');
+  });
+
+  it('should hide a legacy refund on a cancelled unpaid COD order', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+        refund: {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 520,
+          requestedAt: Timestamp.fromMillis(1759900000000),
+          completedAt: null,
+        },
+      })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
+    expect(element.querySelector('[data-testid="refund-amount"]')).toBeNull();
+    expect(element.querySelector('[data-testid="refund-completed-date"]')).toBeNull();
+    expect(element.textContent).not.toContain('Refund pending');
+    expect(element.textContent).not.toContain('Refund not recorded');
+    expect(element.querySelector('.st-cancelled')).toBeTruthy();
+  });
+
+  it('should hide the refund section for a cancelled COD order with no payment evidence', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+      })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
+    expect(element.textContent).not.toContain('Refund not recorded');
   });
 
   it('should describe a cancelled historic order without refund fields as not recorded', () => {
@@ -912,7 +952,7 @@ describe('OrderDetailsPage', () => {
     );
   });
 
-  it('should show the not-recorded refund note right after a customer cancels', async () => {
+  it('should not show a refund section right after an unpaid COD order is cancelled', async () => {
     const fixture = setup();
     const element = fixture.nativeElement as HTMLElement;
     const component = fixture.componentInstance;
@@ -922,9 +962,9 @@ describe('OrderDetailsPage', () => {
     fixture.detectChanges();
 
     expect(component.order()?.orderStatus).toBe(OrderStatus.CANCELLED);
-    expect(
-      element.querySelector('[data-testid="refund-status"]')?.textContent
-    ).toContain('Order cancelled — refund not recorded yet.');
+    expect(component.order()?.paymentStatus).toBe(PaymentStatus.PENDING);
+    expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
+    expect(element.textContent).not.toContain('refund not recorded yet');
   });
 
   it('should offer no customer action to change a refund state', () => {
