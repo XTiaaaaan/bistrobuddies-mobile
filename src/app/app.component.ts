@@ -57,7 +57,10 @@ import {
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
 import { SignInPromptService } from './core/auth/sign-in-prompt.service';
-import { resolveProductImageUrl } from './core/products/product-image';
+import {
+  cacheBustProfilePhotoUrl,
+  resolveProfilePhotoUrl,
+} from './core/profile/profile-photo';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
 import { PushNotificationsService } from './services/push-notifications.service';
@@ -114,6 +117,10 @@ export class AppComponent implements OnInit {
   protected readonly showMenu = signal(true);
   /** Profile summary for the signed-in customer; null while signed out. */
   protected readonly profile = signal<MenuProfile | null>(null);
+
+  /** Canonical photo URL, without the one-off cache-busting token. */
+  private photoSource: string | null = null;
+  private photoToken = 0;
 
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
@@ -193,7 +200,7 @@ export class AppComponent implements OnInit {
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((profile) => this.profile.set(profile));
+      .subscribe((profile) => this.setProfile(profile));
 
     // Firestore snapshot listeners can lag behind a local write (or be
     // unavailable offline), so apply successful profile writes directly. This
@@ -201,20 +208,22 @@ export class AppComponent implements OnInit {
     this.users.updates$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ uid, patch }) => {
-        this.profile.update((current) => {
-          if (!current || current.uid !== uid) {
-            return current;
-          }
-          return {
-            ...current,
-            name: patch.name?.trim() || current.name,
-            phone: patch.phone !== undefined ? patch.phone.trim() : current.phone,
-            photoUrl:
-              'photoUrl' in patch
-                ? resolveProductImageUrl(patch.photoUrl) || null
-                : current.photoUrl,
-          };
-        });
+        const current = this.profile();
+        if (!current || current.uid !== uid) {
+          return;
+        }
+        const next: MenuProfile = {
+          ...current,
+          name: patch.name?.trim() || current.name,
+          phone: patch.phone !== undefined ? patch.phone.trim() : current.phone,
+        };
+        if ('photoUrl' in patch) {
+          next.photoUrl = this.photoForDisplay(
+            resolveProfilePhotoUrl(patch.photoUrl),
+            true
+          );
+        }
+        this.profile.set(next);
       });
 
     this.updateSelected(this.router.url);
@@ -224,6 +233,49 @@ export class AppComponent implements OnInit {
         this.updateSelected(event.urlAfterRedirects);
       }
     });
+  }
+
+  /** Applies a profile snapshot without re-busting an unchanged photo URL. */
+  private setProfile(next: MenuProfile | null): void {
+    if (!next) {
+      this.photoSource = null;
+      this.profile.set(null);
+      return;
+    }
+    this.profile.set({
+      ...next,
+      photoUrl: this.photoForDisplay(next.photoUrl, false),
+    });
+  }
+
+  /**
+   * Returns the URL to render for a profile photo. A new URL is used as-is;
+   * an unchanged URL is kept (or, after a successful write, refreshed with a
+   * one-off cache token) so snapshots cannot repeatedly append parameters.
+   */
+  private photoForDisplay(
+    nextSource: string | null,
+    refreshIfSame: boolean
+  ): string | null {
+    if (!nextSource) {
+      this.photoSource = null;
+      return null;
+    }
+
+    const sameSource = this.photoSource === nextSource;
+    this.photoSource = nextSource;
+    if (!sameSource) {
+      return nextSource;
+    }
+    if (!refreshIfSame) {
+      return this.profile()?.photoUrl ?? nextSource;
+    }
+
+    this.photoToken += 1;
+    return cacheBustProfilePhotoUrl(
+      nextSource,
+      `${Date.now()}-${this.photoToken}`
+    );
   }
 
   /** Initials shown when the customer has no profile photo. */
@@ -292,8 +344,8 @@ function toMenuProfile(
   // `photoURL` is only a fallback for older docs that never had the field.
   const hasStoredPhoto = doc !== null && 'photoUrl' in doc;
   const photoUrl = hasStoredPhoto
-    ? resolveProductImageUrl(doc.photoUrl) || null
-    : resolveProductImageUrl(user.photoURL) || null;
+    ? resolveProfilePhotoUrl(doc.photoUrl)
+    : resolveProfilePhotoUrl(user.photoURL);
   return {
     uid: user.uid,
     name: name || 'Your account',

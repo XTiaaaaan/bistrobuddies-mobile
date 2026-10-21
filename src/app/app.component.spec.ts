@@ -172,6 +172,32 @@ describe('AppComponent', () => {
     expect(fixture.nativeElement.querySelector('.profile-card img')).toBeNull();
   });
 
+  it('should cache-bust a reused URL once and not on every snapshot', async () => {
+    const url = 'http://localhost:3001/uploads/pic.png';
+    userState$.next({ uid: 'u1' });
+    userDoc$.next({ name: 'Juan dela Cruz', phone: '09171234567', photoUrl: url });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('.profile-card') as HTMLElement;
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(url);
+
+    userUpdates$.next({ uid: 'u1', patch: { photoUrl: url } });
+    fixture.detectChanges();
+
+    const refreshed = card.querySelector('img')?.getAttribute('src') ?? '';
+    expect(refreshed).toContain(`${url}?v=`);
+    expect(refreshed).not.toBe(url);
+
+    // A later snapshot with the same stored URL must keep the refreshed URL
+    // instead of appending another cache-busting parameter.
+    userDoc$.next({ name: 'Juan dela Cruz', phone: '09171234567', photoUrl: url });
+    fixture.detectChanges();
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(refreshed);
+  });
+
   it('should show the log in action when the customer is signed out', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();

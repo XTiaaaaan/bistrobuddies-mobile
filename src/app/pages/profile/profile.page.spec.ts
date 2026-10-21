@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ToastController } from '@ionic/angular';
-import { of } from 'rxjs';
+import { Observable, Subject, of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ProfileApiService } from '../../services/profile-api.service';
 import { UsersService } from '../../services/users.service';
@@ -32,8 +32,21 @@ interface SetupOptions {
   user?: unknown;
   updateUser?: ReturnType<typeof vi.fn>;
   getUser?: () => Promise<ProfileDoc | null>;
+  watchUser?: () => Observable<ProfileDoc | null>;
   uploadPhoto?: ReturnType<typeof vi.fn>;
   validate?: (file: File) => string | null;
+}
+
+type UserUpdate = { uid: string; patch: Record<string, unknown> };
+
+function flushMicrotasks(): Promise<void> {
+  return new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
+function selectedFile(file: File): Event {
+  const input = document.createElement('input');
+  Object.defineProperty(input, 'files', { value: [file] });
+  return { target: input } as unknown as Event;
 }
 
 describe('ProfilePage', () => {
@@ -45,6 +58,8 @@ describe('ProfilePage', () => {
     validate: (file: File) => string | null;
     setPhotoUrl: ReturnType<typeof vi.fn>;
     setDisplayName: ReturnType<typeof vi.fn>;
+    updates$: Subject<UserUpdate>;
+    watchUser: () => Observable<ProfileDoc | null>;
   } {
     const user = 'user' in options ? options.user : signedInUser;
     const updateUser = options.updateUser ?? vi.fn(() => Promise.resolve());
@@ -55,13 +70,15 @@ describe('ProfilePage', () => {
     const setPhotoUrl = vi.fn(() => Promise.resolve());
     const setDisplayName = vi.fn(() => Promise.resolve());
     const getUser = options.getUser ?? (() => Promise.resolve(profileDoc));
+    const watchUser = options.watchUser ?? (() => of<ProfileDoc | null>(profileDoc));
+    const updates$ = new Subject<UserUpdate>();
 
     TestBed.configureTestingModule({
       imports: [ProfilePage],
       providers: [
         provideRouter([]),
         { provide: AuthService, useValue: { user$: of(user), setPhotoUrl, setDisplayName } },
-        { provide: UsersService, useValue: { getUser, updateUser } },
+        { provide: UsersService, useValue: { getUser, updateUser, watchUser, updates$ } },
         { provide: ProfileApiService, useValue: { validate, uploadPhoto } },
         {
           provide: ToastController,
@@ -80,6 +97,8 @@ describe('ProfilePage', () => {
       validate,
       setPhotoUrl,
       setDisplayName,
+      updates$,
+      watchUser,
     };
   }
 
@@ -281,6 +300,157 @@ describe('ProfilePage', () => {
     expect(component.photoError()).toBeNull();
   });
 
+  it('uses the same live profile subscription as the side menu for the photo', async () => {
+    const liveDoc$ = new Subject<ProfileDoc | null>();
+    const { fixture, component } = setup({ watchUser: () => liveDoc$ });
+    await fixture.whenStable();
+
+    expect(component.photoUrl()).toBeNull();
+
+    liveDoc$.next({
+      ...profileDoc,
+      photoUrl: 'https://res.cloudinary.com/demo/image/upload/v2/me.png',
+    });
+    fixture.detectChanges();
+
+    expect(component.photoUrl()).toBe(
+      'https://res.cloudinary.com/demo/image/upload/v2/me.png'
+    );
+  });
+
+  it('applies a local profile write to the photo without waiting for a snapshot', async () => {
+    const { fixture, component, updates$ } = setup();
+    await fixture.whenStable();
+
+    updates$.next({
+      uid: 'u1',
+      patch: { photoUrl: 'https://res.cloudinary.com/demo/image/upload/v3/me.png' },
+    });
+    fixture.detectChanges();
+
+    expect(component.photoUrl()).toBe(
+      'https://res.cloudinary.com/demo/image/upload/v3/me.png'
+    );
+  });
+
+  it('keeps the saved photo when the upload fails', async () => {
+    const savedPhoto = 'http://localhost:3001/uploads/old.png';
+    const doc = { ...profileDoc, photoUrl: savedPhoto };
+    const updateUser = vi.fn(() => Promise.resolve());
+    const uploadPhoto = vi.fn(() => Promise.reject(new Error('Backend unavailable')));
+    const { fixture, component } = setup({
+      getUser: () => Promise.resolve(doc),
+      watchUser: () => of<ProfileDoc | null>(doc),
+      updateUser,
+      uploadPhoto,
+    });
+    await fixture.whenStable();
+    expect(component.photoUrl()).toBe(savedPhoto);
+
+    const file = new File(['image-bytes'], 'selfie.jpg', { type: 'image/jpeg' });
+    await component.onPhotoSelected(selectedFile(file));
+
+    expect(component.photoUrl()).toBe(savedPhoto);
+    expect(updateUser).not.toHaveBeenCalled();
+    expect(component.photoError()).toBe('Backend unavailable');
+    expect(component.photoUploading()).toBe(false);
+  });
+
+  it('restores the saved photo when the Firestore write fails after uploading', async () => {
+    const savedPhoto = 'http://localhost:3001/uploads/old.png';
+    const doc = { ...profileDoc, photoUrl: savedPhoto };
+    const updateUser = vi.fn(() => Promise.reject(new Error('offline')));
+    const { fixture, component } = setup({
+      getUser: () => Promise.resolve(doc),
+      watchUser: () => of<ProfileDoc | null>(doc),
+      updateUser,
+      uploadPhoto: vi.fn(() => Promise.resolve('http://localhost:3001/uploads/new.png')),
+    });
+    await fixture.whenStable();
+
+    const file = new File(['image-bytes'], 'selfie.jpg', { type: 'image/jpeg' });
+    await component.onPhotoSelected(selectedFile(file));
+
+    expect(component.photoUrl()).toBe(savedPhoto);
+    expect(component.photoError()).toContain('could not save it to your profile');
+    expect(component.photoUploading()).toBe(false);
+  });
+
+  it('shows the new photo before persistence finishes and ignores duplicate selections', async () => {
+    let finishUpload!: (url: string) => void;
+    let finishUpdate!: () => void;
+    const uploadPhoto = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          finishUpload = resolve;
+        })
+    );
+    const updateUser = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishUpdate = resolve;
+        })
+    );
+    const { fixture, component } = setup({ uploadPhoto, updateUser });
+    await fixture.whenStable();
+
+    const firstFile = new File(['one'], 'one.jpg', { type: 'image/jpeg' });
+    const secondFile = new File(['two'], 'two.jpg', { type: 'image/jpeg' });
+    const firstUpload = component.onPhotoSelected(selectedFile(firstFile));
+    await flushMicrotasks();
+    expect(uploadPhoto).toHaveBeenCalledTimes(1);
+    expect(component.photoUploading()).toBe(true);
+
+    finishUpload('http://localhost:3001/uploads/new.png');
+    await flushMicrotasks();
+    expect(component.photoUrl()).toBe('http://localhost:3001/uploads/new.png');
+    expect(component.photoUploading()).toBe(true);
+
+    const duplicate = component.onPhotoSelected(selectedFile(secondFile));
+    await flushMicrotasks();
+    expect(uploadPhoto).toHaveBeenCalledTimes(1);
+
+    finishUpdate();
+    await Promise.all([firstUpload, duplicate]);
+
+    expect(component.photoUploading()).toBe(false);
+    expect(updateUser).toHaveBeenCalledWith('u1', {
+      photoUrl: 'http://localhost:3001/uploads/new.png',
+    });
+  });
+
+  it('only patches the photo so the other profile fields are preserved', async () => {
+    const { fixture, component, updateUser } = setup();
+    await fixture.whenStable();
+
+    const file = new File(['image-bytes'], 'selfie.jpg', { type: 'image/jpeg' });
+    await component.onPhotoSelected(selectedFile(file));
+
+    expect(updateUser).toHaveBeenCalledTimes(1);
+    expect(updateUser).toHaveBeenCalledWith('u1', {
+      photoUrl: 'http://localhost:3001/uploads/pic.png',
+    });
+  });
+
+  it('cache-busts a reused photo URL without storing the token', async () => {
+    const reusedUrl = 'http://localhost:3001/uploads/pic.png';
+    const doc = { ...profileDoc, photoUrl: reusedUrl };
+    const { fixture, component, updateUser } = setup({
+      getUser: () => Promise.resolve(doc),
+      watchUser: () => of<ProfileDoc | null>(doc),
+      uploadPhoto: vi.fn(() => Promise.resolve(reusedUrl)),
+    });
+    await fixture.whenStable();
+    expect(component.photoUrl()).toBe(reusedUrl);
+
+    const file = new File(['image-bytes'], 'selfie.jpg', { type: 'image/jpeg' });
+    await component.onPhotoSelected(selectedFile(file));
+
+    expect(component.photoUrl()).toContain(`${reusedUrl}?v=`);
+    expect(component.photoUrl()).not.toBe(reusedUrl);
+    expect(updateUser).toHaveBeenCalledWith('u1', { photoUrl: reusedUrl });
+  });
+
   it('surfaces a validation message and skips the upload for an unusable file', async () => {
     const { fixture, component, uploadPhoto } = setup({
       validate: () => 'Only JPEG, PNG, or WebP images can be uploaded.',
@@ -356,6 +526,8 @@ describe('ProfilePage', () => {
           useValue: {
             getUser: () => Promise.reject(new Error('offline')),
             updateUser: vi.fn(),
+            watchUser: () => of<ProfileDoc | null>(null),
+            updates$: new Subject<UserUpdate>(),
           },
         },
         { provide: ProfileApiService, useValue: { validate: () => null, uploadPhoto: vi.fn() } },

@@ -286,12 +286,23 @@ $cream: #f5ede4;
   background: linear-gradient(to top, #{$cream} 62%, rgba(245, 237, 228, 0));
 }
 
-.add-button {
+.add-actions {
+  display: flex;
+  gap: 10px;
+
+  ion-button {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+  }
+}
+
+.add-button,
+.buy-now-button {
   --border-radius: 16px;
   --background: #3b2418;
   --background-activated: #2c1a11;
   --color: #ffffff;
   font-weight: 700;
   height: 50px;
-  margin-top: 2px;
 }

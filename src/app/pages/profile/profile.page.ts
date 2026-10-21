@@ -1,6 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, distinctUntilChanged, of, switchMap } from 'rxjs';
 import {
   IonButton,
   IonButtons,
@@ -17,7 +18,10 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { alertCircle, camera, personCircle } from 'ionicons/icons';
-import { resolveProductImageUrl } from '../../core/products/product-image';
+import {
+  cacheBustProfilePhotoUrl,
+  resolveProfilePhotoUrl,
+} from '../../core/profile/profile-photo';
 import { AuthService } from '../../services/auth.service';
 import { ProfileApiService } from '../../services/profile-api.service';
 import { UsersService } from '../../services/users.service';
@@ -96,6 +100,13 @@ export class ProfilePage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   private uid: string | null = null;
+  /** Canonical URL last persisted/loaded, without any cache-busting token. */
+  private photoSource: string | null = null;
+  private photoToken = 0;
+  /** Bumped on every local photo change so a late profile read cannot win. */
+  private photoWrite = 0;
+  /** True once the live Firestore subscription has delivered a document. */
+  private liveDocReceived = false;
 
   /** Full display name derived from the two editable name fields. */
   readonly name = computed(() => `${this.firstName()} ${this.lastName()}`.trim());
@@ -144,18 +155,48 @@ export class ProfilePage implements OnInit {
   }
 
   ngOnInit(): void {
+    // The UID is the only identity relevant here; profile-only Auth updates
+    // (for example mirroring a new photo into `photoURL`) must not reload the
+    // whole page or restart the Firestore listener.
     this.auth.user$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (!user) {
-          this.uid = null;
-          this.status.set('signed-out');
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        distinctUntilChanged((a, b) => a?.uid === b?.uid),
+        switchMap((user) => {
+          if (!user) {
+            this.uid = null;
+            this.status.set('signed-out');
+            return of(null);
+          }
+          this.uid = user.uid;
+          this.liveDocReceived = false;
+          this.email.set(user.email ?? '');
+          this.applyPhotoSource(user.photoURL);
+          void this.loadProfile(user.uid, user.displayName ?? '');
+          // Same source of truth as the side menu: live `users/{uid}` data.
+          return this.users.watchUser(user.uid).pipe(catchError(() => of(null)));
+        })
+      )
+      .subscribe((doc) => {
+        if (!doc) {
           return;
         }
-        this.uid = user.uid;
-        this.email.set(user.email ?? '');
-        this.photoUrl.set(resolveProductImageUrl(user.photoURL) || null);
-        void this.loadProfile(user.uid, user.displayName ?? '');
+        this.liveDocReceived = true;
+        if ('photoUrl' in doc) {
+          this.applyPhotoSource(doc.photoUrl);
+        }
+      });
+
+    // Firestore snapshots can lag behind the local write; apply successful
+    // writes immediately so the profile page and side menu stay in step.
+    this.users.updates$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ uid, patch }) => {
+        if (uid !== this.uid || !('photoUrl' in patch) || this.photoUploading()) {
+          return;
+        }
+        this.photoWrite += 1;
+        this.applyPhotoSource(patch.photoUrl, true);
       });
   }
 
@@ -220,8 +261,9 @@ export class ProfilePage implements OnInit {
     this.photoError.set(null);
     try {
       await this.users.updateUser(uid, { photoUrl: null });
-      await this.syncAuthPhoto(null);
-      this.photoUrl.set(null);
+      this.photoWrite += 1;
+      this.applyPhotoSource(null);
+      void this.syncAuthPhoto(null);
       await this.toast('Profile picture removed.');
     } catch {
       this.photoError.set(
@@ -281,25 +323,88 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  private async uploadPhoto(file: File): Promise<void> {
-    const uid = this.uid;
-    if (!uid) {
+  /**
+   * Applies a stored photo URL to the rendered image. When the URL is
+   * unchanged (some upload paths reuse it) `refresh` adds a one-off cache
+   * token so the WebView fetches the new bytes instead of its cached copy.
+   * Repeated snapshots with the same URL keep the existing display URL and
+   * never append parameters again.
+   */
+  private applyPhotoSource(
+    rawUrl: string | null | undefined,
+    refresh = false
+  ): void {
+    const source = resolveProfilePhotoUrl(rawUrl);
+    if (!source) {
+      this.photoSource = null;
+      this.photoUrl.set(null);
       return;
     }
+
+    const sameSource = this.photoSource === source;
+    this.photoSource = source;
+    if (sameSource) {
+      if (refresh) {
+        this.photoToken += 1;
+        this.photoUrl.set(
+          cacheBustProfilePhotoUrl(source, `${Date.now()}-${this.photoToken}`)
+        );
+      }
+      return;
+    }
+
+    this.photoUrl.set(source);
+  }
+
+  private async uploadPhoto(file: File): Promise<void> {
+    const uid = this.uid;
+    // The file input and buttons are disabled while uploading, but this guard
+    // also protects programmatic double submissions.
+    if (!uid || this.photoUploading()) {
+      return;
+    }
+
+    const previousSource = this.photoSource;
+    const previousDisplay = this.photoUrl();
+    let uploaded = false;
 
     this.photoUploading.set(true);
     this.photoError.set(null);
     try {
-      const url = await this.profileApi.uploadPhoto(file);
-      await this.users.updateUser(uid, { photoUrl: url });
-      await this.syncAuthPhoto(url);
-      this.photoUrl.set(url);
+      const uploadedUrl = await this.profileApi.uploadPhoto(file);
+      const source = resolveProfilePhotoUrl(uploadedUrl);
+      if (!source) {
+        throw new Error('The server did not return an image URL.');
+      }
+      uploaded = true;
+
+      // Show the new picture as soon as the upload succeeds, without waiting
+      // for Firestore to acknowledge or for Firebase Auth to mirror the URL.
+      this.applyPhotoSource(source, true);
+      this.photoWrite += 1;
+
+      try {
+        // Only the photo field is patched, so name, email, phone, address and
+        // role keep their stored values.
+        await this.users.updateUser(uid, { photoUrl: source });
+      } catch (error) {
+        // The photo was never persisted: restore the last saved picture
+        // instead of pretending the upload replaced it.
+        this.photoSource = previousSource;
+        this.photoUrl.set(previousDisplay);
+        throw error;
+      }
+
+      // Best-effort mirror; the Firestore copy is the source of truth.
+      void this.syncAuthPhoto(source);
       await this.toast('Profile picture updated.');
     } catch (error) {
       this.photoError.set(
-        error instanceof Error && error.message
-          ? error.message
-          : 'We could not upload your profile picture. Please try again.'
+        uploaded
+          ? 'Your photo uploaded, but we could not save it to your profile. Please check your connection and try again.'
+          : error instanceof Error && error.message
+            ? error.message
+            : 'We could not upload your profile picture. Please try again.'
       );
     } finally {
       this.photoUploading.set(false);
@@ -344,6 +449,7 @@ export class ProfilePage implements OnInit {
 
   private async loadProfile(uid: string, displayName: string): Promise<void> {
     this.status.set('loading');
+    const photoWriteAtStart = this.photoWrite;
     try {
       const doc = await this.users.getUser(uid);
       // Legacy profiles only store the combined `name`; split it so the two
@@ -358,9 +464,16 @@ export class ProfilePage implements OnInit {
       this.phoneTouched.set(false);
       this.address.set(doc?.address ?? '');
 
-      const storedPhoto = resolveProductImageUrl(doc?.photoUrl);
-      if (storedPhoto) {
-        this.photoUrl.set(storedPhoto);
+      // The live subscription is authoritative for the photo. Only use this
+      // one-time read as a fallback when no snapshot has arrived yet, and
+      // never let a late read replace a photo saved during the request.
+      if (
+        doc &&
+        'photoUrl' in doc &&
+        !this.liveDocReceived &&
+        this.photoWrite === photoWriteAtStart
+      ) {
+        this.applyPhotoSource(doc.photoUrl);
       }
 
       this.status.set('ready');
