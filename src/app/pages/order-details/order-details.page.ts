@@ -16,6 +16,7 @@ import { addIcons } from 'ionicons';
 import { alertCircle, cafe, receipt } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
+import { OrderProgressTrackerComponent } from '../../components/order-progress-tracker/order-progress-tracker.component';
 import { PaymentProofUploadComponent } from '../../components/payment-proof-upload/payment-proof-upload.component';
 import {
   formatOrderDate,
@@ -25,6 +26,7 @@ import {
   paymentMethodLabel,
   paymentStatusClass,
   paymentStatusLabel,
+  showPaymentStatus as isPaymentStatusVisible,
 } from '../../core/orders/order-display';
 import { GCASH_MESSAGES, GCASH_QR_ASSET } from '../../core/payment/gcash';
 import { PAYMENT_PROOF_MESSAGES } from '../../core/payment/payment-proof';
@@ -58,6 +60,7 @@ export type OrderDetailsStatus = 'loading' | 'ready' | 'missing' | 'error' | 'si
     IonToolbar,
     RouterLink,
     GcashSubmissionFormComponent,
+    OrderProgressTrackerComponent,
     PaymentProofUploadComponent,
   ],
 })
@@ -100,9 +103,10 @@ export class OrderDetailsPage implements OnInit {
   );
 
   /**
-   * Refund facts for a cancelled order, straight from the backend's
-   * `refund.status`. Hidden for every other order status; never mutates
-   * cancellation or payment state.
+   * Refund facts for a cancelled order with collected-payment evidence,
+   * straight from the backend's `refund.status`. Hidden for every other order
+   * status and for unpaid cancelled COD orders; never mutates cancellation or
+   * payment state.
    */
   readonly refund = computed<RefundDisplay>(() => refundDisplay(this.order()));
 
@@ -126,13 +130,22 @@ export class OrderDetailsPage implements OnInit {
   });
   /** Shown after a rejection so the customer understands what to do. */
   readonly gcashRejected = computed(
-    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.REJECTED
+    () =>
+      !this.cancelled() &&
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.REJECTED
   );
   readonly gcashVerifying = computed(
-    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.VERIFYING
+    () =>
+      !this.cancelled() &&
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.VERIFYING
   );
   readonly gcashPaid = computed(
-    () => this.isGcashOrder() && this.gcashPaymentStatus() === PaymentStatus.PAID
+    () =>
+      !this.cancelled() &&
+      this.isGcashOrder() &&
+      this.gcashPaymentStatus() === PaymentStatus.PAID
   );
   readonly canResubmit = computed(
     () =>
@@ -350,6 +363,11 @@ export class OrderDetailsPage implements OnInit {
 
   paymentMethod(order: Order): string {
     return paymentMethodLabel(order.paymentMethod);
+  }
+
+  /** Payment status badges are hidden for cancelled orders. */
+  showPaymentStatus(order: Order): boolean {
+    return isPaymentStatusVisible(order);
   }
 
   itemCount(order: Order): number {

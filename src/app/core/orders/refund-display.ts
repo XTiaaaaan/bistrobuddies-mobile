@@ -1,6 +1,10 @@
 import type { Timestamp } from 'firebase/firestore';
 import { Order, OrderRefund, OrderStatus, RefundStatus } from '../../models/order.model';
 import { PESO_LOCALE } from '../format/price';
+import {
+  hasCollectedPayment,
+  PaymentEvidenceOrder,
+} from './payment-evidence';
 
 /**
  * Refund display for the customer app.
@@ -55,8 +59,15 @@ const HIDDEN: RefundDisplay = {
   completedText: null,
 };
 
+/** The order fields refund visibility is derived from. */
+export type RefundVisibilityOrder = Pick<Order, 'orderStatus' | 'refund'> &
+  PaymentEvidenceOrder;
+
 /**
- * Refund facts are only shown for cancelled orders. Order cancellation status
+ * Refund facts are only shown for cancelled orders with persisted evidence
+ * that money was actually collected. Cancellation itself is never treated as
+ * payment evidence, so legacy refund fields on an unpaid cancelled COD order
+ * stay hidden without rewriting the stored data. Order cancellation status
  * stays separate: this never alters `orderStatus` or `paymentStatus`, it only
  * describes the independent `refund.status` the backend recorded.
  *
@@ -64,9 +75,13 @@ const HIDDEN: RefundDisplay = {
  * "not recorded" wording rather than implying a refund happened.
  */
 export function refundDisplay(
-  order: Pick<Order, 'orderStatus' | 'refund'> | null | undefined
+  order: RefundVisibilityOrder | null | undefined
 ): RefundDisplay {
   if (!order || order.orderStatus !== OrderStatus.CANCELLED) {
+    return HIDDEN;
+  }
+
+  if (!hasCollectedPayment(order)) {
     return HIDDEN;
   }
 

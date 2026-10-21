@@ -1,10 +1,6 @@
 /* Layout for the static information pages lives in global.scss (.info-page,
    .info-hero, .info-card, .notice). This page adds the contact list and the
    message form, styled with the same coffee palette. */
-:host {
-  display: block;
-}
-
 .contact-list {
   list-style: none;
   margin: 0;

@@ -1,5 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
-import { OrderStatus } from '../../models/order.model';
+import { Order, OrderStatus } from '../../models/order.model';
 import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
 import { formatPeso } from '../format/price';
 
@@ -8,7 +8,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.CONFIRMED]: 'Confirmed',
   [OrderStatus.PREPARING]: 'Preparing',
   [OrderStatus.READY]: 'Ready',
-  [OrderStatus.COMPLETED]: 'Completed',
+  [OrderStatus.OUT_FOR_DELIVERY]: 'On the Way',
+  [OrderStatus.COMPLETED]: 'Delivered',
   [OrderStatus.CANCELLED]: 'Cancelled',
 };
 
@@ -26,12 +27,33 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   [PaymentMethod.GCASH]: 'GCash',
 };
 
-export function orderStatusLabel(status: OrderStatus): string {
-  return ORDER_STATUS_LABELS[status] ?? status;
+/**
+ * Accepts a raw status string too, because notification payloads and historic
+ * records are not guaranteed to match the enum. Unknown values fall back to a
+ * human-readable rendering instead of leaking the raw token.
+ */
+export function orderStatusLabel(
+  status: OrderStatus | string | null | undefined
+): string {
+  if (!status) {
+    return '';
+  }
+  return ORDER_STATUS_LABELS[status as OrderStatus] ?? humanize(status);
 }
 
 export function orderStatusClass(status: OrderStatus): string {
-  return `badge st-${String(status).toLowerCase()}`;
+  return `badge st-${String(status).toLowerCase().replace(/_/g, '-')}`;
+}
+
+/**
+ * Payment status is only meaningful while the order is live. Cancelled orders
+ * keep their stored payment data untouched, but the customer-facing badges and
+ * labels are hidden in My Orders and Order Details.
+ */
+export function showPaymentStatus(
+  order: Pick<Order, 'orderStatus'> | null | undefined
+): boolean {
+  return !!order && order.orderStatus !== OrderStatus.CANCELLED;
 }
 
 /**

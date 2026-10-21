@@ -167,6 +167,107 @@ describe('OrderDetailsPage', () => {
     expect(element.querySelector('.st-pending')).toBeNull();
   });
 
+  it('should show On the Way in the live order progress tracker', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({ orderStatus: OrderStatus.OUT_FOR_DELIVERY })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(
+      element.querySelector('[data-testid="order-progress"]')
+    ).toBeTruthy();
+    expect(element.textContent).toContain('On the Way');
+    expect(element.querySelector('.st-out-for-delivery')?.textContent).toContain(
+      'On the Way'
+    );
+    expect(
+      element
+        .querySelector('[data-status="OUT_FOR_DELIVERY"]')
+        ?.getAttribute('data-state')
+    ).toBe('current');
+  });
+
+  it('should label a completed order as Delivered and keep all stages complete', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({ orderStatus: OrderStatus.COMPLETED })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.st-completed')?.textContent).toContain(
+      'Delivered'
+    );
+    expect(element.textContent).not.toContain('Completed');
+    expect(
+      element
+        .querySelector('[data-status="COMPLETED"]')
+        ?.getAttribute('data-state')
+    ).toBe('complete');
+    expect(element.textContent).toContain('On the Way');
+  });
+
+  it('should not render a redundant Delivery tag in the progress tracker', () => {
+    const fixture = setup('u1', makeOrder({ orderStatus: OrderStatus.READY }));
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="order-progress"] .mode')).toBeNull();
+    expect(
+      element.querySelector('[data-testid="order-progress"]')?.textContent
+    ).not.toContain('Delivery');
+  });
+
+  it('should show PAID for a delivered COD order from the backend value', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        orderStatus: OrderStatus.COMPLETED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PAID,
+      })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Delivered');
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Paid'
+    );
+    expect(element.querySelector('.pay-paid')).toBeTruthy();
+  });
+
+  it('should leave a delivered GCash order unpaid until the backend verifies it', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        orderStatus: OrderStatus.COMPLETED,
+        paymentMethod: PaymentMethod.GCASH,
+        paymentStatus: PaymentStatus.PENDING,
+      })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Delivered');
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Pending'
+    );
+    expect(element.querySelector('.pay-pending')).toBeTruthy();
+    expect(element.querySelector('.pay-paid')).toBeNull();
+    expect(element.querySelector('[data-testid="gcash-paid-note"]')).toBeNull();
+  });
+
+  it('should handle a legacy order with missing payment fields safely', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({ paymentStatus: undefined as unknown as PaymentStatus })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(fixture.componentInstance.status()).toBe('ready');
+    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
+      'Pending'
+    );
+  });
+
   it('should show a missing state when the order does not exist', () => {
     const fixture = setup('u1', null);
     const element = fixture.nativeElement as HTMLElement;
@@ -640,10 +741,10 @@ describe('OrderDetailsPage', () => {
     expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
   });
 
-  it('should describe a cancelled order with no recorded refund', () => {
+  it('should describe a cancelled paid order with no recorded refund', () => {
     const fixture = setup(
       'u1',
-      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PENDING })
+      makeOrder({ orderStatus: OrderStatus.CANCELLED, paymentStatus: PaymentStatus.PAID })
     );
     const element = fixture.nativeElement as HTMLElement;
     const refundSection = element.querySelector('[data-testid="refund-status"]');
@@ -651,16 +752,55 @@ describe('OrderDetailsPage', () => {
     expect(refundSection).toBeTruthy();
     expect(refundSection?.textContent).toContain('Refund not recorded');
     expect(refundSection?.textContent).toContain(
-      'Order cancelled — refund not recorded yet.'
+      'refund not recorded yet.'
     );
     expect(element.querySelector('[data-testid="refund-amount"]')).toBeNull();
     expect(element.querySelector('[data-testid="refund-completed-date"]')).toBeNull();
-    // Cancellation and payment/refund stay separate statuses.
     expect(element.querySelector('.st-cancelled')).toBeTruthy();
-    expect(element.querySelector('.pay-pending')).toBeTruthy();
-    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
-      'Pending'
+    // Cancelled orders hide payment-status badges and labels entirely.
+    expect(element.querySelector('.pay-pending')).toBeNull();
+    expect(element.querySelector('[data-testid="payment-status"]')).toBeNull();
+    expect(element.textContent).not.toContain('Payment status');
+  });
+
+  it('should hide a legacy refund on a cancelled unpaid COD order', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+        refund: {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 520,
+          requestedAt: Timestamp.fromMillis(1759900000000),
+          completedAt: null,
+        },
+      })
     );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
+    expect(element.querySelector('[data-testid="refund-amount"]')).toBeNull();
+    expect(element.querySelector('[data-testid="refund-completed-date"]')).toBeNull();
+    expect(element.textContent).not.toContain('Refund pending');
+    expect(element.textContent).not.toContain('Refund not recorded');
+    expect(element.querySelector('.st-cancelled')).toBeTruthy();
+  });
+
+  it('should hide the refund section for a cancelled COD order with no payment evidence', () => {
+    const fixture = setup(
+      'u1',
+      makeOrder({
+        orderStatus: OrderStatus.CANCELLED,
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+      })
+    );
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
+    expect(element.textContent).not.toContain('Refund not recorded');
   });
 
   it('should describe a cancelled historic order without refund fields as not recorded', () => {
@@ -700,10 +840,8 @@ describe('OrderDetailsPage', () => {
       '₱520.00'
     );
     expect(element.querySelector('[data-testid="refund-completed-date"]')).toBeNull();
-    // Payment status is untouched by the refund state.
-    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
-      'Paid'
-    );
+    // Payment status is hidden for the cancelled order, unchanged in storage.
+    expect(element.querySelector('[data-testid="payment-status"]')).toBeNull();
   });
 
   it('should show a completed refund with amount and completion date', () => {
@@ -731,9 +869,7 @@ describe('OrderDetailsPage', () => {
     expect(completedDate?.textContent).toContain('2026');
     expect(completedDate?.textContent).toContain('Oct');
     expect(element.querySelector('.st-cancelled')).toBeTruthy();
-    expect(element.querySelector('[data-testid="payment-status"]')?.textContent).toContain(
-      'Paid'
-    );
+    expect(element.querySelector('[data-testid="payment-status"]')).toBeNull();
   });
 
   it('should preserve GCash account details on a cancelled refunded order', () => {
@@ -759,9 +895,10 @@ describe('OrderDetailsPage', () => {
     expect(element.textContent).toContain('GCash number');
     expect(element.textContent).toContain('09171234567');
     expect(element.querySelector('[data-testid="refund-status"]')).toBeTruthy();
-    // No GCash payment form is offered for a paid, cancelled order.
+    // No GCash payment form or payment-status note is offered for a cancelled order.
     expect(element.querySelector('app-gcash-submission-form')).toBeNull();
-    expect(element.querySelector('[data-testid="gcash-paid-note"]')).toBeTruthy();
+    expect(element.querySelector('[data-testid="gcash-paid-note"]')).toBeNull();
+    expect(element.querySelector('[data-testid="payment-status"]')).toBeNull();
   });
 
   it('should surface a refund update pushed by the realtime listener without a refresh', () => {
@@ -815,7 +952,7 @@ describe('OrderDetailsPage', () => {
     );
   });
 
-  it('should show the not-recorded refund note right after a customer cancels', async () => {
+  it('should not show a refund section right after an unpaid COD order is cancelled', async () => {
     const fixture = setup();
     const element = fixture.nativeElement as HTMLElement;
     const component = fixture.componentInstance;
@@ -825,9 +962,9 @@ describe('OrderDetailsPage', () => {
     fixture.detectChanges();
 
     expect(component.order()?.orderStatus).toBe(OrderStatus.CANCELLED);
-    expect(
-      element.querySelector('[data-testid="refund-status"]')?.textContent
-    ).toContain('Order cancelled — refund not recorded yet.');
+    expect(component.order()?.paymentStatus).toBe(PaymentStatus.PENDING);
+    expect(element.querySelector('[data-testid="refund-status"]')).toBeNull();
+    expect(element.textContent).not.toContain('refund not recorded yet');
   });
 
   it('should offer no customer action to change a refund state', () => {

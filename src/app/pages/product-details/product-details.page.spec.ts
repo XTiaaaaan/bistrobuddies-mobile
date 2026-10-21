@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { Timestamp } from 'firebase/firestore';
 import { of } from 'rxjs';
@@ -166,6 +166,57 @@ describe('ProductDetailsPage', () => {
       unitPrice: 130,
     });
     expect(presentSpy).toHaveBeenCalled();
+  });
+
+  it('should offer Buy Now next to Add to Cart on the details page', () => {
+    const fixture = setup(makeProduct());
+    const actions = (fixture.nativeElement as HTMLElement).querySelector('.add-actions');
+
+    expect(actions).not.toBeNull();
+    expect(actions?.textContent).toContain('Add to Cart');
+    expect(actions?.textContent).toContain('Buy Now');
+  });
+
+  it('should buy the selected size and price, then continue to checkout', async () => {
+    const fixture = setup(makeProduct());
+    const component = fixture.componentInstance;
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    component.selectSize('large');
+    component.selectSugar('No Sugar');
+    component.increase();
+    await component.buyNow();
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(addSpy).toHaveBeenCalledWith({
+      productId: 'p1',
+      productName: 'House Latte',
+      productImage: 'https://example.com/latte.png',
+      size: 'large',
+      sugar: 'No Sugar',
+      quantity: 2,
+      unitPrice: 160,
+    });
+    expect(navigate).toHaveBeenCalledWith(['/checkout']);
+  });
+
+  it('should not buy or navigate when the product cannot be ordered', async () => {
+    const fixture = setup(makeProduct({ available: false }));
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    await fixture.componentInstance.buyNow();
+
+    expect(addSpy).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('should keep a working back control without the Buy Coffee label', () => {
+    const fixture = setup(makeProduct());
+    const back = (fixture.nativeElement as HTMLElement).querySelector('ion-back-button');
+
+    expect(back).not.toBeNull();
+    expect(back?.getAttribute('defaultHref')).toBe('/products');
+    expect(back?.getAttribute('text')).not.toBe('Buy Coffee');
   });
 
   it('should ignore repeated taps while an add is still in progress', async () => {

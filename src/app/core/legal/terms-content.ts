@@ -6,7 +6,7 @@
  */
 
 /** Bump this whenever the wording below changes. */
-export const TERMS_LAST_UPDATED = 'October 18, 2026';
+export const TERMS_LAST_UPDATED = 'October 21, 2026';
 
 export interface TermsSection {
   /** Stable id, also used as the in-page anchor. */
@@ -88,7 +88,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
     id: 'order-status',
     title: '7. Order Preparation and Status Updates',
     paragraphs: [
-      'Orders move through the following statuses: Pending, Confirmed, Preparing, Ready, Completed, and Cancelled.',
+      'Orders move through the following statuses: Pending, Confirmed, Preparing, Ready, On the Way, Delivered, and Cancelled.',
       'You can follow your order status in My Orders, where updates appear as they are recorded.',
     ],
   },

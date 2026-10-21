@@ -82,7 +82,9 @@
               {{ itemCount(order) }} item(s) · {{ paymentMethod(order) }}
             </span>
             <span class="foot-right">
-              <span [class]="paymentClass(order)">{{ paymentLabel(order) }}</span>
+              @if (showPaymentStatus(order)) {
+                <span [class]="paymentClass(order)">{{ paymentLabel(order) }}</span>
+              }
               <span class="order-total">{{ formatPrice(order.total) }}</span>
             </span>
           </div>

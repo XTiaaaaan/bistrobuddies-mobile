@@ -1,9 +1,29 @@
 import { Timestamp } from 'firebase/firestore';
-import { Order, OrderStatus, RefundStatus } from '../../models/order.model';
+import {
+  Order,
+  OrderStatus,
+  PaymentAuditEntry,
+  RefundStatus,
+} from '../../models/order.model';
+import { PaymentMethod, PaymentStatus } from '../../models/payment.model';
 import { refundDisplay } from './refund-display';
 
-function cancelledOrder(refund: Order['refund']): Pick<Order, 'orderStatus' | 'refund'> {
-  return { orderStatus: OrderStatus.CANCELLED, refund };
+function cancelledOrder(
+  refund: Order['refund'],
+  overrides: Partial<
+    Pick<Order, 'paymentMethod' | 'paymentStatus' | 'paymentAudit'>
+  > = {}
+): Pick<
+  Order,
+  'orderStatus' | 'refund' | 'paymentMethod' | 'paymentStatus' | 'paymentAudit'
+> {
+  return {
+    orderStatus: OrderStatus.CANCELLED,
+    paymentMethod: PaymentMethod.COD,
+    paymentStatus: PaymentStatus.PAID,
+    refund,
+    ...overrides,
+  };
 }
 
 describe('refundDisplay', () => {
@@ -194,5 +214,164 @@ describe('refundDisplay', () => {
     expect(display.message).toBe(
       'Refund completed — the refund has been returned.'
     );
+  });
+
+  it('should hide a legacy refund on a cancelled unpaid COD order', () => {
+    const display = refundDisplay(
+      cancelledOrder(
+        {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 260,
+          requestedAt: Timestamp.fromMillis(1759900000000),
+          completedAt: null,
+        },
+        {
+          paymentMethod: PaymentMethod.COD,
+          paymentStatus: PaymentStatus.PENDING,
+        }
+      )
+    );
+
+    expect(display.show).toBe(false);
+    expect(display.state).toBe('none');
+    expect(display.label).toBe('');
+    expect(display.message).toBe('');
+    expect(display.amountText).toBeNull();
+    expect(display.completedText).toBeNull();
+  });
+
+  it('should hide the refund section for a cancelled COD order with no payment evidence', () => {
+    const display = refundDisplay(
+      cancelledOrder(undefined, {
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.PENDING,
+      })
+    );
+
+    expect(display.show).toBe(false);
+  });
+
+  it('should preserve refund information for a cancelled COD order with persisted PAID status', () => {
+    const display = refundDisplay(
+      cancelledOrder(
+        {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 260,
+          requestedAt: null,
+          completedAt: null,
+        },
+        {
+          paymentMethod: PaymentMethod.COD,
+          paymentStatus: PaymentStatus.PAID,
+        }
+      )
+    );
+
+    expect(display.show).toBe(true);
+    expect(display.state).toBe('pending');
+    expect(display.amountText).toContain('260.00');
+  });
+
+  it('should preserve refund information for a paid GCash order', () => {
+    const display = refundDisplay(
+      cancelledOrder(
+        {
+          status: RefundStatus.REFUNDED,
+          amount: 520,
+          requestedAt: null,
+          completedAt: Timestamp.fromMillis(1759900060000),
+        },
+        {
+          paymentMethod: PaymentMethod.GCASH,
+          paymentStatus: PaymentStatus.PAID,
+        }
+      )
+    );
+
+    expect(display.show).toBe(true);
+    expect(display.state).toBe('completed');
+    expect(display.amountText).toContain('520.00');
+  });
+
+  it('should accept payment history as evidence when the current status is not PAID', () => {
+    const audit: PaymentAuditEntry[] = [
+      { from: 'PENDING', to: 'VERIFYING' },
+      { from: 'VERIFYING', to: 'PAID' },
+    ];
+    const display = refundDisplay(
+      cancelledOrder(
+        {
+          status: RefundStatus.REFUND_PENDING,
+          amount: 260,
+          requestedAt: null,
+          completedAt: null,
+        },
+        {
+          paymentMethod: PaymentMethod.COD,
+          paymentStatus: 'CANCELLED' as PaymentStatus,
+          paymentAudit: audit,
+        }
+      )
+    );
+
+    expect(display.show).toBe(true);
+    expect(display.state).toBe('pending');
+  });
+
+  it('should not infer payment from the cancelled order status alone', () => {
+    const display = refundDisplay(
+      cancelledOrder(
+        {
+          status: RefundStatus.REFUNDED,
+          amount: 260,
+          requestedAt: null,
+          completedAt: null,
+        },
+        {
+          paymentMethod: PaymentMethod.COD,
+          paymentStatus: 'CANCELLED' as PaymentStatus,
+          paymentAudit: [
+            {
+              from: 'PENDING',
+              to: 'CANCELLED',
+              actorUid: 'admin-1',
+              actorRole: 'admin',
+            },
+          ],
+        }
+      )
+    );
+
+    expect(display.show).toBe(false);
+  });
+
+  it('should not mutate the stored payment or refund fields', () => {
+    const refund = {
+      status: RefundStatus.REFUND_PENDING,
+      amount: 260,
+      requestedAt: Timestamp.fromMillis(1759900000000),
+      completedAt: null,
+    };
+    const paymentAudit: PaymentAuditEntry[] = [
+      { from: 'PENDING', to: 'PAID', actorUid: 'admin-1', actorRole: 'admin' },
+    ];
+    const order = cancelledOrder(refund, {
+      paymentMethod: PaymentMethod.COD,
+      paymentStatus: PaymentStatus.PAID,
+      paymentAudit,
+    });
+
+    refundDisplay(order);
+
+    expect(order.refund).toEqual({
+      status: RefundStatus.REFUND_PENDING,
+      amount: 260,
+      requestedAt: Timestamp.fromMillis(1759900000000),
+      completedAt: null,
+    });
+    expect(order.paymentStatus).toBe(PaymentStatus.PAID);
+    expect(order.paymentAudit).toEqual(paymentAudit);
+    expect(order.paymentAudit).toBe(paymentAudit);
+    expect(order.refund).toBe(refund);
   });
 });

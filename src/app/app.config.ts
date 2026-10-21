@@ -1,4 +1,4 @@
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, inject, provideAppInitializer } from '@angular/core';
 import {
   PreloadAllModules,
   provideRouter,
@@ -11,6 +11,7 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { firebaseProviders } from './core/firebase/firebase';
+import { PushNotificationsService } from './services/push-notifications.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -23,5 +24,8 @@ export const appConfig: ApplicationConfig = {
     provideIonicAngular(),
     provideHttpClient(),
     ...firebaseProviders,
+    provideAppInitializer(() => {
+      inject(PushNotificationsService).initialize();
+    }),
   ],
 };

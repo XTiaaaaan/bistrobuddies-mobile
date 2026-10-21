@@ -132,18 +132,6 @@
               </div>
             </div>
           </a>
-
-          <div class="card-action">
-            <ion-button
-              expand="block"
-              size="small"
-              [disabled]="!canQuickAdd(product)"
-              [attr.aria-label]="'Add ' + product.name + ' to cart'"
-              (click)="quickAdd(product, $event)"
-            >
-              {{ isAvailable(product) ? (isAdding(product) ? 'Adding…' : canQuickAdd(product) ? 'Add to Cart' : 'Unavailable') : 'Sold Out' }}
-            </ion-button>
-          </div>
         </div>
       }
     </div>

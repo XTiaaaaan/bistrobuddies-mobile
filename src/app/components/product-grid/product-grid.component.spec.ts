@@ -172,6 +172,17 @@ describe('ProductGridComponent', () => {
     expect(card.textContent).toContain('₱100.00');
   });
 
+  it('should keep the card tappable without an add-to-cart button', () => {
+    const fixture = setup(() => of([makeProduct({})]));
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement as HTMLElement;
+    expect(card.querySelector('.product-link')).not.toBeNull();
+    expect(card.querySelector('.product-link')?.getAttribute('href')).toContain('/products/p1');
+    expect(card.querySelector('.card-action')).toBeNull();
+    expect(card.textContent).not.toContain('Add to Cart');
+  });
+
   it('should hide the category chip when a product has no category', () => {
     const fixture = setup(() => of([makeProduct({ category: '' })]));
     fixture.detectChanges();

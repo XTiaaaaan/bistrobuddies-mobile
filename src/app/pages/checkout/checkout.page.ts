@@ -20,7 +20,7 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { alertCircle, cafe, cart, checkmark, qrCode } from 'ionicons/icons';
+import { alertCircle, cafe, cart } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
 import { formatPeso } from '../../core/format/price';
 import { orderStatusLabel, paymentStatusLabel } from '../../core/orders/order-display';
@@ -36,6 +36,7 @@ import {
   validatePaymentProof,
 } from '../../core/payment/payment-proof';
 import { GcashSubmissionFormComponent } from '../../components/gcash-submission-form/gcash-submission-form.component';
+import { OrderSuccessComponent } from '../../components/order-success/order-success.component';
 import { PaymentProofUploadComponent } from '../../components/payment-proof-upload/payment-proof-upload.component';
 import { CartItem } from '../../models/cart.model';
 import { OrderStatus } from '../../models/order.model';
@@ -97,6 +98,7 @@ export function orderErrorMessage(error: unknown): string {
     IonToolbar,
     RouterLink,
     GcashSubmissionFormComponent,
+    OrderSuccessComponent,
     PaymentProofUploadComponent,
   ],
 })
@@ -141,6 +143,12 @@ export class CheckoutPage implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   /** Authoritative summary returned by the backend after a successful order. */
   readonly placedOrder = signal<CreateOrderResponse | null>(null);
+  /**
+   * Snapshot of the cart lines that were actually sent, captured before the
+   * cart is cleared. The backend response only carries totals, so this is the
+   * data used to render the item list on the success screen.
+   */
+  readonly placedItems = signal<CartItem[]>([]);
   /** Set once the GCash details POST succeeds, so the form is not shown again. */
   readonly gcashDetailsSubmitted = signal(false);
   /** Set when the details POST failed after the order was created (retry). */
@@ -194,6 +202,56 @@ export class CheckoutPage implements OnInit {
   readonly isGcashOrder = computed(
     () => this.placedPaymentMethod() === PaymentMethod.GCASH
   );
+  /** Full, customer-friendly label for the method the backend confirmed. */
+  readonly placedPaymentMethodLabel = computed(() => {
+    switch (this.placedPaymentMethod()) {
+      case PaymentMethod.COD:
+        return 'Cash on Delivery (COD)';
+      case PaymentMethod.GCASH:
+        return 'GCash';
+      default:
+        return '';
+    }
+  });
+  readonly placedItemCount = computed(() =>
+    this.placedItems().reduce((sum, item) => sum + item.quantity, 0)
+  );
+  /**
+   * Any difference between the backend's line totals and its final total is a
+   * discount. Derived from authoritative response values, never fabricated.
+   */
+  readonly placedDiscount = computed(() => {
+    const order = this.placedOrder();
+    if (!order) {
+      return 0;
+    }
+    return Math.max(0, order.subtotal + order.deliveryFee - order.total);
+  });
+  /** Friendly status line for the freshly created order. */
+  readonly orderStatusMessage = computed(() => {
+    const order = this.placedOrder();
+    if (!order) {
+      return '';
+    }
+    switch (order.orderStatus as OrderStatus) {
+      case OrderStatus.PENDING:
+        return 'We have received your order and will confirm it with the shop shortly.';
+      case OrderStatus.CONFIRMED:
+        return 'The shop has confirmed your order and will start preparing it soon.';
+      case OrderStatus.PREPARING:
+        return 'Your coffee is being prepared. We will keep you posted.';
+      case OrderStatus.READY:
+        return 'Your order is ready and waiting for the rider.';
+      case OrderStatus.OUT_FOR_DELIVERY:
+        return 'Your order is on the way. Please keep your phone nearby.';
+      case OrderStatus.COMPLETED:
+        return 'Your order has been delivered. We hope you enjoy it!';
+      case OrderStatus.CANCELLED:
+        return 'This order has been cancelled.';
+      default:
+        return '';
+    }
+  });
   /**
    * The GCash QR + details form is only shown while the order is still
    * awaiting payment and the details have not been accepted yet.
@@ -239,7 +297,7 @@ export class CheckoutPage implements OnInit {
   );
 
   constructor() {
-    addIcons({ alertCircle, cafe, cart, checkmark, qrCode });
+    addIcons({ alertCircle, cafe, cart });
   }
 
   ngOnInit(): void {
@@ -369,15 +427,22 @@ export class CheckoutPage implements OnInit {
 
     const count = this.items().reduce((sum, item) => sum + item.quantity, 0);
     const method = this.paymentMethods.find((entry) => entry.value === this.paymentMethod());
+    const methodLabel = method?.label ?? 'COD';
+    const methodHint = method?.hint ?? 'Pay cash when your order arrives.';
     const alert = await this.alertController.create({
       header: 'Place your order?',
-      message:
-        `${count} item${count === 1 ? '' : 's'} — Total ${this.formatPrice(this.total())}. ` +
-        `Payment: ${method?.label ?? 'COD'} (${method?.hint ?? 'Pay cash on delivery.'})`,
+      subHeader: `${count} item${count === 1 ? '' : 's'} · Total ${this.formatPrice(this.total())}`,
+      message: `Payment: ${methodLabel}\n${methodHint}`,
+      cssClass: 'bb-order-alert',
       buttons: [
-        { text: 'Go Back', role: 'cancel' },
+        {
+          text: 'Go Back',
+          role: 'cancel',
+          cssClass: 'bb-order-cancel',
+        },
         {
           text: 'Place Order',
+          cssClass: 'bb-order-confirm',
           handler: () => {
             void this.placeOrder();
           },
@@ -403,22 +468,25 @@ export class CheckoutPage implements OnInit {
 
     this.submitting.set(true);
     try {
+      // Capture the exact lines being sent before the cart is cleared so the
+      // success screen can show them even though the backend response only
+      // returns totals.
+      const placedItems = this.items().map((item) => ({ ...item }));
       const request = this.buildCreateOrderRequest();
       const response = await this.ordersApi.createOrder(request);
       // Only clear the cart after the backend confirms the order, so a failed
       // request never loses the customer's items. The returned id/totals are
       // authoritative and drive the confirmation state.
+      this.placedItems.set(placedItems);
       this.cartService.clear();
       this.placedOrder.set(response);
       // A GCash order keeps the customer on this page: the required details
       // were already collected in the form, so they are submitted to the
-      // backend immediately. COD orders keep the existing redirect to
-      // My Orders.
+      // backend immediately. COD orders stay on the success screen, which
+      // links to the existing order tracking destination.
       const method = response.paymentMethod ?? request.paymentMethod;
       if (method === PaymentMethod.GCASH) {
         await this.submitGcashPaymentFor(response);
-      } else {
-        await this.router.navigate(['/my-orders']);
       }
       return response.id;
     } catch (error) {
@@ -533,6 +601,20 @@ export class CheckoutPage implements OnInit {
       customerComment: this.comment().trim(),
       paymentMethod: this.paymentMethod(),
     };
+  }
+
+  /** Opens the existing order tracking/details page for the created order. */
+  trackOrder(): void {
+    const order = this.placedOrder();
+    if (!order) {
+      return;
+    }
+    void this.router.navigate(['/my-orders', order.id]);
+  }
+
+  /** Returns to the existing storefront without touching the placed order. */
+  continueShopping(): void {
+    void this.router.navigate(['/products']);
   }
 
   formatPrice(value: number): string {

@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/products" text="Buy Coffee"></ion-back-button>
+      <ion-back-button defaultHref="/products" aria-label="Back"></ion-back-button>
     </ion-buttons>
     <ion-title>Product Details</ion-title>
     <app-header-cart-button slot="end"></app-header-cart-button>
@@ -122,13 +122,23 @@
       </section>
 
       <div class="add-bar">
-        <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
-          @if (!isAvailable()) {
-            Sold Out
-          } @else {
-            Add to Cart
-          }
-        </ion-button>
+        <div class="add-actions">
+          <ion-button class="add-button" expand="block" [disabled]="!canAddToCart()" (click)="addToCart()">
+            @if (!isAvailable()) {
+              Sold Out
+            } @else {
+              Add to Cart
+            }
+          </ion-button>
+          <ion-button
+            class="buy-now-button"
+            expand="block"
+            [disabled]="!canAddToCart()"
+            (click)="buyNow()"
+          >
+            Buy Now
+          </ion-button>
+        </div>
       </div>
     }
   </div>

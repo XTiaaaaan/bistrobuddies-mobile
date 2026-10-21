@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   IonBackButton,
   IonButton,
@@ -77,6 +77,7 @@ export class ProductDetailsPage implements OnInit {
   private readonly cartService = inject(CartService);
   private readonly cartFly = inject(CartFlyService);
   private readonly toastController = inject(ToastController);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
 
@@ -222,6 +223,15 @@ export class ProductDetailsPage implements OnInit {
     } finally {
       this.adding.set(false);
     }
+  }
+
+  async buyNow(): Promise<void> {
+    if (!this.canAddToCart()) {
+      return;
+    }
+
+    await this.addToCart();
+    await this.router.navigate(['/checkout']);
   }
 
   private ensureSelection(): void {

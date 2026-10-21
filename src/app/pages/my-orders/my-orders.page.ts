@@ -25,6 +25,7 @@ import {
   paymentMethodLabel,
   paymentStatusClass,
   paymentStatusLabel,
+  showPaymentStatus as isPaymentStatusVisible,
 } from '../../core/orders/order-display';
 import { refundDisplay, RefundDisplay } from '../../core/orders/refund-display';
 import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
@@ -154,7 +155,15 @@ export class MyOrdersPage implements OnInit {
     return paymentMethodLabel(order.paymentMethod);
   }
 
-  /** Refund facts for a cancelled order; hidden for all other statuses. */
+  /** Payment status badges are hidden for cancelled orders. */
+  showPaymentStatus(order: Order): boolean {
+    return isPaymentStatusVisible(order);
+  }
+
+  /**
+   * Refund facts for a cancelled order with collected-payment evidence;
+   * hidden for all other statuses and for unpaid cancelled COD orders.
+   */
   refund(order: Order): RefundDisplay {
     return refundDisplay(order);
   }
