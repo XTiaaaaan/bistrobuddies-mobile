@@ -583,6 +583,17 @@ ion-toast {
   animation: bb-pulse 1.6s ease-in-out infinite;
 }
 
+/*
+ * Bottom navigation clearance. The bar is fixed to the viewport, so each
+ * routed page's scroll area needs bottom padding equal to the bar plus the
+ * device safe area; the side menu's own content is intentionally excluded.
+ */
+ion-app.bb-has-bottom-nav ion-router-outlet ion-content {
+  --padding-bottom: calc(
+    var(--bb-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 8px
+  );
+}
+
 /* Header cart counter. */
 .cart-anchor {
   position: relative;

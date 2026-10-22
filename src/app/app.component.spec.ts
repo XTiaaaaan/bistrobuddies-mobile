@@ -1,4 +1,4 @@
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 
@@ -23,6 +23,9 @@ import { AppComponent } from './app.component';
 import { AuthService } from './services/auth.service';
 import { PushNotificationsService } from './services/push-notifications.service';
 import { UsersService } from './services/users.service';
+
+@Component({ template: '' })
+class StubPageComponent {}
 
 describe('AppComponent', () => {
   const authState$ = new BehaviorSubject(false);
@@ -51,7 +54,14 @@ describe('AppComponent', () => {
         IonRouterOutlet,
       ],
       providers: [
-        provideRouter([]),
+        provideRouter([
+          { path: 'dashboard', component: StubPageComponent },
+          { path: 'login', component: StubPageComponent },
+          { path: 'products', component: StubPageComponent },
+          { path: 'products/:id', component: StubPageComponent },
+          { path: 'cart', component: StubPageComponent },
+          { path: 'checkout', component: StubPageComponent },
+        ]),
         provideIonicAngular(),
         {
           provide: AuthService,
@@ -223,7 +233,7 @@ describe('AppComponent', () => {
     const links = fixture.debugElement
       .queryAll(By.directive(RouterLink))
       .map((el) => el.injector.get(RouterLink));
-    expect(links.length).toEqual(11);
+    expect(links.length).toEqual(14);
     expect(router.serializeUrl(links[0].urlTree!)).toEqual('/dashboard');
     expect(router.serializeUrl(links[1].urlTree!)).toEqual('/products');
     expect(router.serializeUrl(links[2].urlTree!)).toEqual('/cart');
@@ -235,5 +245,43 @@ describe('AppComponent', () => {
     expect(router.serializeUrl(links[8].urlTree!)).toEqual('/contact-us');
     expect(router.serializeUrl(links[9].urlTree!)).toEqual('/terms');
     expect(router.serializeUrl(links[10].urlTree!)).toEqual('/developers');
+    expect(router.serializeUrl(links[11].urlTree!)).toEqual('/dashboard');
+    expect(router.serializeUrl(links[12].urlTree!)).toEqual('/products');
+    expect(router.serializeUrl(links[13].urlTree!)).toEqual('/cart');
+  });
+
+  it('should show the bottom navigation on the main tabs', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/dashboard');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-bottom-nav')).not.toBeNull();
+    expect(
+      (fixture.nativeElement.querySelector('ion-app') as HTMLElement).classList
+    ).toContain('bb-has-bottom-nav');
+  });
+
+  it('should hide the bottom navigation on focused flows', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+
+    for (const url of ['/login', '/checkout', '/products/abc123']) {
+      await router.navigateByUrl(url);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('app-bottom-nav'), url).toBeNull();
+      expect(
+        (fixture.nativeElement.querySelector('ion-app') as HTMLElement).classList,
+        url
+      ).not.toContain('bb-has-bottom-nav');
+    }
   });
 });

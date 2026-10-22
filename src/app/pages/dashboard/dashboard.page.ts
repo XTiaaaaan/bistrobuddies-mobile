@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal, ViewChild } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
@@ -14,11 +14,14 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { cafe, cart, receipt } from 'ionicons/icons';
-import { HeaderCartButtonComponent } from '../../components/header-cart-button/header-cart-button.component';
+import {
+  cafe,
+  chevronForwardOutline,
+  chevronForwardSharp,
+  receipt,
+} from 'ionicons/icons';
 import { ProductGridComponent } from '../../components/product-grid/product-grid.component';
 import { AuthService } from '../../services/auth.service';
-import { CartService } from '../../services/cart.service';
 import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
 
 @Component({
@@ -27,7 +30,6 @@ import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
   styleUrls: ['./dashboard.page.scss'],
   standalone: true,
   imports: [
-    HeaderCartButtonComponent,
     IonButton,
     IonButtons,
     IonContent,
@@ -52,14 +54,10 @@ export class DashboardPage implements OnInit {
   @ViewChild(ProductGridComponent) private grid?: ProductGridComponent;
 
   private readonly auth = inject(AuthService);
-  private readonly cartService = inject(CartService);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Live cart counter for the quick-action shortcut. */
-  readonly cartCount = computed(() => this.cartService.itemCount());
-
   constructor() {
-    addIcons({ cafe, cart, receipt });
+    addIcons({ cafe, receipt, chevronForwardOutline, chevronForwardSharp });
   }
 
   ngOnInit() {

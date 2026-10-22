@@ -43,6 +43,18 @@ describe('DashboardPage', () => {
     expect(component.customerName()).toBe('Juan dela Cruz');
   });
 
+  it('should leave navigation to the navbar and keep only the My Orders shortcut', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('app-header-cart-button')).toBeNull();
+    expect(element.querySelector('.quick-count')).toBeNull();
+
+    const quickLinks = Array.from(
+      element.querySelectorAll<HTMLAnchorElement>('.quick-action')
+    ).map((link) => link.getAttribute('href'));
+    expect(quickLinks).toEqual(['/my-orders']);
+  });
+
   it('should reload the latest coffee and close the spinner on pull-to-refresh', async () => {
     const complete = vi.fn(() => Promise.resolve());
 
