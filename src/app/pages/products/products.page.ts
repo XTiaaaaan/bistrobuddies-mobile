@@ -12,7 +12,6 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { cafe } from 'ionicons/icons';
-import { HeaderCartButtonComponent } from '../../components/header-cart-button/header-cart-button.component';
 import { ProductGridComponent } from '../../components/product-grid/product-grid.component';
 import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
 
@@ -22,7 +21,6 @@ import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
   styleUrls: ['./products.page.scss'],
   standalone: true,
   imports: [
-    HeaderCartButtonComponent,
     IonButtons,
     IonContent,
     IonHeader,
