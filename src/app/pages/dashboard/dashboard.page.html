@@ -4,7 +4,6 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
     <ion-title>BistroBuddies</ion-title>
-    <app-header-cart-button slot="end"></app-header-cart-button>
   </ion-toolbar>
 </ion-header>
 
@@ -43,22 +42,15 @@
     </section>
 
     <nav class="quick-actions" aria-label="Quick actions">
-      <a class="quick-action" routerLink="/products" style="animation-delay: 60ms">
-        <span class="quick-icon"><ion-icon name="cafe" aria-hidden="true"></ion-icon></span>
-        <span class="quick-label">Buy Coffee</span>
-      </a>
-      <a class="quick-action" routerLink="/cart" style="animation-delay: 120ms">
-        <span class="quick-icon">
-          <ion-icon name="cart" aria-hidden="true"></ion-icon>
-          @if (cartCount() > 0) {
-            <span class="quick-count">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
-          }
-        </span>
-        <span class="quick-label">Cart</span>
-      </a>
-      <a class="quick-action" routerLink="/my-orders" style="animation-delay: 180ms">
+      <a class="quick-action" routerLink="/my-orders">
         <span class="quick-icon"><ion-icon name="receipt" aria-hidden="true"></ion-icon></span>
         <span class="quick-label">My Orders</span>
+        <ion-icon
+          class="quick-chevron"
+          aria-hidden="true"
+          ios="chevron-forward-outline"
+          md="chevron-forward-sharp"
+        ></ion-icon>
       </a>
     </nav>
 
