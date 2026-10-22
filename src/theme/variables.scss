@@ -57,6 +57,9 @@
   --bb-radius-card: 18px;
   --bb-radius-sm: 12px;
 
+  /* Height of the app-level bottom navigation (safe-area padding is extra). */
+  --bb-bottom-nav-height: 56px;
+
   --bb-motion-fast: 140ms;
   --bb-motion-base: 240ms;
   --bb-ease: cubic-bezier(0.2, 0.7, 0.3, 1);

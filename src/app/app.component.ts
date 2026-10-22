@@ -56,6 +56,10 @@ import {
 } from 'ionicons/icons';
 import { catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
+import {
+  BottomNavComponent,
+  isBottomNavVisible,
+} from './components/bottom-nav/bottom-nav.component';
 import { SignInPromptService } from './core/auth/sign-in-prompt.service';
 import {
   cacheBustProfilePhotoUrl,
@@ -95,6 +99,7 @@ export interface MenuProfile {
     IonLabel,
     IonFooter,
     IonRouterOutlet,
+    BottomNavComponent,
   ],
 })
 export class AppComponent implements OnInit {
@@ -115,6 +120,8 @@ export class AppComponent implements OnInit {
   protected readonly selectedIndex = signal(0);
   protected readonly signedIn = signal(false);
   protected readonly showMenu = signal(true);
+  /** The fixed bottom bar steps aside on focused flows (auth, checkout, details). */
+  readonly showBottomNav = signal(true);
   /** Profile summary for the signed-in customer; null while signed out. */
   protected readonly profile = signal<MenuProfile | null>(null);
 
@@ -306,6 +313,7 @@ export class AppComponent implements OnInit {
     );
     this.selectedIndex.set(index >= 0 ? index : 0);
     this.showMenu.set(!AUTH_ROUTES.some((route) => url.startsWith(route)));
+    this.showBottomNav.set(isBottomNavVisible(url));
   }
 
   async onLogout() {

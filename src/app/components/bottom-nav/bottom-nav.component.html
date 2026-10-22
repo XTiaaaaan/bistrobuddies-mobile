@@ -1,0 +1,37 @@
+<nav class="bb-bottom-nav" aria-label="Primary">
+  <div class="bb-bottom-nav__track">
+    @for (item of items; track item.key) {
+      <a
+        class="bb-nav-item"
+        [class.is-active]="activeTab() === item.key"
+        [routerLink]="item.url"
+        routerDirection="root"
+        [attr.aria-current]="activeTab() === item.key ? 'page' : null"
+        [attr.aria-label]="item.key === 'cart' ? cartLinkLabel() : null"
+      >
+        <span class="bb-nav-icon" [class.cart-anchor]="item.key === 'cart'">
+          <ion-icon
+            aria-hidden="true"
+            [ios]="item.icon + '-outline'"
+            [md]="item.icon + '-sharp'"
+          ></ion-icon>
+          @if (item.key === 'cart' && cartCount() > 0) {
+            <span class="cart-badge">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
+          }
+        </span>
+        <span class="bb-nav-label">{{ item.label }}</span>
+      </a>
+    }
+
+    <button type="button" class="bb-nav-item bb-nav-more" (click)="openMenu()">
+      <span class="bb-nav-icon">
+        <ion-icon
+          aria-hidden="true"
+          ios="ellipsis-horizontal-outline"
+          md="ellipsis-horizontal-sharp"
+        ></ion-icon>
+      </span>
+      <span class="bb-nav-label">More</span>
+    </button>
+  </div>
+</nav>

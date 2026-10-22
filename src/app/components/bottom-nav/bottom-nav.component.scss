@@ -1,0 +1,107 @@
+:host {
+  display: block;
+}
+
+.bb-bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #3b2418 0%, #33200f 100%);
+  border-top: 1px solid rgba(212, 169, 106, 0.35);
+  box-shadow: 0 -8px 22px rgba(59, 36, 24, 0.22);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bb-bottom-nav__track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.bb-nav-item {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 48px;
+  margin: 0;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: rgba(245, 237, 228, 0.68);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--bb-motion-fast, 140ms) var(--bb-ease, ease),
+    background-color var(--bb-motion-fast, 140ms) var(--bb-ease, ease),
+    transform var(--bb-motion-fast, 140ms) var(--bb-ease, ease);
+
+  .bb-nav-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 26px;
+    border-radius: 999px;
+    transition: background-color var(--bb-motion-fast, 140ms) var(--bb-ease, ease);
+
+    ion-icon {
+      font-size: 21px;
+    }
+
+    /* Lift the shared cart badge so it clears the icon on the dark bar. */
+    .cart-badge {
+      top: -4px;
+      right: -6px;
+    }
+  }
+
+  .bb-nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &.is-active {
+    color: var(--bb-caramel-light, #d4a96a);
+
+    .bb-nav-icon {
+      background: rgba(212, 169, 106, 0.2);
+    }
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bb-caramel-light, #d4a96a);
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: hover) {
+  .bb-nav-item:hover:not(.is-active) {
+    color: rgba(245, 237, 228, 0.92);
+    background: rgba(245, 237, 228, 0.06);
+  }
+}
