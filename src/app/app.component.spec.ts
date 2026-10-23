@@ -101,18 +101,16 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     const app = fixture.nativeElement;
     const menuItems = app.querySelectorAll('ion-label');
-    expect(menuItems.length).toEqual(11);
+    expect(menuItems.length).toEqual(9);
     expect(menuItems[0].innerHTML).toContain('Dashboard');
     expect(menuItems[1].innerHTML).toContain('Buy Coffee');
-    expect(menuItems[2].innerHTML).toContain('Cart');
-    expect(menuItems[3].innerHTML).toContain('My Orders');
-    expect(menuItems[4].innerHTML).toContain('My Messages');
-    expect(menuItems[5].innerHTML).toContain('Company History');
-    expect(menuItems[6].innerHTML).toContain('About Our Products');
-    expect(menuItems[7].innerHTML).toContain('About the App');
-    expect(menuItems[8].innerHTML).toContain('Contact Us');
-    expect(menuItems[9].innerHTML).toContain('Terms of Service');
-    expect(menuItems[10].innerHTML).toContain('Developers');
+    expect(menuItems[2].innerHTML).toContain('My Messages');
+    expect(menuItems[3].innerHTML).toContain('Company History');
+    expect(menuItems[4].innerHTML).toContain('About Our Products');
+    expect(menuItems[5].innerHTML).toContain('About the App');
+    expect(menuItems[6].innerHTML).toContain('Contact Us');
+    expect(menuItems[7].innerHTML).toContain('Terms of Service');
+    expect(menuItems[8].innerHTML).toContain('Developers');
   });
 
   it('should show a sign-in prompt when the customer has no profile', () => {
@@ -233,21 +231,20 @@ describe('AppComponent', () => {
     const links = fixture.debugElement
       .queryAll(By.directive(RouterLink))
       .map((el) => el.injector.get(RouterLink));
-    expect(links.length).toEqual(14);
+    expect(links.length).toEqual(13);
     expect(router.serializeUrl(links[0].urlTree!)).toEqual('/dashboard');
     expect(router.serializeUrl(links[1].urlTree!)).toEqual('/products');
-    expect(router.serializeUrl(links[2].urlTree!)).toEqual('/cart');
-    expect(router.serializeUrl(links[3].urlTree!)).toEqual('/my-orders');
-    expect(router.serializeUrl(links[4].urlTree!)).toEqual('/my-messages');
-    expect(router.serializeUrl(links[5].urlTree!)).toEqual('/company-history');
-    expect(router.serializeUrl(links[6].urlTree!)).toEqual('/about-products');
-    expect(router.serializeUrl(links[7].urlTree!)).toEqual('/about');
-    expect(router.serializeUrl(links[8].urlTree!)).toEqual('/contact-us');
-    expect(router.serializeUrl(links[9].urlTree!)).toEqual('/terms');
-    expect(router.serializeUrl(links[10].urlTree!)).toEqual('/developers');
-    expect(router.serializeUrl(links[11].urlTree!)).toEqual('/dashboard');
-    expect(router.serializeUrl(links[12].urlTree!)).toEqual('/products');
-    expect(router.serializeUrl(links[13].urlTree!)).toEqual('/cart');
+    expect(router.serializeUrl(links[2].urlTree!)).toEqual('/my-messages');
+    expect(router.serializeUrl(links[3].urlTree!)).toEqual('/company-history');
+    expect(router.serializeUrl(links[4].urlTree!)).toEqual('/about-products');
+    expect(router.serializeUrl(links[5].urlTree!)).toEqual('/about');
+    expect(router.serializeUrl(links[6].urlTree!)).toEqual('/contact-us');
+    expect(router.serializeUrl(links[7].urlTree!)).toEqual('/terms');
+    expect(router.serializeUrl(links[8].urlTree!)).toEqual('/developers');
+    expect(router.serializeUrl(links[9].urlTree!)).toEqual('/dashboard');
+    expect(router.serializeUrl(links[10].urlTree!)).toEqual('/products');
+    expect(router.serializeUrl(links[11].urlTree!)).toEqual('/cart');
+    expect(router.serializeUrl(links[12].urlTree!)).toEqual('/my-orders');
   });
 
   it('should show the bottom navigation on the main tabs', async () => {

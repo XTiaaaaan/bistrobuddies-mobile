@@ -195,23 +195,6 @@ ion-menu .menu-content::part(scroll) {
         color: $espresso;
         transition: color var(--bb-motion-base, 240ms) var(--bb-ease, ease);
       }
-
-      .icon-badge-count {
-        position: absolute;
-        top: -5px;
-        right: -6px;
-        min-width: 18px;
-        padding: 0 5px;
-        border-radius: 999px;
-        background: $gold;
-        color: #ffffff;
-        font-size: 10px;
-        font-weight: 700;
-        line-height: 18px;
-        text-align: center;
-        box-shadow: 0 0 0 2px $cream;
-        animation: bb-pop 0.3s var(--bb-ease, ease) both;
-      }
     }
 
     &.selected .icon-badge {
@@ -219,10 +202,6 @@ ion-menu .menu-content::part(scroll) {
 
       ion-icon {
         color: #ffffff;
-      }
-
-      .icon-badge-count {
-        box-shadow: 0 0 0 2px $pill-bg;
       }
     }
 

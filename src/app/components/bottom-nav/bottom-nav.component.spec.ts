@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { MenuController, provideIonicAngular } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular';
 
 import { CartService } from '../../services/cart.service';
 import {
@@ -25,6 +25,7 @@ describe('BottomNavComponent', () => {
           { path: 'dashboard', component: StubPageComponent },
           { path: 'products', component: StubPageComponent },
           { path: 'cart', component: StubPageComponent },
+          { path: 'my-orders', component: StubPageComponent },
         ]),
         provideIonicAngular(),
         { provide: CartService, useValue: { itemCount: cartCount } },
@@ -44,19 +45,20 @@ describe('BottomNavComponent', () => {
       fixture.nativeElement.querySelectorAll('.bb-nav-label')
     ).map((label) => (label as HTMLElement).textContent?.trim());
 
-    expect(labels).toEqual(['Home', 'Products', 'Cart', 'More']);
+    expect(labels).toEqual(['Home', 'Products', 'Cart', 'My Orders']);
   });
 
-  it('should link to the dashboard, products and cart', () => {
+  it('should link to the dashboard, products, cart and my orders', () => {
     const fixture = createFixture();
     const links = Array.from(
       fixture.nativeElement.querySelectorAll('a.bb-nav-item')
     ) as HTMLAnchorElement[];
 
-    expect(links.length).toEqual(3);
+    expect(links.length).toEqual(4);
     expect(links[0].getAttribute('href')).toBe('/dashboard');
     expect(links[1].getAttribute('href')).toBe('/products');
     expect(links[2].getAttribute('href')).toBe('/cart');
+    expect(links[3].getAttribute('href')).toBe('/my-orders');
   });
 
   it('should mark the destination for the current route as active', async () => {
@@ -66,27 +68,23 @@ describe('BottomNavComponent', () => {
     await router.navigateByUrl('/products');
     fixture.detectChanges();
 
-    const links = Array.from(
+    let links = Array.from(
       fixture.nativeElement.querySelectorAll('a.bb-nav-item')
     ) as HTMLAnchorElement[];
 
     expect(links[0].classList.contains('is-active')).toBe(false);
     expect(links[1].classList.contains('is-active')).toBe(true);
     expect(links[1].getAttribute('aria-current')).toBe('page');
-  });
 
-  it('should open the side menu from the More button', async () => {
-    const fixture = createFixture();
-    const menu = TestBed.inject(MenuController);
-    const open = vi.spyOn(menu, 'open').mockResolvedValue(true);
+    await router.navigateByUrl('/my-orders');
+    fixture.detectChanges();
 
-    const more = fixture.nativeElement.querySelector(
-      '.bb-nav-more'
-    ) as HTMLButtonElement;
-    more.click();
-    await fixture.whenStable();
+    links = Array.from(
+      fixture.nativeElement.querySelectorAll('a.bb-nav-item')
+    ) as HTMLAnchorElement[];
 
-    expect(open).toHaveBeenCalled();
+    expect(links[3].classList.contains('is-active')).toBe(true);
+    expect(links[3].getAttribute('aria-current')).toBe('page');
   });
 
   it('should hide the cart badge when the cart is empty', () => {

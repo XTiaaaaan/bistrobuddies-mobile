@@ -14,12 +14,7 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import {
-  cafe,
-  chevronForwardOutline,
-  chevronForwardSharp,
-  receipt,
-} from 'ionicons/icons';
+import { cafe } from 'ionicons/icons';
 import { ProductGridComponent } from '../../components/product-grid/product-grid.component';
 import { AuthService } from '../../services/auth.service';
 import { RefresherEvent, withRefresh } from '../../core/refresher/refresher';
@@ -57,7 +52,7 @@ export class DashboardPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
-    addIcons({ cafe, receipt, chevronForwardOutline, chevronForwardSharp });
+    addIcons({ cafe });
   }
 
   ngOnInit() {

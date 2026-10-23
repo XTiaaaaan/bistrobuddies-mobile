@@ -527,7 +527,6 @@ ion-button,
 .qty-btn,
 .size-option,
 .sugar-option,
-.quick-action,
 .profile-card,
 .logout-bar {
   transition:
@@ -543,7 +542,6 @@ ion-button:active:not([disabled]),
 .qty-btn:active:not([disabled]),
 .size-option:active:not([disabled]),
 .sugar-option:active:not([disabled]),
-.quick-action:active,
 .profile-card:active,
 .logout-bar:active {
   transform: scale(0.97);
@@ -554,7 +552,6 @@ ion-button:active:not([disabled]),
 .qty-btn:focus-visible,
 .size-option:focus-visible,
 .sugar-option:focus-visible,
-.quick-action:focus-visible,
 .profile-card:focus-visible {
   outline: 2px solid var(--bb-caramel);
   outline-offset: 2px;
