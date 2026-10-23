@@ -1,21 +1,21 @@
 import { DestroyRef, Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { IonIcon, MenuController } from '@ionic/angular';
+import { IonIcon } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   cafeOutline,
   cafeSharp,
   cartOutline,
   cartSharp,
-  ellipsisHorizontalOutline,
-  ellipsisHorizontalSharp,
   homeOutline,
   homeSharp,
+  receiptOutline,
+  receiptSharp,
 } from 'ionicons/icons';
 import { CartService } from '../../services/cart.service';
 
-export type BottomNavTab = 'home' | 'products' | 'cart';
+export type BottomNavTab = 'home' | 'products' | 'cart' | 'my-orders';
 
 export interface BottomNavItem {
   key: BottomNavTab;
@@ -55,14 +55,17 @@ function tabFor(url: string): BottomNavTab | null {
   if (url.startsWith('/cart')) {
     return 'cart';
   }
+  if (url.startsWith('/my-orders')) {
+    return 'my-orders';
+  }
   return null;
 }
 
 /**
- * App-level bottom navigation: Home, Products, Cart and a More button that
- * opens the existing side menu. Rendered once in AppComponent, so pages never
- * duplicate it; `isBottomNavVisible` drives where it (and the content padding
- * that keeps scroll areas clear of it) appears.
+ * App-level bottom navigation: Home, Products, Cart and My Orders. Rendered
+ * once in AppComponent, so pages never duplicate it; `isBottomNavVisible`
+ * drives where it (and the content padding that keeps scroll areas clear of
+ * it) appears.
  */
 @Component({
   selector: 'app-bottom-nav',
@@ -76,10 +79,10 @@ export class BottomNavComponent {
     { key: 'home', label: 'Home', url: '/dashboard', icon: 'home' },
     { key: 'products', label: 'Products', url: '/products', icon: 'cafe' },
     { key: 'cart', label: 'Cart', url: '/cart', icon: 'cart' },
+    { key: 'my-orders', label: 'My Orders', url: '/my-orders', icon: 'receipt' },
   ];
 
   private readonly router = inject(Router);
-  private readonly menu = inject(MenuController);
   private readonly cartService = inject(CartService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -94,8 +97,8 @@ export class BottomNavComponent {
       cafeSharp,
       cartOutline,
       cartSharp,
-      ellipsisHorizontalOutline,
-      ellipsisHorizontalSharp,
+      receiptOutline,
+      receiptSharp,
     });
 
     this.activeTab.set(tabFor(this.router.url));
@@ -112,10 +115,5 @@ export class BottomNavComponent {
   cartLinkLabel(): string | null {
     const count = this.cartCount();
     return count > 0 ? `Cart, ${count} item${count === 1 ? '' : 's'}` : null;
-  }
-
-  /** Opens the side menu through the same MenuController the app already uses. */
-  async openMenu(): Promise<void> {
-    await this.menu.open();
   }
 }

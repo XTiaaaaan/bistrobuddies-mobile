@@ -3,7 +3,6 @@ import {
   DestroyRef,
   OnInit,
   afterNextRender,
-  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -29,10 +28,6 @@ import {
   homeSharp,
   listOutline,
   listSharp,
-  cartOutline,
-  cartSharp,
-  receiptOutline,
-  receiptSharp,
   mailOutline,
   mailSharp,
   informationCircleOutline,
@@ -66,7 +61,6 @@ import {
   resolveProfilePhotoUrl,
 } from './core/profile/profile-photo';
 import { AuthService } from './services/auth.service';
-import { CartService } from './services/cart.service';
 import { PushNotificationsService } from './services/push-notifications.service';
 import { UsersService } from './services/users.service';
 
@@ -106,8 +100,6 @@ export class AppComponent implements OnInit {
   protected readonly appPages = [
     { title: 'Dashboard', url: '/dashboard', icon: 'home' },
     { title: 'Buy Coffee', url: '/products', icon: 'list' },
-    { title: 'Cart', url: '/cart', icon: 'cart' },
-    { title: 'My Orders', url: '/my-orders', icon: 'receipt' },
     { title: 'My Messages', url: '/my-messages', icon: 'mail' },
     { title: 'Company History', url: '/company-history', icon: 'time' },
     { title: 'About Our Products', url: '/about-products', icon: 'cafe' },
@@ -132,14 +124,10 @@ export class AppComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly users = inject(UsersService);
-  private readonly cartService = inject(CartService);
   private readonly pushNotifications = inject(PushNotificationsService);
   private readonly menuController = inject(MenuController);
   private readonly signInPrompt = inject(SignInPromptService);
   private readonly destroyRef = inject(DestroyRef);
-
-  /** Live cart counter shown next to the Cart entry in the side menu. */
-  readonly cartCount = computed(() => this.cartService.itemCount());
 
   constructor() {
     addIcons({
@@ -147,10 +135,6 @@ export class AppComponent implements OnInit {
       homeSharp,
       listOutline,
       listSharp,
-      cartOutline,
-      cartSharp,
-      receiptOutline,
-      receiptSharp,
       mailOutline,
       mailSharp,
       informationCircleOutline,
@@ -311,7 +295,7 @@ export class AppComponent implements OnInit {
     const index = this.appPages.findIndex((page) =>
       url.startsWith(page.url)
     );
-    this.selectedIndex.set(index >= 0 ? index : 0);
+    this.selectedIndex.set(index);
     this.showMenu.set(!AUTH_ROUTES.some((route) => url.startsWith(route)));
     this.showBottomNav.set(isBottomNavVisible(url));
   }
